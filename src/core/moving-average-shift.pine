@@ -96,12 +96,19 @@ setupBear = trendBear and oscAccelBear
 // --------------------------------------------------------------------------------------------------------------------
 // Signals
 // --------------------------------------------------------------------------------------------------------------------
-origUp = oscReady and ta.crossover(osc, osc[2]) and osc < -oscThreshold
-origDn = oscReady and ta.crossunder(osc, osc[2]) and osc > oscThreshold
-zeroUp = oscReady and ta.crossover(osc, 0.0)
-zeroDn = oscReady and ta.crossunder(osc, 0.0)
-lineUp = oscReady and ta.crossover(osc, oscSignal) and osc < 0
-lineDn = oscReady and ta.crossunder(osc, oscSignal) and osc > 0
+origUpCross = ta.crossover(osc, osc[2])
+origDnCross = ta.crossunder(osc, osc[2])
+zeroUpCross = ta.crossover(osc, 0.0)
+zeroDnCross = ta.crossunder(osc, 0.0)
+lineUpCross = ta.crossover(osc, oscSignal)
+lineDnCross = ta.crossunder(osc, oscSignal)
+
+origUp = oscReady and origUpCross and osc < -oscThreshold
+origDn = oscReady and origDnCross and osc > oscThreshold
+zeroUp = oscReady and zeroUpCross
+zeroDn = oscReady and zeroDnCross
+lineUp = oscReady and lineUpCross and osc < 0
+lineDn = oscReady and lineDnCross and osc > 0
 
 sigUpRaw = switch signalMode
     "Original"   => origUp
