@@ -65,6 +65,8 @@ A true intrabar/LTF engine based on `request.security_lower_tf()` is a separate 
 
 All `alertcondition()` paths are hard-gated by `barstate.isconfirmed`.
 
+Fakeout uses a dedicated edge event (`fakeoutEvt = fakeout and not fakeout[1]`) so the optional fakeout alert/log fires once on transition instead of repeating on every confirmed chart bar while the condition remains active.
+
 Dynamic `alert()` telemetry also executes only on confirmed chart bars and continues using `alert.freq_once_per_bar_close`.
 
 Telemetry records:
@@ -120,8 +122,10 @@ The repository now has two compile paths:
 The CI client submits the candidate to TradingView's internal `translate_light` compiler without saving or publishing anything.
 
 Latest-head evidence:
-- Pine compile push run: `35753811279` — **PASS**
-- Pine compile PR run: `35753814597` — **PASS**
+- Pine compile baseline push run: `35753811279` — **PASS**
+- Pine compile baseline PR run: `35753814597` — **PASS**
+- Pine compile latest code-head run after fakeout edge fix: `35754001242` — **PASS**
+- Static integrity latest code-head run: `35754001287` — **PASS**
 - result: `compiled=true`
 - compiler errors: **0**
 - compiler warnings: **0**
