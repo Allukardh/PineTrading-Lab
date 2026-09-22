@@ -88,6 +88,26 @@ def main() -> None:
             if "alertcondition(alertBarOk and " not in line:
                 fail(f"ungated alertcondition: {line}")
 
+        # Event alerts must be transition/edge driven rather than persistent-state driven.
+        event_edge_invariants = [
+            'goLongEvt   = (verdict == "LONG")  and (verdict[1] != "LONG")',
+            'goShortEvt  = (verdict == "SHORT") and (verdict[1] != "SHORT")',
+            'earlyLongEvt  = (state == "🟡 EARLY LONG")  and (state[1] != "🟡 EARLY LONG")',
+            'earlyShortEvt = (state == "🟡 EARLY SHORT") and (state[1] != "🟡 EARLY SHORT")',
+            'watchEvt    = (state == "⚠️ WATCH") and (state[1] != "⚠️ WATCH")',
+            'noTradeEvt  = (state == "⛔ NO-TRADE") and (state[1] != "⛔ NO-TRADE")',
+            'breakUpEvt    = breakUp and not breakUp[1]',
+            'breakDownEvt  = breakDown and not breakDown[1]',
+            'retestUpEvt   = retestUp and not retestUp[1]',
+            'retestDownEvt = retestDown and not retestDown[1]',
+            'fakeoutEvt = fakeout and not fakeout[1]',
+            'ipStartEvt  = (inDir != 0) and (inDir[1] == 0)',
+            'ipEndEvt    = (inDir == 0) and (inDir[1] != 0)',
+        ]
+        for token in event_edge_invariants:
+            if token not in sg:
+                fail(f"SignalGate event-edge invariant missing: {token}")
+
     print("PASS: archive integrity + reboot invariants")
 
 
