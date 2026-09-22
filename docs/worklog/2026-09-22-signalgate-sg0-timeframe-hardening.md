@@ -110,6 +110,17 @@ Those are independent behavioral changes and require separate milestones.
 
 The CI checker also verifies that all 53 split archive sources still match the raw TradingView export after newline normalization.
 
+## Independent archive-vs-candidate review
+
+A line-level LCS diff was reviewed between the immutable archived SignalGate source and the active 0.1.0 candidate.
+
+Result:
+- 12 logical change hunks
+- every hunk maps to SG-0 scope: version reset, timeframe policy/guards, confirmed structure/trigger commits, fakeout edge, panel disclosure, alert close-gating, telemetry policy
+- no unrelated scoring/threshold/visual-market-logic rewrite was found
+
+The fakeout path was tightened during this review so its optional alert/log uses a one-shot `fakeoutEvt` transition rather than the persistent state.
+
 ## Validation gates still required
 
 ### Gate 2 — TradingView compile — PASS
@@ -124,8 +135,10 @@ The CI client submits the candidate to TradingView's internal `translate_light` 
 Latest-head evidence:
 - Pine compile baseline push run: `35753811279` — **PASS**
 - Pine compile baseline PR run: `35753814597` — **PASS**
-- Pine compile latest code-head run after fakeout edge fix: `35754001242` — **PASS**
-- Static integrity latest code-head run: `35754001287` — **PASS**
+- Pine compile code-head run after fakeout edge fix: `35754001242` — **PASS**
+- Static integrity code-head run: `35754001287` — **PASS**
+- Latest PR compile run with strengthened invariants: `35754129004` — **PASS**
+- Latest push static-integrity run with fakeout invariant: `35754121451` — **PASS**
 - result: `compiled=true`
 - compiler errors: **0**
 - compiler warnings: **0**
