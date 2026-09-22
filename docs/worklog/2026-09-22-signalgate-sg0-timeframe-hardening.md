@@ -349,9 +349,13 @@ On a 1D chart with default Bias TF #1 = 4H:
 - [x] full panel shows `Bias clamp: SIM`
 - [x] no lower-timeframe `request.security()` path is used (static/CI)
 
-Still pending:
-- manual Structure TF below chart must raise explicit runtime error
-- manual Trigger TF below chart must raise explicit runtime error
+### Manual lower-TF guard tests — PASS
+
+On BTCUSDT 4H:
+- `Auto Structure TF = OFF`, manual `Structure TF = 60` produced the expected runtime error: `Structure TF must be equal to or higher than the chart TF.`
+- `Auto Structure TF = ON`, `Auto Trigger TF = OFF`, manual `Trigger TF = 60` produced the expected runtime error: `Trigger TF must be equal to or higher than the chart TF in SG-0. Use Auto Trigger TF or choose a valid manual TF.`
+
+This closes the interactive lower-timeframe guard matrix: Bias uses safe-clamp; event-producing Structure/Trigger contexts fail explicitly when manually configured below the chart.
 
 ## Promotion rule
 
