@@ -257,6 +257,35 @@ The payload matches the visible 15m dashboard state from the preceding interacti
 
 Conclusion: **dynamic bar-close telemetry PASS for the observed 15m close**. Event-specific GO/EARLY/K-R/IN_PLAY alert transitions remain to be validated separately.
 
+### BTCUSDT 15m — HEARTBEAT repeatability evidence
+
+A second consecutive 15m close was observed with the same TradingView alert still active.
+
+Registry:
+- first close: 17:15:01 — one HEARTBEAT entry
+- second close: 17:30:01 — one HEARTBEAT entry
+- no duplicate entries were visible for either close
+
+The second payload reported:
+- `EVT=HEARTBEAT`
+- `TF=15`
+- `T=1790108100000` (17:15 local chart bar open, therefore the 17:15–17:30 bar)
+- `PROFILE=Aggressive`
+- `STATE=GO`
+- `VERDICT=LONG`
+- `QUAL=REGULAR`
+- `MODE=B (BREAKOUT)`
+- `SCL=6`
+- `SCS=1`
+- `TRIGTF=60`
+- `STRUCTTF=240`
+- `INDIR=0`
+- `INV=0`
+
+The 17:30:01 timestamp is ~1 second after the 17:15–17:30 candle closed.
+
+Conclusion: **HEARTBEAT bar-close repeatability PASS** for two consecutive 15m closes, with exactly one observed alert per close.
+
 These observations validate rendering/timeframe selection, but **do not** close reload-parity or alert gates.
 
 ### BTCUSDT 1D — safe-clamp PASS
