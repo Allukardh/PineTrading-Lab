@@ -52,7 +52,7 @@ The scoring model, thresholds and market-logic weights have **not** been redesig
 - Repository integrity automation: **PASS** (latest push + PR runs)
 - Pine v6 TradingView server compile: **PASS** — errors 0, warnings 0 (GitHub Actions)
 - Realtime vs reload parity: **PARTIAL PASS** — 15m/1H/4H closed-history/rendered state stable across reload; 15m bar-close telemetry PASS; event-specific alert transitions pending
-- Alert regression: **PARTIAL PASS** — 15m HEARTBEAT confirmed at bar close with matching KV state and no duplicate observed; event-specific transitions pending
+- Alert regression: **PARTIAL PASS** — HEARTBEAT repeatability PASS on two consecutive 15m closes with one alert per close; event-specific transitions pending
 - Visual/state regression: **PARTIAL PASS** — 15m/1H/4H reload matrix stable; 1D safe-clamp full panel rendered successfully; alert-close/remaining guard tests pending
 - Market efficacy validation: **NOT STARTED**
 
