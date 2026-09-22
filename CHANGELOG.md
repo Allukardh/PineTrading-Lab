@@ -13,6 +13,7 @@ All notable project changes are documented here.
 - Provenance safeguards and validation gates.
 - SignalGate Dashboard reboot candidate `0.1.0` (SG-0).
 - Repository integrity checker and GitHub Actions static-integrity workflow.
+- Read-only-current-editor / non-saving TradingView server compile helper for Gate 2 validation.
 
 ### Changed
 - Active version lineage reset. Every core script begins at `0.1.0` when first promoted from archive into `src/core/`.
