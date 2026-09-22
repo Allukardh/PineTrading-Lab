@@ -25,6 +25,7 @@ All notable project changes are documented here.
 
 ### Fixed
 - SignalGate no longer uses `request.security()` as an implicit lower-timeframe sampler when Auto Trigger is enabled on charts above 1H.
+- Fakeout alerts now use an edge event (`fakeoutEvt`) instead of firing on every confirmed chart bar while the fakeout state remains true.
 
 ### Integrity
 - No TradingView cookies/session tokens, API keys, exchange keys, webhook secrets, or other credentials are stored.
