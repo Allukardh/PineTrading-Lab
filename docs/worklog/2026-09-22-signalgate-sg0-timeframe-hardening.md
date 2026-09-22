@@ -110,14 +110,23 @@ The CI checker also verifies that all 53 split archive sources still match the r
 
 ## Validation gates still required
 
-### Gate 2 — TradingView compile
-Candidate must compile as Pine v6 with no unexplained errors/warnings.
+### Gate 2 — TradingView compile — PASS
 
-A non-saving helper is available at:
+The repository now has two compile paths:
 
-`tools/tradingview-compile/compile-current-editor.js`
+- `tools/tradingview-compile/compile_pine.py` — CI/server compiler gate.
+- `tools/tradingview-compile/compile-current-editor.js` — optional browser-side verification of the currently open editor.
 
-It reads the currently open Pine editor and submits the source to TradingView's own internal `translate_light` compiler endpoint. It does not modify or save the editor. Because the endpoint and Monaco internals are private implementation details, this helper is documented as best-effort tooling.
+The CI client submits the candidate to TradingView's internal `translate_light` compiler without saving or publishing anything.
+
+Latest-head evidence:
+- Pine compile push run: `35753811279` — **PASS**
+- Pine compile PR run: `35753814597` — **PASS**
+- result: `compiled=true`
+- compiler errors: **0**
+- compiler warnings: **0**
+
+The internal endpoint remains undocumented/unstable, so a future endpoint failure must be distinguished from an actual Pine compile failure.
 
 ### Gate 3 — timing/reload parity
 Test at minimum:
