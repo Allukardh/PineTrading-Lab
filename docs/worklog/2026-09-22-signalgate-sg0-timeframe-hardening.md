@@ -162,6 +162,9 @@ Latest-head evidence:
 - Static integrity code-head run: `35754001287` — **PASS**
 - Latest PR compile run with strengthened invariants: `35754129004` — **PASS**
 - Latest push static-integrity run with fakeout invariant: `35754121451` — **PASS**
+- Bias safe-clamp source PR compile run: `35758036440` — **PASS**
+- Bias safe-clamp invariant PR compile run: `35758056696` — **PASS**, errors 0, warnings 0
+- Bias safe-clamp invariant PR integrity run: `35758056816` — **PASS**
 - result: `compiled=true`
 - compiler errors: **0**
 - compiler warnings: **0**
