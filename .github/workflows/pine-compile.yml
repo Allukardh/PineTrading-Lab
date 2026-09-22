@@ -1,0 +1,31 @@
+name: Pine compile
+
+on:
+  push:
+    branches: ["main", "feat/**", "fix/**"]
+    paths:
+      - "src/core/**/*.pine"
+      - "tools/tradingview-compile/compile_pine.py"
+      - ".github/workflows/pine-compile.yml"
+  pull_request:
+    paths:
+      - "src/core/**/*.pine"
+      - "tools/tradingview-compile/compile_pine.py"
+      - ".github/workflows/pine-compile.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Compile active Pine candidates
+        run: python tools/tradingview-compile/compile_pine.py --fail-on-warning src/core/*.pine

@@ -1,0 +1,22 @@
+name: Static integrity
+
+on:
+  push:
+    branches: ["main", "feat/**", "fix/**", "audit/**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Validate archive and reboot invariants
+        run: python tools/check_repo_integrity.py
