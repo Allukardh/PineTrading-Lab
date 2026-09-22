@@ -102,11 +102,22 @@ Those are independent behavioral changes and require separate milestones.
 - all `alertcondition()` calls close-gated
 - telemetry close-gated
 - archived source left untouched
+- repository integrity workflow: **PASS**
+  - push run: `35753309572`
+  - PR run: `35753335019`
+
+The CI checker also verifies that all 53 split archive sources still match the raw TradingView export after newline normalization.
 
 ## Validation gates still required
 
 ### Gate 2 — TradingView compile
 Candidate must compile as Pine v6 with no unexplained errors/warnings.
+
+A non-saving helper is available at:
+
+`tools/tradingview-compile/compile-current-editor.js`
+
+It reads the currently open Pine editor and submits the source to TradingView's own internal `translate_light` compiler endpoint. It does not modify or save the editor. Because the endpoint and Monaco internals are private implementation details, this helper is documented as best-effort tooling.
 
 ### Gate 3 — timing/reload parity
 Test at minimum:
