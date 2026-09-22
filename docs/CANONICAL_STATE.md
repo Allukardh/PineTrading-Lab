@@ -1,9 +1,9 @@
 # Canonical State
 
 **Date:** 2026-09-22  
-**Phase:** SignalGate SG-0 — deterministic timeframe hardening  
-**Main baseline:** foundation/audit merged at `2f9029b1bfe5f9a17617253fd43201554042e2a8`  
-**Working branch:** `feat/signalgate-0.1.0-sg0`
+**Phase:** Moving Average Shift reboot preparation  
+**Main baseline:** SignalGate Dashboard 0.1.0 promoted at `7990c7a6e0288fe85fc29a71f08b4ae0c5ae297b`  
+**Active development branch:** none yet
 
 ## Evidence baseline
 
@@ -16,49 +16,50 @@ The immutable TradingView extraction remains under `archive/`:
 
 Never edit archived Pine files to represent new behavior.
 
+## Accepted reboot baselines
+
+### SignalGate Dashboard 0.1.0
+
+Path: `src/core/signalgate-dashboard.pine`
+
+Status: **ACCEPTED**
+
+Validation summary:
+- static transformation invariants: PASS
+- archive/source integrity: PASS
+- Pine v6 TradingView server compile: PASS (0 errors / 0 warnings)
+- Bias safe-clamp 1D default case: PASS
+- manual Structure/Trigger lower-TF guards: PASS
+- 15m/1H/4H reload visual/state matrix: PASS for closed-history/rendered state
+- 15m bar-close HEARTBEAT transport: PASS and repeatable on two consecutive closes
+- alert edge invariants: PASS
+- live event-specific samples: tracked non-blocking in issue #4
+
+Scope note:
+- SignalGate 0.1.0 closes SG-0 timeframe/confirmation hardening only.
+- score weights, GO/WATCH thresholds, Mode C persistence, MSS semantics, stale breakout expiry, score overlap and market-efficacy calibration remain future work.
+
+Reference:
+- `docs/worklog/2026-09-22-signalgate-sg0-timeframe-hardening.md`
+
+## Next engineering target
+
+**Moving Average Shift**
+
+Reason:
+- default `signalMode = "Original"`
+- Original long requires oscillator below negative threshold
+- Original short requires oscillator above positive threshold
+- default Setup filter simultaneously requires bullish setup for long and bearish setup for short
+- under defaults these conditions are mutually exclusive, suppressing Original-mode entry signals
+
+The first milestone will restore a logically reachable default signal path, then address percentile warmup and confirmation semantics before any feature expansion.
+
 ## Version lineage
 
 Pre-reboot TradingView metadata and in-script version labels are historical evidence only.
 
-For every rebooted core script:
-- `0.1.0` = first reboot candidate
+For each core script:
+- `0.1.0` = first accepted reboot baseline
 - `0.x` = stabilization and controlled evolution
 - `1.0.0` = only after compile, timing/repaint, visual, alert and acceptance gates close
-
-## Active candidate
-
-### SignalGate Dashboard 0.1.0 / SG-0
-
-Path: `src/core/signalgate-dashboard.pine`
-
-Scope is intentionally narrow:
-- confirmed HTF request policy
-- no implicit lower-timeframe `request.security()`
-- safe Auto Trigger / Auto Structure mappings
-- Bias TF safe-clamp to chart TF when configured below chart
-- runtime guards for invalid manual Structure/Trigger timeframe combinations
-- confirmed structure/trigger state commits
-- chart-close alert and telemetry gates
-- explicit PREVIEW/FECHADA bar state in panel
-
-The scoring model, thresholds and market-logic weights have **not** been redesigned yet.
-
-## Gate status
-
-- Foundation archive/provenance: **PASS**
-- Initial 53-script static audit: **PASS with blockers documented**
-- SignalGate SG-0 transformation invariants: **PASS (static)**
-- Bias safe-clamp 1D default case: **PASS (interactive)**
-- Manual Structure/Trigger lower-TF guards: **PASS (interactive)**
-- Repository integrity automation: **PASS** (latest push + PR runs)
-- Pine v6 TradingView server compile: **PASS** — errors 0, warnings 0 (GitHub Actions)
-- Realtime vs reload parity: **PASS for SG-0 scope** — 15m/1H/4H closed-history/rendered state stable; 15m bar-close telemetry repeatable
-- Alert regression: **PASS for SG-0 release scope** — transport, close gating, edge invariants and repeatability verified; natural event samples tracked post-merge in #4
-- Visual/state regression: **PASS for SG-0 scope** — 15m/1H/4H reload matrix stable; 1D safe-clamp and manual lower-TF guards validated
-- Market efficacy validation: **NOT STARTED**
-
-## Merge rule
-
-All SG-0 release-blocking gates are closed. PR #2 is eligible for promotion to `main`. Event-specific live-alert observations continue in #4 without blocking the accepted 0.1.0 baseline.
-
-See `docs/worklog/2026-09-22-signalgate-sg0-timeframe-hardening.md`.
