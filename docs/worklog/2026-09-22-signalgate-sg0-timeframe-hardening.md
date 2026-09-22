@@ -189,6 +189,31 @@ Expected live differences on the still-open 1H candle:
 
 Conclusion: **1H reload visual/state parity PASS for closed-history/rendered state**. Alert-delivery parity at an actual bar close remains pending.
 
+### BTCUSDT 15m — reload parity evidence
+Two screenshots were captured around a browser reload on the same open 15m bar.
+
+Observed invariant state across reload:
+- Profile: Agressivo
+- Mode: B (BREAKOUT)
+- Operação: Compra
+- state: GO
+- quality: REGULAR
+- G1 Tendência: Alta
+- G2 Estrutura: Alta
+- G3 Gatilho: inactive / Exec.: OFF
+- G4 momentum state unchanged
+- Força C/V: 6 / 3
+- Pronto C/V: 86% / 43%
+- Conflito: Não
+- Trigger/Bias/Structure TF line unchanged: `60 | 240/D | 240 | HTF: CONF`
+- visible historical retest/structure/range markers and levels remained visually aligned
+
+Expected live differences on the still-open 15m candle:
+- BTC price moved from about 86,244 to 86,256
+- G5 space moved slightly from about `4.61 / 4.52` to `4.55 / 4.56`
+
+Conclusion: **15m reload visual/state parity PASS for closed-history/rendered state**. This completes the 15m/1H/4H reload matrix; actual bar-close alert/event parity remains pending.
+
 These observations validate rendering/timeframe selection, but **do not** close reload-parity or alert gates.
 
 ### BTCUSDT 1D — safe-clamp PASS
