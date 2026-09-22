@@ -4,8 +4,20 @@ All notable project changes are documented here.
 
 ## [Unreleased]
 
+### Added
+- Moving Average Shift 0.1.0 / MAS-0 candidate.
+
+### Changed
+- Moving Average Shift Setup filter now checks oscillator acceleration instead of requiring oscillator sign, restoring reachable Original and Signal Line signal paths.
+- Moving Average Shift C/V markers are close-confirmed.
+- Moving Average Shift directional “probability” labels renamed to strength semantics.
+
+### Fixed
+- Moving Average Shift no longer substitutes unavailable percentile normalization with mintick during warmup.
+- Moving Average Shift threshold input is constrained to non-negative values.
+
 ### Next
-- Moving Average Shift reboot preparation.
+- Interactive MAS-0 signal reachability and warmup validation.
 - SignalGate live event-specific field observations continue in issue #4.
 
 ## [SignalGate Dashboard 0.1.0] - 2026-09-22
