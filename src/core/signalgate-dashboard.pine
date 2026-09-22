@@ -246,15 +246,22 @@ string tf_struct_eff = tf_struct
 if autoStructTF
     tf_struct_eff := chartTfSec <= fourHourSec ? "240" : timeframe.period
 
-float bias1TfSec = timeframe.in_seconds(tf_bias1)
-float bias2TfSec = timeframe.in_seconds(tf_bias2)
+// Bias TFs are safe-clamped to the chart TF when the configured value is lower.
+// This avoids accidental LTF sampling while keeping the indicator usable when the
+// user switches to a higher chart timeframe (e.g. 1D with the default 4H bias).
+float bias1CfgSec = timeframe.in_seconds(tf_bias1)
+float bias2CfgSec = timeframe.in_seconds(tf_bias2)
+string tf_bias1_eff = bias1CfgSec < chartTfSec ? timeframe.period : tf_bias1
+string tf_bias2_eff = bias2CfgSec < chartTfSec ? timeframe.period : tf_bias2
+bool bias1Clamped = tf_bias1_eff != tf_bias1
+bool bias2Clamped = tf_bias2_eff != tf_bias2
+bool anyBiasClamped = bias1Clamped or bias2Clamped
+
+float bias1TfSec = timeframe.in_seconds(tf_bias1_eff)
+float bias2TfSec = timeframe.in_seconds(tf_bias2_eff)
 float structTfSec = timeframe.in_seconds(tf_struct_eff)
 float triggerTfSec = timeframe.in_seconds(tf_trigger_eff)
 
-if bias1TfSec < chartTfSec
-    runtime.error("Bias TF #1 must be equal to or higher than the chart TF. Change Bias TF #1 or use a lower chart timeframe.")
-if bias2TfSec < chartTfSec
-    runtime.error("Bias TF #2 must be equal to or higher than the chart TF. Change Bias TF #2 or use a lower chart timeframe.")
 if structTfSec < chartTfSec
     runtime.error("Structure TF must be equal to or higher than the chart TF.")
 if triggerTfSec < chartTfSec
@@ -348,14 +355,14 @@ f_anchored_vwap(_anchorTf) =>
 //====================================================
 // Gate 1: Bias
 //====================================================
-ema200_4h = f_sec(tf_bias1, ta.ema(close, 200))
-ema200_d  = f_sec(tf_bias2, ta.ema(close, 200))
+ema200_bias1 = f_sec(tf_bias1_eff, ta.ema(close, 200))
+ema200_bias2 = f_sec(tf_bias2_eff, ta.ema(close, 200))
 
 wvwap = (useWeeklyVW  ? f_anchored_vwap("W") : na)
 mvwap = (useMonthlyVW ? f_anchored_vwap("M") : na)
 
-biasLong  = close > ema200_4h and close > ema200_d
-biasShort = close < ema200_4h and close < ema200_d
+biasLong  = close > ema200_bias1 and close > ema200_bias2
+biasShort = close < ema200_bias1 and close < ema200_bias2
 
 vwapLong  = (not useWeeklyVW or close > wvwap) and (not useMonthlyVW or close > mvwap)
 vwapShort = (not useWeeklyVW or close < wvwap) and (not useMonthlyVW or close < mvwap)
@@ -645,8 +652,8 @@ bgShort = paintGO and verdict == "SHORT"
 bgcolor(bgLong ? color.new(color.green, goBgAlpha) : na)
 bgcolor(bgShort ? color.new(color.red, goBgAlpha) : na)
 
-plot(showBiasLines ? ema200_4h : na, "EMA200 4H", linewidth=2, color=biasColor4H, display=display.all - display.status_line)
-plot(showBiasLines ? ema200_d  : na, "EMA200 D",  linewidth=2, color=biasColorD, display=display.all - display.status_line)
+plot(showBiasLines ? ema200_bias1 : na, "EMA200 4H", linewidth=2, color=biasColor4H, display=display.all - display.status_line)
+plot(showBiasLines ? ema200_bias2  : na, "EMA200 D",  linewidth=2, color=biasColorD, display=display.all - display.status_line)
 
 plot(showAnchoredVWAP and useWeeklyVW  ? wvwap : na, "aVWAP Weekly", linewidth=1, color=vwapColorW, display=display.all - display.status_line)
 plot(showAnchoredVWAP and useMonthlyVW ? mvwap : na, "aVWAP Monthly", linewidth=1, color=vwapColorM, display=display.all - display.status_line)
@@ -953,7 +960,8 @@ trigType = breakUp or breakDown ? "Romp." : (retestUp or retestDown ? "Reteste" 
 cStr = conflict ? ("Sim(-" + str.tostring(conflictPenalty) + ")") : "Não"
 
 // TF summary
-tfLine = "TF gatilho: " + tf_trigger_eff + " | TF tendência: " + tf_bias1 + "/" + tf_bias2 + " | TF estrutura: " + tf_struct_eff + " | HTF: CONF"
+biasClampTxt = anyBiasClamped ? " | Bias clamp: SIM" : ""
+tfLine = "TF gatilho: " + tf_trigger_eff + " | TF tendência: " + tf_bias1_eff + "/" + tf_bias2_eff + " | TF estrutura: " + tf_struct_eff + " | HTF: CONF" + biasClampTxt
 barStateTxt = barstate.isconfirmed ? "FECHADA" : "PREVIEW"
 profileTxt = profile == "Sniper" ? "Sniper" : profile == "Aggressive" ? "Agressivo" : "Balanceado"
 verdictTxt = verdict == "LONG" ? "Compra" : verdict == "SHORT" ? "Venda" : "Sem trade"
