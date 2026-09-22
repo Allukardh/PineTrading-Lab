@@ -1,9 +1,9 @@
 # Canonical State
 
 **Date:** 2026-09-22  
-**Phase:** Moving Average Shift reboot preparation  
+**Phase:** Moving Average Shift MAS-0 — signal reachability and deterministic markers  
 **Main baseline:** SignalGate Dashboard 0.1.0 promoted at `7990c7a6e0288fe85fc29a71f08b4ae0c5ae297b`  
-**Active development branch:** none yet
+**Active development branch:** `fix/moving-average-shift-0.1.0-mas0`
 
 ## Evidence baseline
 
@@ -42,18 +42,22 @@ Scope note:
 Reference:
 - `docs/worklog/2026-09-22-signalgate-sg0-timeframe-hardening.md`
 
-## Next engineering target
+## Active candidate
 
-**Moving Average Shift**
+### Moving Average Shift 0.1.0 / MAS-0
 
-Reason:
-- default `signalMode = "Original"`
-- Original long requires oscillator below negative threshold
-- Original short requires oscillator above positive threshold
-- default Setup filter simultaneously requires bullish setup for long and bearish setup for short
-- under defaults these conditions are mutually exclusive, suppressing Original-mode entry signals
+Path: `src/core/moving-average-shift.pine`
 
-The first milestone will restore a logically reachable default signal path, then address percentile warmup and confirmation semantics before any feature expansion.
+Scope:
+- restore reachable default signal path
+- make Setup filter acceleration-based instead of sign-based
+- remove invalid percentile warmup fallback
+- close-confirm C/V entry markers
+- remove probability terminology from deterministic strength conditions
+
+The raw signal algorithms themselves are intentionally unchanged.
+
+See `docs/worklog/2026-09-22-moving-average-shift-mas0.md`.
 
 ## Version lineage
 
