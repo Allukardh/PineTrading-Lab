@@ -48,11 +48,12 @@ The scoring model, thresholds and market-logic weights have **not** been redesig
 - Foundation archive/provenance: **PASS**
 - Initial 53-script static audit: **PASS with blockers documented**
 - SignalGate SG-0 transformation invariants: **PASS (static)**
+- Bias safe-clamp 1D default case: **PASS (interactive)**
 - Repository integrity automation: **PASS** (latest push + PR runs)
 - Pine v6 TradingView server compile: **PASS** — errors 0, warnings 0 (GitHub Actions)
 - Realtime vs reload parity: **PENDING — interactive chart gate**
 - Alert regression: **PENDING**
-- Visual/state regression: **PARTIAL PASS** — 15m compact + 4H full panel rendered; 1D safe-clamp retest pending
+- Visual/state regression: **PARTIAL PASS** — 15m compact, 4H full panel, and 1D safe-clamp full panel rendered successfully
 - Market efficacy validation: **NOT STARTED**
 
 ## Merge rule
