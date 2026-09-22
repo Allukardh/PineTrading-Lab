@@ -3,7 +3,7 @@
 **Date:** 2026-09-22  
 **Target:** `src/core/signalgate-dashboard.pine`  
 **Candidate:** `0.1.0`  
-**Status:** static candidate; TradingView compile/runtime gates pending
+**Status:** release candidate accepted for SG-0 promotion
 
 ## Objective
 
@@ -360,3 +360,25 @@ This closes the interactive lower-timeframe guard matrix: Bias uses safe-clamp; 
 ## Promotion rule
 
 Do not merge this candidate to `main` as an accepted SignalGate baseline until compile and timing/reload gates pass.
+
+
+## Alert acceptance decision
+
+Live event-specific transitions (GO/EARLY/K-R/IN_PLAY/Fakeout) are valuable field evidence but are not deterministic to force without changing market inputs or production thresholds.
+
+For SG-0, release-blocking alert validation is accepted based on the combination of:
+- TradingView server compile PASS
+- all `alertcondition()` paths hard-gated by `barstate.isconfirmed`
+- explicit edge-event predicates for GO/SHORT/EARLY/WATCH/NO-TRADE/K-R/Fakeout/IN_PLAY
+- CI invariants that fail if those edge definitions are removed
+- two consecutive live 15m HEARTBEAT closes at +1 second, exactly one entry each
+- KV payload agreement with the visible dashboard
+- 15m/1H/4H reload parity for closed-history/rendered state
+
+Natural live samples of event-specific alerts are tracked in issue #4 and are **post-merge observational evidence**, not a reason to distort thresholds or wait indefinitely for a rare market transition.
+
+## SG-0 release recommendation
+
+With the manual Structure/Trigger lower-TF guards now interactively verified, SG-0 has no remaining release-blocking defect within its intentionally narrow timeframe/confirmation scope.
+
+Recommendation: promote SignalGate Dashboard `0.1.0` to the accepted reboot baseline and continue market-logic redesign in subsequent milestones.
