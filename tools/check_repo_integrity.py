@@ -58,6 +58,8 @@ def main() -> None:
             'Trigger TF must be equal to or higher than the chart TF in SG-0',
             'DATAPOLICY=CONFIRMED_HTF',
             'if logOn and barstate.isconfirmed',
+            'fakeoutEvt = fakeout and not fakeout[1]',
+            'alFake and fakeoutEvt',
         ]
         for token in required:
             if token not in sg:
@@ -66,6 +68,7 @@ def main() -> None:
         forbidden = [
             'request.security(syminfo.tickerid, _tf, _expr, barmerge.gaps_off, barmerge.lookahead_off)',
             'SignalGate Dashboard v4.9.1',
+            'alFake and fakeout,',
         ]
         for token in forbidden:
             if token in sg:
