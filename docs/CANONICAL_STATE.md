@@ -47,9 +47,9 @@ The scoring model, thresholds and market-logic weights have **not** been redesig
 - Foundation archive/provenance: **PASS**
 - Initial 53-script static audit: **PASS with blockers documented**
 - SignalGate SG-0 transformation invariants: **PASS (static)**
-- Repository integrity automation: **PASS** (push + PR runs)
-- Pine v6 TradingView compile: **PENDING** (non-saving compile helper prepared)
-- Realtime vs reload parity: **PENDING**
+- Repository integrity automation: **PASS** (latest push + PR runs)
+- Pine v6 TradingView server compile: **PASS** — errors 0, warnings 0 (GitHub Actions)
+- Realtime vs reload parity: **PENDING — interactive chart gate**
 - Alert regression: **PENDING**
 - Visual/state regression: **PENDING**
 - Market efficacy validation: **NOT STARTED**
