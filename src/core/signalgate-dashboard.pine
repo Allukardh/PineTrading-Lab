@@ -1058,7 +1058,7 @@ alertcondition(alertBarOk and alIP and ipStartEvt, "SGD: Execução iniciada", "
 alertcondition(alertBarOk and alIP and ipEndEvt,   "SGD: Execução encerrada",   "SGD: Em execução encerrado")
 
 //====================================================
-// TELEMETRIA (KV) — Dashboard v4.9.0
+// TELEMETRIA (KV) — SignalGate reboot v0.1.0
 // Crie um alerta no TradingView: "Any alert() function call"
 //====================================================
 groupLOG = "Logs — Dashboard (KV)"
