@@ -505,6 +505,7 @@ invalidShort = triggerContextConfirmed and inDir == -1 and not na(inLvl) and clo
 
 fakeout := (fakeoutLong and not invalidLong) or (fakeoutShort and not invalidShort)
 invalid := invalidLong or invalidShort
+fakeoutEvt = fakeout and not fakeout[1]
 
 if invalid
     inDir := 0
@@ -1051,7 +1052,7 @@ alertcondition(alertBarOk and alKR and retestUpEvt,  "SGD: Reteste ↑",   "SGD:
 alertcondition(alertBarOk and alKR and retestDownEvt,"SGD: Reteste ↓", "SGD: Reteste para baixa")
 
 // ── Fakeout (optional)
-alertcondition(alertBarOk and alFake and fakeout, "SGD: Falso rompimento", "SGD: Falso rompimento detectado")
+alertcondition(alertBarOk and alFake and fakeoutEvt, "SGD: Falso rompimento", "SGD: Falso rompimento detectado")
 
 // ── IN_PLAY (optional)
 alertcondition(alertBarOk and alIP and ipStartEvt, "SGD: Execução iniciada", "SGD: Em execução iniciado")
@@ -1162,5 +1163,5 @@ if logOn and barstate.isconfirmed
             alert(mkDash("IN_PLAY_END"), alert.freq_once_per_bar_close)
 
     // Fakeout
-    if logFakeout and fakeout and not fakeout[1]
+    if logFakeout and fakeoutEvt
         alert(mkDash("FAKEOUT"), alert.freq_once_per_bar_close)
