@@ -1,0 +1,73 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © EmreKb
+
+//@version=6
+indicator("[EmreKb] Supertrend Fakeout", "ST Fakeout", overlay = true)
+
+ATR_LENGTH = input.int(14, "Supertrend ATR Length")
+ATR_MULT = input.float(3.0, "Supertrend ATR Mult")
+FAKEOUT_INDEX_LIMIT = input.int(5, "Fakeout Index Limit")
+FAKEOUT_ATR_MULT = input.float(1.5, "Fakout ATR Mult")
+FAKEOUT_TYPE = input.string("High/Low", "Fakeout Type", ["High/Low", "Close"])
+
+highSrc = FAKEOUT_TYPE == "High/Low" ? high : close
+lowSrc = FAKEOUT_TYPE == "High/Low" ? low : close
+
+type FakeoutControl
+    int index
+    float st
+
+f_supertrend(float atr, float factor) =>
+    trend = 1
+    trend := nz(trend[1], 1)
+
+    dnLine = close - atr * factor
+    upLine = close + atr * factor
+
+    dnLine := trend == 1 and dnLine[1] > dnLine ? dnLine[1] : dnLine
+    upLine := trend == -1 and upLine[1] < upLine ? upLine[1] : upLine
+
+    var FakeoutControl fakeout = na
+
+    if trend == 1 and lowSrc < dnLine
+        if na(fakeout)
+            fakeout := FakeoutControl.new(bar_index, upLine)
+        else
+            if bar_index - fakeout.index > FAKEOUT_INDEX_LIMIT or dnLine - lowSrc > atr * FAKEOUT_ATR_MULT 
+                trend := -1
+                upLine := fakeout.st
+                fakeout := na
+    if trend == -1 and highSrc > upLine
+        if na(fakeout)
+            fakeout := FakeoutControl.new(bar_index, dnLine)
+        else
+            if bar_index - fakeout.index > FAKEOUT_INDEX_LIMIT or highSrc - upLine > atr * FAKEOUT_ATR_MULT
+                trend := 1
+                dnLine := fakeout.st
+                fakeout := na
+
+    if not na(fakeout)
+        if lowSrc >= dnLine and trend == 1
+            fakeout := na
+        if highSrc <= upLine and trend == -1
+            fakeout := na
+
+    [trend, trend == 1 ? dnLine : upLine, fakeout]
+
+atr = ta.atr(ATR_LENGTH)
+[trend, st, fakeout] = f_supertrend(atr, ATR_MULT)
+
+lineColor = trend == 1 ? color.green : color.red
+fillColor = trend == 1 ? color.new(color.green, 80) : color.new(color.red, 80)
+
+stBuPlot = plot(trend == 1 ? st : na, "Suptrend Bullish", lineColor, 2, plot.style_linebr)
+stBePlot = plot(trend == -1 ? st : na, "Suptrend Bearish", lineColor, 2, plot.style_linebr)
+
+pricePlot = plot(ohlc4, "OHLC4", color.new(color.black, 100))
+
+fill(stBuPlot, pricePlot, fillColor, "Fill")
+fill(stBePlot, pricePlot, fillColor, "Fill")
+
+alertcondition(not na(fakeout) and na(fakeout[1]), "Fakeout Alert")
+alertcondition(trend == 1 and trend[1] == -1, "Trend Changed To Bullish")
+alertcondition(trend == -1 and trend[1] == 1, "Trend Changed To Bearish")

@@ -1,0 +1,207 @@
+//@version=6
+indicator("Buying Selling Volume 2-in-1 v1.2.1", shorttitle="BSV v1.2.1", format=format.volume, precision=2, overlay=false)
+
+//---------------------------------------------------------
+// Inputs
+//---------------------------------------------------------
+groupView = "View"
+displayMode = input.string("RAW", "Display Mode", options=["RAW", "VI"], group=groupView, display=display.none)
+barColorsOnPrevClose = input.bool(false, "Color total volume bars based on previous close", group=groupView, display=display.none)
+
+groupRaw = "RAW Mode"
+showRawVolume = input.bool(true, "Show total volume", group=groupRaw, display=display.none)
+showPercentages = input.bool(true, "Show Buy/Sell %", group=groupRaw, display=display.none)
+
+groupVI = "VI Mode"
+emaLen = input.int(20, "EMA length", minval=1, group=groupVI, display=display.none)
+vnThreshold = input.float(1.0, "Volume Index threshold", minval=0.0, step=0.1, group=groupVI, display=display.none)
+showVNLine = input.bool(true, "Show Volume Index line", group=groupVI, display=display.none)
+showThreshold = input.bool(true, "Show threshold line", group=groupVI, display=display.none)
+
+groupBars = "Price Bar Colors"
+barColorMode = input.string("Off", "Price bar color mode", options=["Off", "Pressure", "VI"], group=groupBars, display=display.none)
+
+groupTable = "Info Table"
+showInfoTable = input.bool(true, "Show info table", group=groupTable, display=display.none)
+tablePositionS = input.string("Top Right", "Table position", options=["Top Right", "Top Left", "Bottom Right", "Bottom Left"], group=groupTable, display=display.none)
+
+groupTableStyle = "Info Table Style"
+panelBaseColor = input.color(color.black, "Panel color", group=groupTableStyle, display=display.none)
+headerBaseColor = input.color(color.blue, "Header color", group=groupTableStyle, display=display.none)
+panelTransparency = input.int(70, "Panel transparency", minval=0, maxval=100, group=groupTableStyle, display=display.none)
+fontTransparency = input.int(0, "Font transparency", minval=0, maxval=100, group=groupTableStyle, display=display.none)
+headerTextSizeS = input.string("Small", "Header font size", options=["Tiny", "Small", "Normal", "Large", "Huge"], group=groupTableStyle, display=display.none)
+bodyTextSizeS = input.string("Small", "Body font size", options=["Tiny", "Small", "Normal", "Large", "Huge"], group=groupTableStyle, display=display.none)
+labelColWidth = input.int(12, "Label column width", minval=0, maxval=100, group=groupTableStyle, display=display.none)
+valueColWidth = input.int(12, "Value column width", minval=0, maxval=100, group=groupTableStyle, display=display.none)
+rowHeight = input.int(0, "Row height (0 = auto)", minval=0, maxval=100, group=groupTableStyle, display=display.none)
+
+//---------------------------------------------------------
+// Helpers
+//---------------------------------------------------------
+isRawMode = displayMode == "RAW"
+
+tablePos = switch tablePositionS
+    "Top Left" => position.top_left
+    "Bottom Right" => position.bottom_right
+    "Bottom Left" => position.bottom_left
+    => position.top_right
+
+fmt2(v) =>
+    str.tostring(v, "#.##")
+
+fmtCompact(v) =>
+    absV = math.abs(v)
+    absV >= 1000000000000.0 ? str.tostring(v / 1000000000000.0, "#.##") + "T" :
+     absV >= 1000000000.0 ? str.tostring(v / 1000000000.0, "#.##") + "B" :
+     absV >= 1000000.0 ? str.tostring(v / 1000000.0, "#.##") + "M" :
+     absV >= 1000.0 ? str.tostring(v / 1000.0, "#.##") + "k" :
+     str.tostring(v, "#.##")
+
+sizeFromString(s) =>
+    switch s
+        "Tiny" => size.tiny
+        "Small" => size.small
+        "Normal" => size.normal
+        "Large" => size.large
+        => size.huge
+
+headerTextSize = sizeFromString(headerTextSizeS)
+bodyTextSize = sizeFromString(bodyTextSizeS)
+displayNoScale = display.all - display.price_scale - display.status_line
+
+//---------------------------------------------------------
+// Safe base calculations
+//---------------------------------------------------------
+volSafe = nz(volume, 0.0)
+rangeSafe = high - low
+prevClose = nz(close[1], close)
+
+buyVol = rangeSafe > 0 ? volSafe * (close - low) / rangeSafe : 0.0
+sellVol = rangeSafe > 0 ? volSafe * (high - close) / rangeSafe : 0.0
+totalVol = buyVol + sellVol
+
+// RAW
+rawBuy = totalVol > 0 ? (buyVol / totalVol) * volSafe : 0.0
+rawSell = totalVol > 0 ? (sellVol / totalVol) * volSafe : 0.0
+
+buyPressureRaw = rawBuy > rawSell ? rawBuy : -math.abs(rawBuy)
+sellPressureRaw = rawSell > rawBuy ? rawSell : -math.abs(rawSell)
+
+buyPct = totalVol > 0 ? 100.0 * buyVol / totalVol : 0.0
+sellPct = totalVol > 0 ? 100.0 * sellVol / totalVol : 0.0
+
+// VI / Normalized
+emaVol = ta.ema(volSafe, emaLen)
+emaBuy = ta.ema(buyVol, emaLen)
+emaSell = ta.ema(sellVol, emaLen)
+
+vn = emaVol > 0 ? volSafe / emaVol : 0.0
+
+normBuy = emaBuy > 0 ? (buyVol / emaBuy) * vn * 100.0 : 0.0
+normSell = emaSell > 0 ? (sellVol / emaSell) * vn * 100.0 : 0.0
+
+buyPressureVI = normBuy > normSell ? normBuy : -math.abs(normBuy)
+sellPressureVI = normSell > normBuy ? normSell : -math.abs(normSell)
+
+// Selected mode series
+buyPressure = isRawMode ? buyPressureRaw : buyPressureVI
+sellPressure = isRawMode ? sellPressureRaw : sellPressureVI
+
+//---------------------------------------------------------
+// Colors
+//---------------------------------------------------------
+color volumePalette = na
+if barColorsOnPrevClose
+    volumePalette := close < prevClose ? color.new(color.red, 70) : color.new(color.green, 70)
+else
+    volumePalette := close < open ? color.new(color.red, 70) : color.new(color.green, 70)
+
+color pressureBarColor = na
+if buyPressure > sellPressure
+    pressureBarColor := color.blue
+else if buyPressure < sellPressure
+    pressureBarColor := color.purple
+else
+    pressureBarColor := color.gray
+
+color vnColor = na
+if vn > vnThreshold and close > open
+    vnColor := color.aqua
+else if vn > vnThreshold and close < open
+    vnColor := color.new(color.gray, 10)
+else
+    vnColor := color.new(color.yellow, 10)
+
+color finalBarColor = na
+if barColorMode == "Pressure"
+    finalBarColor := pressureBarColor
+else if barColorMode == "VI"
+    finalBarColor := vnColor
+else
+    finalBarColor := na
+
+barcolor(finalBarColor)
+
+//---------------------------------------------------------
+// Plots
+//---------------------------------------------------------
+hline(0, "Zero Line", color=color.new(color.gray, 75))
+
+plot(isRawMode and showRawVolume ? volSafe : na, title="Total Volume", color=volumePalette, style=plot.style_columns, linewidth=3)
+
+plot(buyPressure, title="Pressão C", color=color.new(color.green, 10), style=plot.style_columns, linewidth=2, display=displayNoScale)
+plot(sellPressure, title="Pressão V", color=color.new(color.red, 10), style=plot.style_columns, linewidth=2, display=displayNoScale)
+
+plot(isRawMode and showPercentages ? buyPct : na, title="Pressão C %", color=color.green, style=plot.style_line, linewidth=2, display=displayNoScale)
+plot(isRawMode and showPercentages ? sellPct : na, title="Pressão V %", color=color.red, style=plot.style_line, linewidth=2, display=displayNoScale)
+
+plot(not isRawMode and showVNLine ? vn : na, title="Vol. relativo", color=vnColor, linewidth=2, display=displayNoScale)
+plot(not isRawMode and showThreshold ? vnThreshold : na, title="Corte Vol. relativo", color=color.orange, linewidth=1, display=displayNoScale)
+
+//---------------------------------------------------------
+// Info table
+//---------------------------------------------------------
+panelBg = color.new(panelBaseColor, panelTransparency)
+headerBg = color.new(headerBaseColor, panelTransparency)
+
+txtWhite = color.new(color.white, fontTransparency)
+txtLime = color.new(color.lime, fontTransparency)
+txtRed = color.new(color.red, fontTransparency)
+txtOrange = color.new(color.orange, fontTransparency)
+txtVn = color.new(vnColor, fontTransparency)
+modeTxt = isRawMode ? "Bruto" : "Relativo"
+
+var table infoTable = table.new(
+     tablePos,
+     2,
+     7,
+     frame_color=panelBg,
+     border_color=panelBg,
+     border_width=1
+)
+
+if barstate.islast
+    if showInfoTable
+        table.cell(infoTable, 0, 0, "Modo", text_color=txtWhite, text_size=headerTextSize, bgcolor=headerBg, width=labelColWidth, height=rowHeight)
+        table.cell(infoTable, 1, 0, modeTxt, text_color=txtWhite, text_size=headerTextSize, bgcolor=headerBg, width=valueColWidth, height=rowHeight)
+
+        table.cell(infoTable, 0, 1, "Pressão C", text_color=txtWhite, text_size=bodyTextSize, bgcolor=panelBg, width=labelColWidth, height=rowHeight)
+        table.cell(infoTable, 1, 1, fmt2(buyPct) + "%", text_color=txtLime, text_size=bodyTextSize, bgcolor=panelBg, width=valueColWidth, height=rowHeight)
+
+        table.cell(infoTable, 0, 2, "Pressão V", text_color=txtWhite, text_size=bodyTextSize, bgcolor=panelBg, width=labelColWidth, height=rowHeight)
+        table.cell(infoTable, 1, 2, fmt2(sellPct) + "%", text_color=txtRed, text_size=bodyTextSize, bgcolor=panelBg, width=valueColWidth, height=rowHeight)
+
+        table.cell(infoTable, 0, 3, "Vol. rel.", text_color=txtWhite, text_size=bodyTextSize, bgcolor=panelBg, width=labelColWidth, height=rowHeight)
+        table.cell(infoTable, 1, 3, fmt2(vn), text_color=txtVn, text_size=bodyTextSize, bgcolor=panelBg, width=valueColWidth, height=rowHeight)
+
+        table.cell(infoTable, 0, 4, "Corte", text_color=txtWhite, text_size=bodyTextSize, bgcolor=panelBg, width=labelColWidth, height=rowHeight)
+        table.cell(infoTable, 1, 4, fmt2(vnThreshold), text_color=txtOrange, text_size=bodyTextSize, bgcolor=panelBg, width=valueColWidth, height=rowHeight)
+
+        table.cell(infoTable, 0, 5, "Força C", text_color=txtWhite, text_size=bodyTextSize, bgcolor=panelBg, width=labelColWidth, height=rowHeight)
+        table.cell(infoTable, 1, 5, fmtCompact(buyPressure), text_color=txtLime, text_size=bodyTextSize, bgcolor=panelBg, width=valueColWidth, height=rowHeight)
+
+        table.cell(infoTable, 0, 6, "Força V", text_color=txtWhite, text_size=bodyTextSize, bgcolor=panelBg, width=labelColWidth, height=rowHeight)
+        table.cell(infoTable, 1, 6, fmtCompact(sellPressure), text_color=txtRed, text_size=bodyTextSize, bgcolor=panelBg, width=valueColWidth, height=rowHeight)
+    else
+        table.clear(infoTable, 0, 0, 1, 6)

@@ -1,0 +1,550 @@
+//@version=6
+strategy(
+     title="Scalping PullBack Tool Strategy v2.3 5m 15m",
+     shorttitle="SPBStr2.3",
+     overlay=true,
+     scale=scale.none,
+     explicit_plot_zorder=true,
+     pyramiding=0,
+     process_orders_on_close=true,
+     commission_type=strategy.commission.percent,
+     commission_value=0.0,
+     initial_capital=10000)
+
+// =====================================================
+// Scalping PullBack Tool Strategy v2.2
+//
+// Goals of v2.3:
+// - Keep the PullBack identity intact for continuation + optional reversal
+// - Adapt the strategy specifically for 5m / 15m scalp usage
+// - Add 5m / 15m presets without forcing the user to tune core lengths manually
+// - Keep safe HTF bias focused on 5m -> 15m
+// - Preserve the operational layer and visual fixes
+// =====================================================
+
+// === CORE / VISUAL INPUTS ===
+HiLoLenIn        = input.int(34, minval=2, title="Custom High Low PAC channel Length")
+fastEMAlengthIn  = input.int(89, minval=2, title="Custom Fast EMA Length")
+mediumEMAlengthIn = input.int(200, minval=2, title="Custom Medium EMA Length")
+slowEMAlengthIn  = input.int(600, minval=2, title="Custom Slow EMA Length")
+ShowFastEMA      = input.bool(true, title="Show Fast EMA")
+ShowMediumEMA    = input.bool(true, title="Show Medium EMA")
+ShowSlowEMA      = input.bool(false, title="Show Slow EMA")
+ShowHHLL         = input.bool(false, title="Show HH/LL")
+ShowFractals     = input.bool(true, title="Show Fractals")
+filterBW         = input.bool(false, title="Show Ideal Fractals Only")
+ShowBarColor     = input.bool(true, title="Show coloured Bars around PAC")
+ShowBuySell      = input.bool(true, title="Show Buy/Sell Trigger Markers")
+LookbackIn       = input.int(3, minval=1, title="Custom Pullback Lookback")
+DelayArrow       = input.bool(true, title="Operate / Show Markers Only on Closed Candles")
+ShowTrendBGcolor = input.bool(true, title="Show Trend BG Color")
+UseHAcandles     = input.bool(false, title="Use Heikin Ashi Candles in Algo Calculations")
+
+// === V2.0 REGIME / TRIGGER INPUTS ===
+useSlopeFilter   = input.bool(true, title="Use Local Slope Filter")
+slopeLookbackIn  = input.int(3, minval=1, title="Custom Slope Lookback")
+triggerCloseFracIn = input.float(0.60, minval=0.50, maxval=0.95, step=0.05, title="Custom Trigger Candle Close Fraction")
+usePrevBreakFilt = input.bool(true, title="Require Trigger Candle to Beat Previous Candle")
+entryStopTicksIn = input.int(1, minval=0, title="Custom Entry Stop Offset (ticks)")
+entryExpiryBarsIn = input.int(2, minval=1, title="Custom Entry Order Expiry (bars)")
+
+// === OPTIONAL HTF BIAS ===
+useHTFBiasInput  = input.bool(true, title="Use HTF Bias Filter")
+mtfBiasProfile   = input.string("Auto", options=["Auto", "Off", "5m -> 15m", "Custom"], title="MTF Bias Profile")
+htfTimeframeIn   = input.timeframe("15", title="Custom HTF Bias Timeframe")
+useHTFSlopeFilter = input.bool(true, title="Use HTF Slope Filter")
+
+// === OPERATIONAL LAYER ===
+mode             = input.string("Conservative", options=["Conservative", "Flip"], title="Execution Mode")
+stopMode         = input.string("Swing", options=["Swing", "PAC", "Hybrid"], title="Stop Method")
+exitOnPacCenter  = input.bool(true, title="Exit on PAC Center Failure")
+swingPadPct      = input.float(0.10, minval=0.0, step=0.01, title="Swing Stop Buffer %")
+pacPadPct        = input.float(0.05, minval=0.0, step=0.01, title="PAC Stop Buffer %")
+showDebugMarks   = input.bool(false, title="Show Debug Marks")
+
+// === V2.2 REVERSAL MODULE ===
+enableReversalModule = input.bool(false, title="Enable Post-Failure Reversal Module")
+reversalRequireOppLocal = input.bool(true, title="Reversal Require Opposite Local Regime")
+reversalAllowHTFNeutral = input.bool(true, title="Reversal Allow Neutral HTF Bias")
+
+scalpPreset      = input.string("15m Balanced", options=["5m Fast", "5m Balanced", "15m Fast", "15m Balanced", "Custom"], title="Scalp Preset (5m / 15m)")
+
+Delay = DelayArrow ? 1 : 0
+
+// === EFFECTIVE 5M / 15M PRESET VALUES ===
+int HiLoLen = HiLoLenIn
+int fastEMAlength = fastEMAlengthIn
+int mediumEMAlength = mediumEMAlengthIn
+int slowEMAlength = slowEMAlengthIn
+int Lookback = LookbackIn
+int slopeLookback = slopeLookbackIn
+float triggerCloseFrac = triggerCloseFracIn
+int entryStopTicks = entryStopTicksIn
+int entryExpiryBars = entryExpiryBarsIn
+
+if scalpPreset == "5m Fast"
+    HiLoLen := 13
+    fastEMAlength := 34
+    mediumEMAlength := 89
+    slowEMAlength := 233
+    Lookback := 2
+    slopeLookback := 2
+    triggerCloseFrac := 0.65
+    entryStopTicks := 1
+    entryExpiryBars := 1
+else if scalpPreset == "5m Balanced"
+    HiLoLen := 21
+    fastEMAlength := 55
+    mediumEMAlength := 144
+    slowEMAlength := 377
+    Lookback := 2
+    slopeLookback := 2
+    triggerCloseFrac := 0.60
+    entryStopTicks := 1
+    entryExpiryBars := 2
+else if scalpPreset == "15m Fast"
+    HiLoLen := 13
+    fastEMAlength := 34
+    mediumEMAlength := 89
+    slowEMAlength := 233
+    Lookback := 2
+    slopeLookback := 3
+    triggerCloseFrac := 0.60
+    entryStopTicks := 1
+    entryExpiryBars := 2
+else if scalpPreset == "15m Balanced"
+    HiLoLen := 21
+    fastEMAlength := 55
+    mediumEMAlength := 144
+    slowEMAlength := 377
+    Lookback := 3
+    slopeLookback := 3
+    triggerCloseFrac := 0.60
+    entryStopTicks := 1
+    entryExpiryBars := 2
+
+effectiveUseHTFBias = useHTFBiasInput
+resolvedHTF = htfTimeframeIn
+if mtfBiasProfile == "Auto"
+    if scalpPreset == "5m Fast" or scalpPreset == "5m Balanced"
+        resolvedHTF := "15"
+    else
+        effectiveUseHTFBias := false
+else if mtfBiasProfile == "Off"
+    effectiveUseHTFBias := false
+else if mtfBiasProfile == "5m -> 15m"
+    resolvedHTF := "15"
+
+// === SOURCE SERIES ===
+haTicker = ticker.heikinashi(syminfo.tickerid)
+sourceTicker = UseHAcandles ? haTicker : syminfo.tickerid
+srcClose = UseHAcandles ? request.security(haTicker, timeframe.period, close) : close
+srcOpen  = UseHAcandles ? request.security(haTicker, timeframe.period, open)  : open
+srcHigh  = UseHAcandles ? request.security(haTicker, timeframe.period, high)  : high
+srcLow   = UseHAcandles ? request.security(haTicker, timeframe.period, low)   : low
+
+// === FRACTAL FUNCTIONS ===
+isRegularFractal(modeFractal) =>
+    modeFractal == 1 ? (high[4] < high[3] and high[3] < high[2] and high[2] > high[1] and high[1] > high[0]) :
+     modeFractal == -1 ? (low[4] > low[3] and low[3] > low[2] and low[2] < low[1] and low[1] < low[0]) : false
+
+isBWFractal(modeFractal) =>
+    modeFractal == 1 ? (high[4] < high[2] and high[3] <= high[2] and high[2] >= high[1] and high[2] > high[0]) :
+     modeFractal == -1 ? (low[4] > low[2] and low[3] >= low[2] and low[2] <= low[1] and low[2] < low[0]) : false
+
+// === CORE SERIES ===
+fastEMA   = ta.ema(srcClose, fastEMAlength)
+mediumEMA = ta.ema(srcClose, mediumEMAlength)
+slowEMA   = ta.ema(srcClose, slowEMAlength)
+pacC      = ta.ema(srcClose, HiLoLen)
+pacL      = ta.ema(srcLow,   HiLoLen)
+pacU      = ta.ema(srcHigh,  HiLoLen)
+
+// === STRUCTURAL VISUAL SUPPORT ===
+filteredTop = filterBW ? isRegularFractal(1) : isBWFractal(1)
+filteredBot = filterBW ? isRegularFractal(-1) : isBWFractal(-1)
+
+valuewhen_H0 = ta.valuewhen(filteredTop, high[2], 0)
+valuewhen_H1 = ta.valuewhen(filteredTop, high[2], 1)
+valuewhen_H2 = ta.valuewhen(filteredTop, high[2], 2)
+valuewhen_L0 = ta.valuewhen(filteredBot, low[2], 0)
+valuewhen_L1 = ta.valuewhen(filteredBot, low[2], 1)
+valuewhen_L2 = ta.valuewhen(filteredBot, low[2], 2)
+
+higherhigh = filteredTop ? (valuewhen_H1 < valuewhen_H0 and valuewhen_H2 < valuewhen_H0) : false
+lowerhigh  = filteredTop ? (valuewhen_H1 > valuewhen_H0 and valuewhen_H2 > valuewhen_H0) : false
+higherlow  = filteredBot ? (valuewhen_L1 < valuewhen_L0 and valuewhen_L2 < valuewhen_L0) : false
+lowerlow   = filteredBot ? (valuewhen_L1 > valuewhen_L0 and valuewhen_L2 > valuewhen_L0) : false
+
+lastTop = ta.valuewhen(filteredTop, high[2], 0)
+lastBot = ta.valuewhen(filteredBot, low[2], 0)
+
+// === LOCAL REGIME ===
+trendBase = 0
+if fastEMA > mediumEMA and pacL > mediumEMA
+    trendBase := 1
+else if fastEMA < mediumEMA and pacU < mediumEMA
+    trendBase := -1
+
+fastSlopeUp   = fastEMA > fastEMA[slopeLookback]
+fastSlopeDown = fastEMA < fastEMA[slopeLookback]
+medSlopeUp    = mediumEMA > mediumEMA[slopeLookback]
+medSlopeDown  = mediumEMA < mediumEMA[slopeLookback]
+
+localRegime = 0
+if trendBase == 1
+    localRegime := useSlopeFilter ? (fastSlopeUp and medSlopeUp ? 1 : 0) : 1
+else if trendBase == -1
+    localRegime := useSlopeFilter ? (fastSlopeDown and medSlopeDown ? -1 : 0) : -1
+
+// === OPTIONAL NON-REPAINT HTF BIAS ===
+
+htfFastEMA   = request.security(sourceTicker, resolvedHTF, ta.ema(close, fastEMAlength)[1], lookahead=barmerge.lookahead_on)
+htfMediumEMA = request.security(sourceTicker, resolvedHTF, ta.ema(close, mediumEMAlength)[1], lookahead=barmerge.lookahead_on)
+htfPacL      = request.security(sourceTicker, resolvedHTF, ta.ema(low, HiLoLen)[1], lookahead=barmerge.lookahead_on)
+htfPacU      = request.security(sourceTicker, resolvedHTF, ta.ema(high, HiLoLen)[1], lookahead=barmerge.lookahead_on)
+
+htfFastSlopeUp   = request.security(sourceTicker, resolvedHTF, ta.ema(close, fastEMAlength)[1] > ta.ema(close, fastEMAlength)[1 + slopeLookback], lookahead=barmerge.lookahead_on)
+htfFastSlopeDown = request.security(sourceTicker, resolvedHTF, ta.ema(close, fastEMAlength)[1] < ta.ema(close, fastEMAlength)[1 + slopeLookback], lookahead=barmerge.lookahead_on)
+htfMedSlopeUp    = request.security(sourceTicker, resolvedHTF, ta.ema(close, mediumEMAlength)[1] > ta.ema(close, mediumEMAlength)[1 + slopeLookback], lookahead=barmerge.lookahead_on)
+htfMedSlopeDown  = request.security(sourceTicker, resolvedHTF, ta.ema(close, mediumEMAlength)[1] < ta.ema(close, mediumEMAlength)[1 + slopeLookback], lookahead=barmerge.lookahead_on)
+
+htfBase = 0
+if htfFastEMA > htfMediumEMA and htfPacL > htfMediumEMA
+    htfBase := 1
+else if htfFastEMA < htfMediumEMA and htfPacU < htfMediumEMA
+    htfBase := -1
+
+htfBias = 0
+if htfBase == 1
+    htfBias := useHTFSlopeFilter ? (htfFastSlopeUp and htfMedSlopeUp ? 1 : 0) : 1
+else if htfBase == -1
+    htfBias := useHTFSlopeFilter ? (htfFastSlopeDown and htfMedSlopeDown ? -1 : 0) : -1
+
+trendRegime = 0
+if localRegime == 1
+    trendRegime := effectiveUseHTFBias ? (htfBias == 1 ? 1 : 0) : 1
+else if localRegime == -1
+    trendRegime := effectiveUseHTFBias ? (htfBias == -1 ? -1 : 0) : -1
+
+// === PULLBACK SETUP + TRIGGER ===
+barsSinceBelowPacC = ta.barssince(srcClose < pacC)
+barsSinceAbovePacC = ta.barssince(srcClose > pacC)
+
+pullbackSetupLong  = trendRegime == 1 and barsSinceBelowPacC <= Lookback and (srcLow <= pacU or srcOpen < pacU)
+pullbackSetupShort = trendRegime == -1 and barsSinceAbovePacC <= Lookback and (srcHigh >= pacL or srcOpen > pacL)
+
+rangeNow  = srcHigh - srcLow
+closeFrac = rangeNow > 0 ? (srcClose - srcLow) / rangeNow : 0.5
+
+closeStrongLong  = srcClose > srcOpen and srcClose > pacU and closeFrac >= triggerCloseFrac
+closeStrongShort = srcClose < srcOpen and srcClose < pacL and closeFrac <= (1.0 - triggerCloseFrac)
+
+beatPrevLong  = not usePrevBreakFilt or srcHigh > srcHigh[1]
+beatPrevShort = not usePrevBreakFilt or srcLow < srcLow[1]
+
+triggerLong  = pullbackSetupLong and closeStrongLong and beatPrevLong
+triggerShort = pullbackSetupShort and closeStrongShort and beatPrevShort
+
+// === SIGNAL ENGINE (UPDATED V2.0 CORE) ===
+var int tradeDirection = 0
+prevTradeDirection = nz(tradeDirection[1], 0)
+longPacFailBar  = prevTradeDirection == 1 and srcClose < pacC
+shortPacFailBar = prevTradeDirection == -1 and srcClose > pacC
+
+newTradeDirection = prevTradeDirection
+if longPacFailBar
+    newTradeDirection := 0
+else if shortPacFailBar
+    newTradeDirection := 0
+else if prevTradeDirection == 0 and triggerLong
+    newTradeDirection := 1
+else if prevTradeDirection == 0 and triggerShort
+    newTradeDirection := -1
+
+tradeDirection := newTradeDirection
+
+longEvent  = prevTradeDirection == 0 and tradeDirection == 1
+shortEvent = prevTradeDirection == 0 and tradeDirection == -1
+
+// === OPTIONAL REVERSAL MODULE (SEPARATE FROM CONTINUATION) ===
+reversalCloseStrongLong  = srcClose > srcOpen and srcClose > pacC and closeFrac >= triggerCloseFrac
+reversalCloseStrongShort = srcClose < srcOpen and srcClose < pacC and closeFrac <= (1.0 - triggerCloseFrac)
+
+reversalBeatPrevLong  = not usePrevBreakFilt or srcHigh > srcHigh[1]
+reversalBeatPrevShort = not usePrevBreakFilt or srcLow < srcLow[1]
+
+reversalLocalLongOK  = reversalRequireOppLocal ? localRegime == 1 : srcClose > mediumEMA
+reversalLocalShortOK = reversalRequireOppLocal ? localRegime == -1 : srcClose < mediumEMA
+
+reversalHTFLongOK  = not effectiveUseHTFBias or (reversalAllowHTFNeutral ? htfBias >= 0 : htfBias == 1)
+reversalHTFShortOK = not effectiveUseHTFBias or (reversalAllowHTFNeutral ? htfBias <= 0 : htfBias == -1)
+
+reversalLongEvent  = enableReversalModule and shortPacFailBar and reversalCloseStrongLong and reversalBeatPrevLong and reversalLocalLongOK and reversalHTFLongOK
+reversalShortEvent = enableReversalModule and longPacFailBar and reversalCloseStrongShort and reversalBeatPrevShort and reversalLocalShortOK and reversalHTFShortOK
+
+entryLongEvent  = longEvent or reversalLongEvent
+entryShortEvent = shortEvent or reversalShortEvent
+
+// === STOP ENGINE ===
+longStopSwingRaw  = nz(lastBot) * (1.0 - swingPadPct / 100.0)
+shortStopSwingRaw = nz(lastTop) * (1.0 + swingPadPct / 100.0)
+longStopPacRaw    = pacL * (1.0 - pacPadPct / 100.0)
+shortStopPacRaw   = pacU * (1.0 + pacPadPct / 100.0)
+
+longStopSwing  = na(lastBot) ? longStopPacRaw : longStopSwingRaw
+shortStopSwing = na(lastTop) ? shortStopPacRaw : shortStopSwingRaw
+
+longStopCandidate = stopMode == "Swing" ? longStopSwing : stopMode == "PAC" ? longStopPacRaw : math.min(longStopSwing, longStopPacRaw)
+shortStopCandidate = stopMode == "Swing" ? shortStopSwing : stopMode == "PAC" ? shortStopPacRaw : math.max(shortStopSwing, shortStopPacRaw)
+
+// === EXECUTION STATE ===
+var bool armLongOrder = false
+var bool armShortOrder = false
+var float armLongEntry = na
+var float armShortEntry = na
+var float armLongStop = na
+var float armShortStop = na
+var int armLongBar = na
+var int armShortBar = na
+var string armLongReason = ""
+var string armShortReason = ""
+
+var float activeLongStop = na
+var float activeShortStop = na
+
+canOperate = not DelayArrow or barstate.isconfirmed
+
+longEntryStopPrice = srcHigh + entryStopTicks * syminfo.mintick
+shortEntryStopPrice = srcLow - entryStopTicks * syminfo.mintick
+
+// === ARM / CANCEL HELPERS ===
+if entryLongEvent and canOperate
+    strategy.cancel("Short")
+    armShortOrder := false
+    armShortEntry := na
+    armShortStop := na
+    armShortBar := na
+    armShortReason := ""
+
+    if mode == "Conservative"
+        if strategy.position_size < 0
+            strategy.close("Short", comment="Opp Signal Close")
+            armLongOrder := true
+            armLongEntry := longEntryStopPrice
+            armLongStop := longStopCandidate
+            armLongBar := bar_index
+            armLongReason := reversalLongEvent ? "REV" : "CONT"
+        else if strategy.position_size == 0
+            armLongOrder := true
+            armLongEntry := longEntryStopPrice
+            armLongStop := longStopCandidate
+            armLongBar := bar_index
+            armLongReason := reversalLongEvent ? "REV" : "CONT"
+    else
+        if strategy.position_size < 0
+            strategy.close("Short", comment="Flip to Long")
+        armLongOrder := true
+        armLongEntry := longEntryStopPrice
+        armLongStop := longStopCandidate
+        armLongBar := bar_index
+        armLongReason := reversalLongEvent ? "REV" : "CONT"
+
+if entryShortEvent and canOperate
+    strategy.cancel("Long")
+    armLongOrder := false
+    armLongEntry := na
+    armLongStop := na
+    armLongBar := na
+    armLongReason := ""
+
+    if mode == "Conservative"
+        if strategy.position_size > 0
+            strategy.close("Long", comment="Opp Signal Close")
+            armShortOrder := true
+            armShortEntry := shortEntryStopPrice
+            armShortStop := shortStopCandidate
+            armShortBar := bar_index
+            armShortReason := reversalShortEvent ? "REV" : "CONT"
+        else if strategy.position_size == 0
+            armShortOrder := true
+            armShortEntry := shortEntryStopPrice
+            armShortStop := shortStopCandidate
+            armShortBar := bar_index
+            armShortReason := reversalShortEvent ? "REV" : "CONT"
+    else
+        if strategy.position_size > 0
+            strategy.close("Long", comment="Flip to Short")
+        armShortOrder := true
+        armShortEntry := shortEntryStopPrice
+        armShortStop := shortStopCandidate
+        armShortBar := bar_index
+        armShortReason := reversalShortEvent ? "REV" : "CONT"
+
+// === ORDER EXPIRY ===
+longExpired = armLongOrder and not na(armLongBar) and bar_index - armLongBar > entryExpiryBars
+shortExpired = armShortOrder and not na(armShortBar) and bar_index - armShortBar > entryExpiryBars
+
+if longExpired or entryShortEvent
+    strategy.cancel("Long")
+    if longExpired
+        armLongOrder := false
+        armLongEntry := na
+        armLongStop := na
+        armLongBar := na
+        armLongReason := ""
+
+if shortExpired or entryLongEvent
+    strategy.cancel("Short")
+    if shortExpired
+        armShortOrder := false
+        armShortEntry := na
+        armShortStop := na
+        armShortBar := na
+        armShortReason := ""
+
+// === SUBMIT STOP ORDERS ===
+if canOperate and armLongOrder and strategy.position_size == 0 and not na(armLongEntry)
+    strategy.entry("Long", strategy.long, stop=armLongEntry, comment=armLongReason == "REV" ? "Long Reversal" : "Long Trigger")
+
+if canOperate and armShortOrder and strategy.position_size == 0 and not na(armShortEntry)
+    strategy.entry("Short", strategy.short, stop=armShortEntry, comment=armShortReason == "REV" ? "Short Reversal" : "Short Trigger")
+
+// === CAPTURE FILLS / FREEZE STOPS ===
+posPrev = nz(strategy.position_size[1], 0)
+posNow = strategy.position_size
+
+newLongFill = posNow > 0 and posPrev <= 0
+newShortFill = posNow < 0 and posPrev >= 0
+flatNow = posNow == 0 and posPrev != 0
+
+if newLongFill
+    activeLongStop := armLongStop
+    activeShortStop := na
+    armLongOrder := false
+    armLongEntry := na
+    armLongBar := na
+    armLongReason := ""
+    strategy.cancel("Short")
+    armShortOrder := false
+    armShortEntry := na
+    armShortStop := na
+    armShortBar := na
+    armShortReason := ""
+
+if newShortFill
+    activeShortStop := armShortStop
+    activeLongStop := na
+    armShortOrder := false
+    armShortEntry := na
+    armShortBar := na
+    armShortReason := ""
+    strategy.cancel("Long")
+    armLongOrder := false
+    armLongEntry := na
+    armLongStop := na
+    armLongBar := na
+    armLongReason := ""
+
+if flatNow
+    activeLongStop := na
+    activeShortStop := na
+
+// === EXITS ===
+if strategy.position_size > 0 and not na(activeLongStop)
+    strategy.exit("L-SL", from_entry="Long", stop=activeLongStop, comment="Long Stop")
+
+if strategy.position_size < 0 and not na(activeShortStop)
+    strategy.exit("S-SL", from_entry="Short", stop=activeShortStop, comment="Short Stop")
+
+if canOperate and exitOnPacCenter and strategy.position_size > 0 and srcClose < pacC
+    strategy.close("Long", comment="PAC Fail")
+    armLongOrder := false
+    armLongEntry := na
+    armLongStop := na
+    armLongBar := na
+    armLongReason := ""
+
+if canOperate and exitOnPacCenter and strategy.position_size < 0 and srcClose > pacC
+    strategy.close("Short", comment="PAC Fail")
+    armShortOrder := false
+    armShortEntry := na
+    armShortStop := na
+    armShortBar := na
+    armShortReason := ""
+
+// === VISUALS ===
+plotPacL = plot(pacL, color=color.new(color.gray, 50), linewidth=1, title="High PAC EMA", force_overlay=true)
+plotPacU = plot(pacU, color=color.new(color.gray, 50), linewidth=1, title="Low PAC EMA", force_overlay=true)
+plotPacC = plot(pacC, color=color.red, linewidth=2, title="Close PAC EMA", force_overlay=true)
+fill(plotPacL, plotPacU, color=color.new(color.gray, 90), title="Fill HiLo PAC")
+
+barCol = srcClose > pacU ? color.blue : srcClose < pacL ? color.red : color.gray
+barcolor(ShowBarColor ? barCol : na, title="Bar Colours")
+
+bgCol = trendRegime == 1 ? color.green : trendRegime == -1 ? color.red : color.yellow
+bgcolor(ShowTrendBGcolor ? color.new(bgCol, 90) : na, title="Trend BG Color", force_overlay=true)
+
+plot(ShowFastEMA ? fastEMA : na, color=color.new(color.green, 20), linewidth=2, title="fastEMA", force_overlay=true)
+plot(ShowMediumEMA ? mediumEMA : na, color=color.new(color.blue, 20), linewidth=3, title="mediumEMA", force_overlay=true)
+plot(ShowSlowEMA ? slowEMA : na, color=color.new(color.black, 20), linewidth=4, title="slowEMA", force_overlay=true)
+
+plotshape(ShowFractals and filteredTop, title="Filtered Top Fractals", style=shape.triangledown, location=location.abovebar, color=color.red, offset=-2, size=size.tiny, force_overlay=true)
+plotshape(ShowFractals and filteredBot, title="Filtered Bottom Fractals", style=shape.triangleup, location=location.belowbar, color=color.lime, offset=-2, size=size.tiny, force_overlay=true)
+
+plotshape(ShowHHLL and higherhigh, title="Higher High", style=shape.square, location=location.abovebar, color=color.maroon, text="[HH]", offset=-2, size=size.tiny, force_overlay=true)
+plotshape(ShowHHLL and lowerhigh, title="Lower High", style=shape.square, location=location.abovebar, color=color.maroon, text="[LH]", offset=-2, size=size.tiny, force_overlay=true)
+plotshape(ShowHHLL and higherlow, title="Higher Low", style=shape.square, location=location.belowbar, color=color.green, text="[HL]", offset=-2, size=size.tiny, force_overlay=true)
+plotshape(ShowHHLL and lowerlow, title="Lower Low", style=shape.square, location=location.belowbar, color=color.green, text="[LL]", offset=-2, size=size.tiny, force_overlay=true)
+
+longMarker = ShowBuySell and longEvent
+shortMarker = ShowBuySell and shortEvent
+reversalLongMarker = ShowBuySell and reversalLongEvent
+reversalShortMarker = ShowBuySell and reversalShortEvent
+plotshape(longMarker, title="Buy Trigger", style=shape.triangleup, location=location.belowbar, color=color.green, size=size.tiny, force_overlay=true)
+plotshape(shortMarker, title="Sell Trigger", style=shape.triangledown, location=location.abovebar, color=color.maroon, size=size.tiny, force_overlay=true)
+plotshape(reversalLongMarker, title="Reversal Long Trigger", style=shape.labelup, location=location.belowbar, color=color.orange, text="RL", textcolor=color.black, size=size.tiny, force_overlay=true)
+plotshape(reversalShortMarker, title="Reversal Short Trigger", style=shape.labeldown, location=location.abovebar, color=color.orange, text="RS", textcolor=color.black, size=size.tiny, force_overlay=true)
+
+plotshape(showDebugMarks and pullbackSetupLong, title="Pullback Setup Long", style=shape.circle, location=location.belowbar, color=color.new(color.green, 50), size=size.tiny, force_overlay=true)
+plotshape(showDebugMarks and pullbackSetupShort, title="Pullback Setup Short", style=shape.circle, location=location.abovebar, color=color.new(color.red, 50), size=size.tiny, force_overlay=true)
+plotshape(showDebugMarks and triggerLong, title="Trigger Long Debug", style=shape.labelup, location=location.belowbar, color=color.green, text="TL", size=size.tiny, force_overlay=true)
+plotshape(showDebugMarks and triggerShort, title="Trigger Short Debug", style=shape.labeldown, location=location.abovebar, color=color.maroon, text="TS", size=size.tiny, force_overlay=true)
+plotshape(showDebugMarks and armLongOrder, title="Armed Long", style=shape.flag, location=location.abovebar, color=color.new(color.green, 0), text="AL", size=size.tiny, force_overlay=true)
+plotshape(showDebugMarks and armShortOrder, title="Armed Short", style=shape.flag, location=location.belowbar, color=color.new(color.red, 0), text="AS", size=size.tiny, force_overlay=true)
+plotshape(showDebugMarks and reversalLongEvent, title="Reversal Long Debug", style=shape.labelup, location=location.belowbar, color=color.orange, text="RL", size=size.tiny, force_overlay=true)
+plotshape(showDebugMarks and reversalShortEvent, title="Reversal Short Debug", style=shape.labeldown, location=location.abovebar, color=color.orange, text="RS", size=size.tiny, force_overlay=true)
+
+// === INFO TABLE ===
+var table t = table.new(position.top_right, 2, 15, bgcolor=color.new(color.black, 78), frame_color=color.new(color.gray, 70), border_width=1)
+if barstate.islast
+    table.cell(t, 0, 0, "Mode", text_color=color.white)
+    table.cell(t, 1, 0, mode, text_color=color.white)
+    table.cell(t, 0, 1, "HA Algo", text_color=color.white)
+    table.cell(t, 1, 1, UseHAcandles ? "ON" : "OFF", text_color=color.white)
+    table.cell(t, 0, 2, "Stop", text_color=color.white)
+    table.cell(t, 1, 2, stopMode, text_color=color.white)
+    table.cell(t, 0, 3, "PAC Exit", text_color=color.white)
+    table.cell(t, 1, 3, exitOnPacCenter ? "ON" : "OFF", text_color=color.white)
+    table.cell(t, 0, 4, "Local Regime", text_color=color.white)
+    table.cell(t, 1, 4, localRegime == 1 ? "UP" : localRegime == -1 ? "DOWN" : "TRANS", text_color=color.white)
+    table.cell(t, 0, 5, "MTF Profile", text_color=color.white)
+    table.cell(t, 1, 5, effectiveUseHTFBias ? mtfBiasProfile : "OFF", text_color=color.white)
+    table.cell(t, 0, 6, "HTF TF", text_color=color.white)
+    table.cell(t, 1, 6, effectiveUseHTFBias ? resolvedHTF : "-", text_color=color.white)
+    table.cell(t, 0, 7, "HTF Bias", text_color=color.white)
+    table.cell(t, 1, 7, effectiveUseHTFBias ? (htfBias == 1 ? "UP" : htfBias == -1 ? "DOWN" : "TRANS") : "OFF", text_color=color.white)
+    table.cell(t, 0, 8, "Trend Regime", text_color=color.white)
+    table.cell(t, 1, 8, trendRegime == 1 ? "UP" : trendRegime == -1 ? "DOWN" : "TRANS", text_color=color.white)
+    table.cell(t, 0, 9, "Trigger", text_color=color.white)
+    table.cell(t, 1, 9, longEvent ? "LONG" : shortEvent ? "SHORT" : reversalLongEvent ? "REV-L" : reversalShortEvent ? "REV-S" : "-", text_color=color.white)
+    table.cell(t, 0, 10, "Arm", text_color=color.white)
+    table.cell(t, 1, 10, armLongOrder ? ("LONG-" + armLongReason) : armShortOrder ? ("SHORT-" + armShortReason) : "-", text_color=color.white)
+    table.cell(t, 0, 11, "Long Stop", text_color=color.white)
+    table.cell(t, 1, 11, na(activeLongStop) ? str.tostring(longStopCandidate, format.mintick) : str.tostring(activeLongStop, format.mintick), text_color=color.white)
+    table.cell(t, 0, 12, "Short Stop", text_color=color.white)
+    table.cell(t, 1, 12, na(activeShortStop) ? str.tostring(shortStopCandidate, format.mintick) : str.tostring(activeShortStop, format.mintick), text_color=color.white)
+    table.cell(t, 0, 13, "Rev Module", text_color=color.white)
+    table.cell(t, 1, 13, enableReversalModule ? "ON" : "OFF", text_color=color.white)
+    table.cell(t, 0, 14, "PAC Fail", text_color=color.white)
+    table.cell(t, 1, 14, longPacFailBar ? "LONG FAIL" : shortPacFailBar ? "SHORT FAIL" : "-", text_color=color.white)

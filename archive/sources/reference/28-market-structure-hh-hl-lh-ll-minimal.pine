@@ -1,0 +1,167 @@
+//@version=6
+indicator("Market Structure (HH/HL/LH/LL) [Minimal]", shorttitle="Structure Minimal", overlay=true, max_labels_count=100)
+
+// =====================================================
+// Inputs
+// =====================================================
+groupPivot = "Pivot Settings"
+leftBars   = input.int(3, "Pivot Left", minval=1, group=groupPivot)
+rightBars  = input.int(3, "Pivot Right", minval=1, group=groupPivot)
+
+groupView = "Display"
+showSwingLabels = input.bool(false, "Show Swing Labels (HH/HL/LH/LL)", group=groupView)
+showPanel       = input.bool(true, "Show Structure Panel", group=groupView)
+panelPos        = input.string("Top Right", "Panel Position", options=["Top Right", "Top Left", "Bottom Right", "Bottom Left"], group=groupView)
+
+groupLogic = "Logic"
+rangeTolerancePct = input.float(0.10, "Range Tolerance (%)", minval=0.0, step=0.01, tooltip="Tolerance used to avoid classifying tiny differences as HH/LH/HL/LL", group=groupLogic)
+
+// =====================================================
+// Helpers
+// =====================================================
+f_table_pos(_pos) =>
+    _pos == "Top Left" ? position.top_left :
+     _pos == "Bottom Right" ? position.bottom_right :
+     _pos == "Bottom Left" ? position.bottom_left :
+     position.bottom_right
+
+f_classify_high(curr, prev, tolPct) =>
+    // Returns "HH" or "LH" (or "H?" if prev not available)
+    na(prev) ? "H?" : (curr > prev * (1.0 + tolPct / 100.0) ? "HH" : "LH")
+
+f_classify_low(curr, prev, tolPct) =>
+    // Returns "HL" or "LL" (or "L?" if prev not available)
+    na(prev) ? "L?" : (curr > prev * (1.0 + tolPct / 100.0) ? "HL" : "LL")
+
+// =====================================================
+// Pivot detection
+// =====================================================
+ph = ta.pivothigh(high, leftBars, rightBars)
+pl = ta.pivotlow(low, leftBars, rightBars)
+
+phBarIndex = bar_index - rightBars
+plBarIndex = bar_index - rightBars
+
+// =====================================================
+// Swing memory
+// =====================================================
+var float lastHigh = na
+var float prevHigh = na
+var float lastLow  = na
+var float prevLow  = na
+
+var int   lastHighBar = na
+var int   prevHighBar = na
+var int   lastLowBar  = na
+var int   prevLowBar  = na
+
+var string lastHighType = "H?"
+var string lastLowType  = "L?"
+
+// Update highs
+if not na(ph)
+    prevHigh    := lastHigh
+    prevHighBar := lastHighBar
+    lastHigh    := ph
+    lastHighBar := phBarIndex
+    lastHighType := f_classify_high(lastHigh, prevHigh, rangeTolerancePct)
+
+    if showSwingLabels
+        label.new(
+             phBarIndex, ph,
+             text=lastHighType,
+             style=label.style_label_down,
+             textcolor=color.white,
+             color=lastHighType == "HH" ? color.new(color.green, 0) : color.new(color.red, 0),
+             size=size.tiny)
+
+// Update lows
+if not na(pl)
+    prevLow    := lastLow
+    prevLowBar := lastLowBar
+    lastLow    := pl
+    lastLowBar := plBarIndex
+    lastLowType := f_classify_low(lastLow, prevLow, rangeTolerancePct)
+
+    if showSwingLabels
+        label.new(
+             plBarIndex, pl,
+             text=lastLowType,
+             style=label.style_label_up,
+             textcolor=color.white,
+             color=lastLowType == "HL" ? color.new(color.green, 0) : color.new(color.red, 0),
+             size=size.tiny)
+
+// =====================================================
+// Structure state
+// =====================================================
+// We classify structure from the latest known high/low swing types.
+// UP    => HH + HL
+// DOWN  => LH + LL
+// TRANS => mixed but directional conflict
+// RANGE => insufficient data or noisy/flat behavior
+var string structState = "RANGE"
+
+haveHighInfo = (lastHighType == "HH" or lastHighType == "LH")
+haveLowInfo  = (lastLowType == "HL" or lastLowType == "LL")
+
+if haveHighInfo and haveLowInfo
+    if lastHighType == "HH" and lastLowType == "HL"
+        structState := "UP"
+    else if lastHighType == "LH" and lastLowType == "LL"
+        structState := "DOWN"
+    else
+        structState := "TRANS"
+else
+    structState := "RANGE"
+
+// =====================================================
+// Optional plot markers (very light) - FIXED
+// =====================================================
+plot(ph, title="Pivot High", style=plot.style_circles, linewidth=1, color=color.new(color.red, 65), display=display.none)
+plot(pl, title="Pivot Low",  style=plot.style_circles, linewidth=1, color=color.new(color.green, 65), display=display.none)
+
+// =====================================================
+// Panel
+// =====================================================
+var table panel = na
+if showPanel and na(panel)
+    panel := table.new(f_table_pos(panelPos), 1, 5, border_width=1)
+
+if showPanel and not na(panel)
+    // Pick color by state
+    stateBg =
+         structState == "UP"   ? color.new(color.green, 78) :
+         structState == "DOWN" ? color.new(color.red, 78) :
+         structState == "TRANS"? color.new(color.orange, 78) :
+                                 color.new(color.gray, 82)
+
+    stateTxt =
+         structState == "UP"   ? "UP (HH/HL)" :
+         structState == "DOWN" ? "DOWN (LH/LL)" :
+         structState == "TRANS"? "TRANSITION" :
+                                 "RANGE"
+
+    table.cell(panel, 0, 0, "STRUCTURE", text_color=color.white, bgcolor=color.new(color.black, 0))
+    table.cell(panel, 0, 1, stateTxt, text_color=color.white, bgcolor=stateBg)
+    table.cell(panel, 0, 2, "High Swing: " + lastHighType, text_color=color.white, bgcolor=color.new(color.black, 0))
+    table.cell(panel, 0, 3, "Low Swing: " + lastLowType,  text_color=color.white, bgcolor=color.new(color.black, 0))
+    table.cell(panel, 0, 4, "Pivot " + str.tostring(leftBars) + "/" + str.tostring(rightBars), text_color=color.silver, bgcolor=color.new(color.black, 0))
+
+// =====================================================
+// Alerts (optional, already padronizados)
+// =====================================================
+isUp    = structState == "UP"
+isDown  = structState == "DOWN"
+isTrans = structState == "TRANS"
+isRange = structState == "RANGE"
+
+upFlip    = isUp and structState[1] != "UP"
+downFlip  = isDown and structState[1] != "DOWN"
+transFlip = isTrans and structState[1] != "TRANS"
+rangeFlip = isRange and structState[1] != "RANGE"
+
+alertcondition(upFlip,    title="STRUCT UP",    message="STRUCT | UP | HH/HL")
+alertcondition(downFlip,  title="STRUCT DOWN",  message="STRUCT | DOWN | LH/LL")
+alertcondition(transFlip, title="STRUCT TRANS", message="STRUCT | TRANSITION")
+alertcondition(rangeFlip, title="STRUCT RANGE", message="STRUCT | RANGE")

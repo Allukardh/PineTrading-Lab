@@ -1,0 +1,777 @@
+//@version=6
+indicator("AVP Crypto Gate Panel v3.5 (Stack + BOS Mode + Profile Presets)", overlay=true, max_labels_count=500, max_lines_count=500, max_boxes_count=50)
+
+//====================================================
+// GROUP: 1) Profiles & Timeframes
+//====================================================
+group_profile = "1) Profiles & Timeframes"
+
+profile      = input.string("Balanced", "Profile", options=["Sniper","Balanced","Aggressive"], group=group_profile)
+
+// Timeframes
+tf_bias1     = input.timeframe("240", "Bias TF #1 (4H)", group=group_profile)
+tf_bias2     = input.timeframe("D",   "Bias TF #2 (Daily)", group=group_profile)
+tf_struct    = input.timeframe("240", "Structure TF (MTF swings)", group=group_profile)
+autoStructTF  = input.bool(true, "Auto Structure TF (recommended)", group=group_profile)
+
+autoTriggerTF = input.bool(true, "Auto Trigger TF (recommended)", group=group_profile)
+tf_trigger   = input.timeframe("60",  "Trigger TF (manual)", group=group_profile)
+
+//====================================================
+// GROUP: 2) Core Parameters
+//====================================================
+group_core = "2) Core Parameters"
+
+atrLen       = input.int(14, "ATR Length", minval=5, group=group_core)
+rangeLen     = input.int(40, "Range Window (Trigger TF)", minval=20, group=group_core)
+pivotL       = input.int(3,  "Pivot Left (Structure TF)", minval=1, maxval=10, group=group_core)
+pivotR       = input.int(3,  "Pivot Right (Structure TF)", minval=1, maxval=10, group=group_core)
+
+useWeeklyVW  = input.bool(true, "Use Weekly Anchored VWAP", group=group_core)
+useMonthlyVW = input.bool(true, "Use Monthly Anchored VWAP", group=group_core)
+
+//====================================================
+// GROUP: 3) Gates & Thresholds
+//====================================================
+group_gates = "3) Gates & Thresholds (reset on Profile change)"
+
+enableManualThresholds = input.bool(false, "Enable manual thresholds (advanced)", group=group_gates, tooltip="If OFF, GO/WATCH thresholds use the Profile presets. If ON, you can set them below. Effective values still reset when Profile changes.")
+goTh_in   = input.int(8, "GO threshold", minval=1, maxval=20, group=group_gates)
+watchTh_in= input.int(6, "WATCH threshold", minval=1, maxval=20, group=group_gates)
+
+//====================================================
+// GROUP: 4) Trigger Engine
+//====================================================
+group_trigger = "4) Trigger Engine (reset on Profile change)"
+
+retestTolATR_in = input.float(0.2, "Retest tolerance (x ATR on trigger TF)", minval=0.0, step=0.05, group=group_trigger)
+inPlayBars_in   = input.int(6, "IN_PLAY duration (trigger bars)", minval=1, group=group_trigger)
+fakeoutBars_in  = input.int(3, "Fakeout window (trigger bars)", minval=1, group=group_trigger)
+
+useMSSFilter = input.bool(true, "MSS Filter (ATR displacement)", group=group_trigger)
+mssAtrMult   = input.float(0.6, "MSS min displacement (x ATR)", minval=0.1, step=0.1, group=group_trigger)
+
+stateHoldBars_in = input.int(8, "State color hold (bars)", minval=1, group=group_trigger)
+flashBars_in     = input.int(6, "Fakeout flash bars", minval=1, group=group_trigger)
+
+//====================================================
+// GROUP: 5) Panel UI
+//====================================================
+group_panel = "5) Panel UI"
+
+showPanel      = input.bool(true, "Show Panel", group=group_panel)
+panelPos       = input.string("Top Right", "Panel position",
+     options=["Top Right","Top Left","Bottom Right","Bottom Left","Middle Right","Middle Left","Top Center","Bottom Center"], group=group_panel)
+panelCompact   = input.bool(true, "Panel Compact Mode (6 lines)", group=group_panel)
+panelTextSize  = input.string("Small", "Panel text size", options=["Tiny","Small","Normal"], group=group_panel)
+
+panelBgAlpha   = input.int(85, "Panel background alpha (0 opaque → 100 transparent)", minval=0, maxval=100, group=group_panel)
+panelTextAlpha = input.int(0,  "Panel text alpha (0 opaque → 100 transparent)", minval=0, maxval=100, group=group_panel)
+
+//====================================================
+// GROUP: 6) Chart Visuals
+//====================================================
+group_vis = "6) Chart Visuals"
+
+showBiasLines    = input.bool(true, "Show Bias Lines (EMA200 4H/D)", group=group_vis)
+showAnchoredVWAP = input.bool(true, "Show Anchored VWAP (W/M)", group=group_vis)
+showStructure    = input.bool(true, "Show Structure (levels + markers)", group=group_vis)
+showTriggerBox   = input.bool(true, "Show Trigger Range (Lines/Fill)", group=group_vis)
+fillRangeArea    = input.bool(false, "Fill Range Area (transparent)", group=group_vis)
+showRangeLines   = input.bool(true, "Range Lines", group=group_vis)
+
+paintGO          = input.bool(true, "Paint Background on GO", group=group_vis)
+goBgAlpha        = input.int(92, "GO background tint alpha", minval=0, maxval=100, group=group_vis)
+
+showInPlayLine   = input.bool(true, "Show IN_PLAY level line", group=group_vis)
+
+signalTextAlpha  = input.int(0,  "Marker text alpha (0 opaque → 100 transparent)", minval=0, maxval=100, group=group_vis)
+showSignalsOnlyWhenRelevant = input.bool(true, "Show markers only on WATCH/GO", group=group_vis)
+markerSizeSmall = input.bool(false, "Marker size: Small (else Tiny)", group=group_vis)
+
+// --- Marker stacking + BOS visibility (v3.5 package) ---
+stackStepATR = input.float(0.35, "Marker stack step (x ATR)", minval=0.01, step=0.01, group=group_vis)
+circleNudgeATR = input.float(0.20, "Circle nudge (x ATR)", minval=0.0, step=0.01, group=group_vis)
+bosDisplayMode = input.string("Auto by Mode", "BOS Display Mode", options=["Auto by Mode","Always ON","Always OFF"], group=group_vis)
+keepLastBosBars = input.int(50, "Keep last BOS bars (Auto by Mode)", minval=1, group=group_vis)
+bosMinMoveATR = input.float(0.0, "BOS min move (x ATR) [anti-spam]", minval=0.0, step=0.05, group=group_vis)
+
+biasColor4H    = input.color(color.orange, "EMA200 4H color", group=group_vis)
+biasColorD     = input.color(color.red,    "EMA200 D color", group=group_vis)
+vwapColorW     = input.color(color.aqua,   "aVWAP Weekly color", group=group_vis)
+vwapColorM     = input.color(color.purple, "aVWAP Monthly color", group=group_vis)
+
+structResColor = input.color(color.new(color.blue, 0), "Structure RES line color", group=group_vis)
+structSupColor = input.color(color.new(color.blue, 0), "Structure SUP line color", group=group_vis)
+structLineStyle= input.string("Solid",  "Structure line style", options=["Solid","Dashed","Dotted"], group=group_vis)
+
+rangeNormalHi  = input.color(color.new(color.white, 0), "Range High normal", group=group_vis)
+rangeNormalLo  = input.color(color.new(color.white, 0), "Range Low normal", group=group_vis)
+rangeBreakHi   = input.color(color.new(color.yellow, 0), "Range High on Break", group=group_vis)
+rangeBreakLo   = input.color(color.new(color.yellow, 0), "Range Low on Break", group=group_vis)
+rangeRetHi     = input.color(color.new(color.lime, 0), "Range High on Retest", group=group_vis)
+rangeRetLo     = input.color(color.new(color.lime, 0), "Range Low on Retest", group=group_vis)
+
+rangeLineStyle = input.string("Dashed", "Range line style", options=["Solid","Dashed","Dotted"], group=group_vis)
+
+inPlayColor    = input.color(color.new(color.lime, 0), "IN_PLAY line color", group=group_vis)
+fakeoutColor   = input.color(color.new(color.red, 0), "Fakeout flash color", group=group_vis)
+
+//====================================================
+// Profile Presets (reset-on-profile-change behavior)
+//====================================================
+var string prevProfile = na
+
+// Presets (effective when no manual override is active)
+var float retestTolATR_p = na
+var int   inPlayBars_p   = na
+var int   fakeoutBars_p  = na
+var int   stateHoldBars_p= na
+var int   flashBars_p    = na
+var int   goThPreset     = na
+var int   watchThPreset  = na
+
+// Manual override latch:
+// - After a Profile switch: overrides are OFF (presets take over)
+// - If you change any override input: overrides turn ON until next Profile switch
+var bool overridesOn = false
+var float last_retestTol = na
+var int   last_inPlayBars = na
+var int   last_fakeoutBars = na
+var int   last_stateHold = na
+var int   last_flashBars = na
+var int   last_goTh = na
+var int   last_watchTh = na
+
+// Apply presets when profile changes (or first run)
+profileChanged = na(prevProfile) or profile != prevProfile
+if profileChanged
+    overridesOn := false
+
+    if profile == "Sniper"
+        retestTolATR_p := 0.15
+        inPlayBars_p   := 5
+        fakeoutBars_p  := 3
+        stateHoldBars_p:= 10
+        flashBars_p    := 8
+        goThPreset     := 9
+        watchThPreset  := 7
+    else if profile == "Aggressive"
+        retestTolATR_p := 0.25
+        inPlayBars_p   := 8
+        fakeoutBars_p  := 2
+        stateHoldBars_p:= 7
+        flashBars_p    := 5
+        goThPreset     := 7
+        watchThPreset  := 5
+    else
+        // Balanced
+        retestTolATR_p := 0.20
+        inPlayBars_p   := 6
+        fakeoutBars_p  := 3
+        stateHoldBars_p:= 8
+        flashBars_p    := 6
+        goThPreset     := 8
+        watchThPreset  := 6
+
+    // Sync "last seen" inputs so switching profile doesn't instantly count as a manual edit
+    last_retestTol := retestTolATR_in
+    last_inPlayBars := inPlayBars_in
+    last_fakeoutBars := fakeoutBars_in
+    last_stateHold := stateHoldBars_in
+    last_flashBars := flashBars_in
+    last_goTh := goTh_in
+    last_watchTh := watchTh_in
+
+    prevProfile := profile
+
+// Detect manual edits (latch ON)
+if not overridesOn
+    edited = (retestTolATR_in != last_retestTol) or (inPlayBars_in != last_inPlayBars) or (fakeoutBars_in != last_fakeoutBars) or (stateHoldBars_in != last_stateHold) or (flashBars_in != last_flashBars)
+    edited := edited or (enableManualThresholds and ((goTh_in != last_goTh) or (watchTh_in != last_watchTh)))
+    if edited
+        overridesOn := true
+
+// Update last seen inputs (always)
+last_retestTol := retestTolATR_in
+last_inPlayBars := inPlayBars_in
+last_fakeoutBars := fakeoutBars_in
+last_stateHold := stateHoldBars_in
+last_flashBars := flashBars_in
+last_goTh := goTh_in
+last_watchTh := watchTh_in
+
+// Effective values
+retestTolATR = overridesOn ? retestTolATR_in : retestTolATR_p
+inPlayBars   = overridesOn ? inPlayBars_in   : inPlayBars_p
+fakeoutBars  = overridesOn ? fakeoutBars_in  : fakeoutBars_p
+stateHoldBars= overridesOn ? stateHoldBars_in: stateHoldBars_p
+flashBars    = overridesOn ? flashBars_in    : flashBars_p
+
+goTh    = (enableManualThresholds and overridesOn) ? goTh_in : goThPreset
+watchTh = (enableManualThresholds and overridesOn) ? watchTh_in : watchThPreset
+//====================================================
+// Helpers
+//====================================================
+f_sec(_tf, _expr) =>
+    request.security(syminfo.tickerid, _tf, _expr, barmerge.gaps_off, barmerge.lookahead_off)
+
+string tf_trigger_eff = tf_trigger
+if autoTriggerTF
+    if timeframe.isintraday
+        tf_trigger_eff := "60"
+    else if timeframe.isdaily
+        tf_trigger_eff := "240"
+    else
+        tf_trigger_eff := "D"
+
+// Auto structure TF mapping
+string tf_struct_eff = tf_struct
+if autoStructTF
+    if timeframe.isintraday
+        tf_struct_eff := "240"
+    else if timeframe.isdaily
+        tf_struct_eff := "D"
+    else if timeframe.isweekly
+        tf_struct_eff := "W"
+    else
+        // monthly and higher
+        tf_struct_eff := "M"
+
+// Panel position mapping
+pos = position.top_right
+if panelPos == "Top Left"
+    pos := position.top_left
+else if panelPos == "Bottom Right"
+    pos := position.bottom_right
+else if panelPos == "Bottom Left"
+    pos := position.bottom_left
+else if panelPos == "Middle Right"
+    pos := position.middle_right
+else if panelPos == "Middle Left"
+    pos := position.middle_left
+else if panelPos == "Top Center"
+    pos := position.top_center
+else if panelPos == "Bottom Center"
+    pos := position.bottom_center
+
+pTextSize = panelTextSize == "Tiny" ? size.tiny : panelTextSize == "Normal" ? size.small : size.small
+mSizeSmall = markerSizeSmall
+f_lstyle(_s) =>
+    _s == "Dotted" ? line.style_dotted : _s == "Dashed" ? line.style_dashed : line.style_solid
+
+rngStyle = f_lstyle(rangeLineStyle)
+stStyle  = f_lstyle(structLineStyle)
+
+//====================================================
+// Anchored VWAP
+//====================================================
+f_anchored_vwap(_anchorTf) =>
+    pid = time(_anchorTf)
+    var int lastPid = na
+    var float cumPV = na
+    var float cumV  = na
+    newPeriod = na(lastPid) or pid != lastPid
+    lastPid := pid
+    if newPeriod or na(cumPV) or na(cumV)
+        cumPV := hlc3 * volume
+        cumV  := volume
+    else
+        cumPV += hlc3 * volume
+        cumV  += volume
+    cumPV / math.max(cumV, 1)
+
+//====================================================
+// Gate 1: Bias
+//====================================================
+ema200_4h = f_sec(tf_bias1, ta.ema(close, 200))
+ema200_d  = f_sec(tf_bias2, ta.ema(close, 200))
+
+wvwap = (useWeeklyVW  ? f_anchored_vwap("W") : na)
+mvwap = (useMonthlyVW ? f_anchored_vwap("M") : na)
+
+biasLong  = close > ema200_4h and close > ema200_d
+biasShort = close < ema200_4h and close < ema200_d
+
+vwapLong  = (not useWeeklyVW or close > wvwap) and (not useMonthlyVW or close > mvwap)
+vwapShort = (not useWeeklyVW or close < wvwap) and (not useMonthlyVW or close < mvwap)
+
+//====================================================
+// Gate 2: Structure
+//====================================================
+ph_s = f_sec(tf_struct_eff, ta.pivothigh(high, pivotL, pivotR))
+pl_s = f_sec(tf_struct_eff, ta.pivotlow(low,  pivotL, pivotR))
+
+var float lastSwingHigh = na
+var float lastSwingLow  = na
+if not na(ph_s)
+    lastSwingHigh := ph_s
+if not na(pl_s)
+    lastSwingLow := pl_s
+
+bosUp   = not na(lastSwingHigh) and close > lastSwingHigh
+bosDown = not na(lastSwingLow)  and close < lastSwingLow
+
+var int st = 0
+if bosUp
+    st := 1
+else if bosDown
+    st := -1
+
+chochUp_raw   = st == -1 and bosUp
+chochDown_raw = st == 1  and bosDown
+
+atr    = ta.atr(atrLen)
+atrPct = atr / close
+ema50  = ta.ema(close, 50)
+trendFlat = math.abs(ta.change(ema50, 10)) / close < 0.005
+isRange   = (atrPct < 0.015) and trendFlat and (not bosUp) and (not bosDown)
+
+disp  = math.abs(close - close[1])
+mssOk = disp >= (mssAtrMult * atr)
+
+chochUp   = useMSSFilter ? (chochUp_raw and mssOk) : chochUp_raw
+chochDown = useMSSFilter ? (chochDown_raw and mssOk) : chochDown_raw
+
+modeB = isRange
+modeC = chochUp or chochDown
+
+bosUpEvt     = bosUp and not bosUp[1] and ((close - lastSwingHigh) >= (bosMinMoveATR * atr))
+bosDownEvt   = bosDown and not bosDown[1] and ((lastSwingLow - close) >= (bosMinMoveATR * atr))
+chochUpEvt   = chochUp and not chochUp[1]
+chochDownEvt = chochDown and not chochDown[1]
+
+string mssStatus = "—"
+if useMSSFilter
+    if chochUp_raw or chochDown_raw
+        mssStatus := mssOk ? "PASS" : "BLOCK"
+    else
+        mssStatus := "IDLE"
+else
+    mssStatus := "OFF"
+
+//====================================================
+// Gate 3: Trigger + IN_PLAY + Fakeout
+//====================================================
+atr_t       = f_sec(tf_trigger_eff, ta.atr(atrLen))
+rangeHigh_t = f_sec(tf_trigger_eff, ta.highest(high, rangeLen))
+rangeLow_t  = f_sec(tf_trigger_eff, ta.lowest(low,  rangeLen))
+
+close_t  = f_sec(tf_trigger_eff, close)
+high_t   = f_sec(tf_trigger_eff, high)
+low_t    = f_sec(tf_trigger_eff, low)
+time_t   = f_sec(tf_trigger_eff, time)
+
+rh_prev     = f_sec(tf_trigger_eff, ta.highest(high, rangeLen)[1])
+rl_prev     = f_sec(tf_trigger_eff, ta.lowest(low,  rangeLen)[1])
+close_prev  = f_sec(tf_trigger_eff, close[1])
+
+breakUp   = close_t > rh_prev and close_prev <= rh_prev
+breakDown = close_t < rl_prev and close_prev >= rl_prev
+
+tol = retestTolATR * atr_t
+retestUp   = (low_t <= (rangeHigh_t + tol)) and (close_t > rangeHigh_t)
+retestDown = (high_t >= (rangeLow_t - tol)) and (close_t < rangeLow_t)
+
+breakUpEvt    = breakUp and not breakUp[1]
+breakDownEvt  = breakDown and not breakDown[1]
+retestUpEvt   = retestUp and not retestUp[1]
+retestDownEvt = retestDown and not retestDown[1]
+
+var int lastTrigTime = na
+newTrigBar = na(lastTrigTime) or time_t != lastTrigTime
+if newTrigBar
+    lastTrigTime := time_t
+
+var int   inDir = 0
+var float inLvl = na
+var int   inTTL = 0
+var int   inFakeTTL = 0
+
+if breakUpEvt or retestUpEvt
+    inDir := 1
+    inLvl := rangeHigh_t
+    inTTL := inPlayBars
+    inFakeTTL := fakeoutBars
+
+if breakDownEvt or retestDownEvt
+    inDir := -1
+    inLvl := rangeLow_t
+    inTTL := inPlayBars
+    inFakeTTL := fakeoutBars
+
+if newTrigBar
+    if inTTL > 0
+        inTTL -= 1
+    if inFakeTTL > 0
+        inFakeTTL -= 1
+    if inTTL <= 0
+        inDir := 0
+        inLvl := na
+        inFakeTTL := 0
+
+fakeout = false
+invalid = false
+
+if inDir == 1 and not na(inLvl)
+    if inFakeTTL > 0 and close_t < inLvl
+        fakeout := true
+    if close_t < inLvl
+        invalid := true
+
+if inDir == -1 and not na(inLvl)
+    if inFakeTTL > 0 and close_t > inLvl
+        fakeout := true
+    if close_t > inLvl
+        invalid := true
+
+if invalid
+    inDir := 0
+    inLvl := na
+    inTTL := 0
+    inFakeTTL := 0
+
+triggerLong  = (breakUp or retestUp) or (inDir == 1)
+triggerShort = (breakDown or retestDown) or (inDir == -1)
+
+string inPlayStatus = (inDir == 1) ? ("LONG(" + str.tostring(inTTL) + ")") : (inDir == -1) ? ("SHORT(" + str.tostring(inTTL) + ")") : "OFF"
+
+//====================================================
+// Gate 4: Momentum
+//====================================================
+[macdLine, signalLine, hist] = ta.macd(close, 12, 26, 9)
+histSlope = hist - hist[1]
+rsi = ta.rsi(close, 14)
+
+momLong  = (hist > 0 and histSlope > 0) and (rsi >= 50)
+momShort = (hist < 0 and histSlope < 0) and (rsi <= 50)
+
+//====================================================
+// Gate 5: Zones + Space
+//====================================================
+nearestRes = lastSwingHigh
+nearestSup = lastSwingLow
+
+distToResATR = not na(nearestRes) ? math.abs(nearestRes - close) / atr : na
+distToSupATR = not na(nearestSup) ? math.abs(close - nearestSup) / atr : na
+
+spaceLong  = not na(nearestRes) ? ((nearestRes > close) and ((nearestRes - close) / atr >= 1.2)) : true
+spaceShort = not na(nearestSup) ? ((nearestSup < close) and ((close - nearestSup) / atr >= 1.2)) : true
+
+//====================================================
+// Scoring
+//====================================================
+int scoreLong  = 0
+int scoreShort = 0
+
+scoreLong  += biasLong  ? 2 : 0
+scoreShort += biasShort ? 2 : 0
+scoreLong  += vwapLong  ? 1 : 0
+scoreShort += vwapShort ? 1 : 0
+
+scoreLong  += (st == 1)  ? 2 : 0
+scoreShort += (st == -1) ? 2 : 0
+scoreLong  += (modeC and chochUp)   ? 1 : 0
+scoreShort += (modeC and chochDown) ? 1 : 0
+
+scoreLong  += triggerLong  ? 2 : 0
+scoreShort += triggerShort ? 2 : 0
+scoreLong  += (inDir == 1) ? 1 : 0
+scoreShort += (inDir == -1)? 1 : 0
+
+scoreLong  += momLong  ? 2 : 0
+scoreShort += momShort ? 2 : 0
+
+scoreLong  += spaceLong  ? 1 : 0
+scoreShort += spaceShort ? 1 : 0
+
+if fakeout
+    scoreLong  := math.max(scoreLong - 2, 0)
+    scoreShort := math.max(scoreShort - 2, 0)
+
+conflict = (biasLong and st == -1) or (biasShort and st == 1)
+conflictPenalty = profile == "Sniper" ? 2 : 1
+if conflict
+    scoreLong  := math.max(scoreLong  - conflictPenalty, 0)
+    scoreShort := math.max(scoreShort - conflictPenalty, 0)
+
+maxScore = math.max(scoreLong, scoreShort)
+
+//====================================================
+// Verdict / State / Quality / Mode
+//====================================================
+string verdict = "NO-TRADE"
+if scoreLong >= scoreShort and scoreLong >= goTh
+    verdict := "LONG"
+else if scoreShort > scoreLong and scoreShort >= goTh
+    verdict := "SHORT"
+
+string state = "⛔ NO-TRADE"
+if verdict != "NO-TRADE"
+    state := "✅ GO"
+else if maxScore >= watchTh
+    state := "⚠️ WATCH"
+
+string quality = "—"
+if maxScore >= (goTh + 2)
+    quality := "EXCELENTE"
+else if maxScore >= goTh
+    quality := "BOM"
+else if maxScore >= watchTh
+    quality := "REGULAR"
+
+string mode = "A (CONTINUAÇÃO)"
+if modeC
+    mode := "C (REVERSÃO)"
+else if modeB or breakUpEvt or breakDownEvt or retestUpEvt or retestDownEvt or (inDir != 0)
+    mode := "B (BREAKOUT)"
+
+relevant = (not showSignalsOnlyWhenRelevant) or (state != "⛔ NO-TRADE")
+
+//====================================================
+// Visuals
+//====================================================
+bgLong  = paintGO and verdict == "LONG"
+bgShort = paintGO and verdict == "SHORT"
+bgcolor(bgLong ? color.new(color.green, goBgAlpha) : na)
+bgcolor(bgShort ? color.new(color.red, goBgAlpha) : na)
+
+plot(showBiasLines ? ema200_4h : na, "EMA200 4H", linewidth=2, color=biasColor4H)
+plot(showBiasLines ? ema200_d  : na, "EMA200 D",  linewidth=2, color=biasColorD)
+
+plot(showAnchoredVWAP and useWeeklyVW  ? wvwap : na, "aVWAP Weekly", linewidth=1, color=vwapColorW)
+plot(showAnchoredVWAP and useMonthlyVW ? mvwap : na, "aVWAP Monthly", linewidth=1, color=vwapColorM)
+
+// Structure levels
+var line lnRes = na
+var line lnSup = na
+
+if barstate.islast and showStructure
+    if na(lnRes)
+        lnRes := line.new(bar_index-200, nearestRes, bar_index, nearestRes, extend=extend.right, style=stStyle, color=structResColor)
+    else
+        line.set_xy1(lnRes, bar_index-200, nearestRes)
+        line.set_xy2(lnRes, bar_index, nearestRes)
+        line.set_extend(lnRes, extend.right)
+        line.set_style(lnRes, stStyle)
+        line.set_color(lnRes, structResColor)
+
+    if na(lnSup)
+        lnSup := line.new(bar_index-200, nearestSup, bar_index, nearestSup, extend=extend.right, style=stStyle, color=structSupColor)
+    else
+        line.set_xy1(lnSup, bar_index-200, nearestSup)
+        line.set_xy2(lnSup, bar_index, nearestSup)
+        line.set_extend(lnSup, extend.right)
+        line.set_style(lnSup, stStyle)
+        line.set_color(lnSup, structSupColor)
+else if barstate.islast and not showStructure
+    if not na(lnRes)
+        line.delete(lnRes), lnRes := na
+    if not na(lnSup)
+        line.delete(lnSup), lnSup := na
+
+// Markers
+
+//====================================================
+// Marker stacking helpers (B/C/K/R)
+//====================================================
+stackATR = atr * stackStepATR
+
+// Active markers per bar (split above/below)
+aboveB = bosUpEvt
+aboveC = chochUpEvt
+aboveK = breakUpEvt
+aboveR = retestDownEvt
+belowB = bosDownEvt
+belowC = chochDownEvt
+belowK = breakDownEvt
+belowR = retestUpEvt
+
+// Rank (1..n) for stacking
+aboveRankB = 1
+aboveRankC = (aboveB ? 1 : 0) + 1
+aboveRankK = (aboveB ? 1 : 0) + (aboveC ? 1 : 0) + 1
+aboveRankR = (aboveB ? 1 : 0) + (aboveC ? 1 : 0) + (aboveK ? 1 : 0) + 1
+belowRankB = 1
+belowRankC = (belowB ? 1 : 0) + 1
+belowRankK = (belowB ? 1 : 0) + (belowC ? 1 : 0) + 1
+belowRankR = (belowB ? 1 : 0) + (belowC ? 1 : 0) + (belowK ? 1 : 0) + 1
+
+// Y for absolute placement
+yAbove(_rank) => high + (stackATR * _rank)
+yBelow(_rank) => low  - (stackATR * _rank)
+
+// Helper: stacked markers via labels (Pine plotshape has no y=)
+// We use label.style_none + unicode symbols to match the visual size of plotshape.
+f_stackText(_cond, _y, _text, _txtColor, _size) =>
+    if _cond
+        label.new(bar_index, _y, _text,
+          style=label.style_none,
+          textcolor=_txtColor,
+          color=color.new(color.black, 100),
+          size=_size)
+
+
+// BOS visibility gate
+bosShow = bosDisplayMode == "Always ON" ? true : bosDisplayMode == "Always OFF" ? false : (modeB or modeC) ? (bar_index >= (last_bar_index - keepLastBosBars)) : true
+f_stackText(showStructure and relevant and bosShow and bosUpEvt, yAbove(aboveRankB), "▲B", color.new(color.white, signalTextAlpha), size.small)
+f_stackText(showStructure and relevant and bosShow and bosDownEvt, yBelow(belowRankB), "▼B", color.new(color.white, signalTextAlpha), size.small)
+f_stackText(showStructure and relevant and chochUpEvt, yAbove(aboveRankC), "▲C", color.new(color.white, signalTextAlpha), size.small)
+f_stackText(showStructure and relevant and chochDownEvt, yBelow(belowRankC), "▼C", color.new(color.white, signalTextAlpha), size.small)
+
+// Range lines with state coloring (using preset stateHoldBars/flashBars)
+var int rngState = 0
+var int rngHold = 0
+var int flashHold = 0
+
+if breakUpEvt or breakDownEvt
+    rngState := 1
+    rngHold := stateHoldBars
+if retestUpEvt or retestDownEvt
+    rngState := 2
+    rngHold := stateHoldBars
+
+if rngHold > 0
+    rngHold -= 1
+if rngHold <= 0
+    rngState := 0
+
+if fakeout
+    flashHold := flashBars
+if flashHold > 0
+    flashHold -= 1
+
+hiCol = rngState == 1 ? rangeBreakHi : rngState == 2 ? rangeRetHi : rangeNormalHi
+loCol = rngState == 1 ? rangeBreakLo : rngState == 2 ? rangeRetLo : rangeNormalLo
+if flashHold > 0
+    hiCol := fakeoutColor
+    loCol := fakeoutColor
+
+var line lnRH = na
+var line lnRL = na
+var box  bxRange = na
+
+if barstate.islast and showTriggerBox
+    leftBars = 120
+    if showRangeLines
+        if na(lnRH)
+            lnRH := line.new(bar_index-leftBars, rangeHigh_t, bar_index, rangeHigh_t, extend=extend.right, style=rngStyle, color=hiCol)
+        else
+            line.set_xy1(lnRH, bar_index-leftBars, rangeHigh_t)
+            line.set_xy2(lnRH, bar_index, rangeHigh_t)
+            line.set_extend(lnRH, extend.right)
+            line.set_style(lnRH, rngStyle)
+            line.set_color(lnRH, hiCol)
+
+        if na(lnRL)
+            lnRL := line.new(bar_index-leftBars, rangeLow_t, bar_index, rangeLow_t, extend=extend.right, style=rngStyle, color=loCol)
+        else
+            line.set_xy1(lnRL, bar_index-leftBars, rangeLow_t)
+            line.set_xy2(lnRL, bar_index, rangeLow_t)
+            line.set_extend(lnRL, extend.right)
+            line.set_style(lnRL, rngStyle)
+            line.set_color(lnRL, loCol)
+
+    if fillRangeArea
+        if na(bxRange)
+            bxRange := box.new(bar_index-leftBars, rangeHigh_t, bar_index, rangeLow_t)
+        else
+            box.set_lefttop(bxRange, bar_index-leftBars, rangeHigh_t)
+            box.set_rightbottom(bxRange, bar_index, rangeLow_t)
+        box.set_bgcolor(bxRange, color.new(hiCol, 92))
+        box.set_border_color(bxRange, color.new(hiCol, 100))
+    else
+        if not na(bxRange)
+            box.delete(bxRange), bxRange := na
+else
+    if not na(lnRH)
+        line.delete(lnRH), lnRH := na
+    if not na(lnRL)
+        line.delete(lnRL), lnRL := na
+    if not na(bxRange)
+        box.delete(bxRange), bxRange := na
+
+f_stackText(showTriggerBox and relevant and breakUpEvt, yAbove(aboveRankK) + (stackATR * circleNudgeATR), "●K", color.new(color.yellow, 0), (mSizeSmall ? size.small : size.tiny))
+f_stackText(showTriggerBox and relevant and breakDownEvt, yBelow(belowRankK) - (stackATR * circleNudgeATR), "●K", color.new(color.yellow, 0), (mSizeSmall ? size.small : size.tiny))
+f_stackText(showTriggerBox and relevant and retestUpEvt, yBelow(belowRankR) - (stackATR * circleNudgeATR), "●R", color.new(color.white, signalTextAlpha), (mSizeSmall ? size.small : size.tiny))
+f_stackText(showTriggerBox and relevant and retestDownEvt, yAbove(aboveRankR) + (stackATR * circleNudgeATR), "●R", color.new(color.white, signalTextAlpha), (mSizeSmall ? size.small : size.tiny))
+
+// IN_PLAY line
+var line inLine = na
+if showInPlayLine and barstate.islast
+    if inDir != 0 and not na(inLvl)
+        col = (flashHold > 0) ? fakeoutColor : inPlayColor
+        if na(inLine)
+            inLine := line.new(bar_index-200, inLvl, bar_index, inLvl, extend=extend.right, style=line.style_solid, color=col, width=2)
+        else
+            line.set_xy1(inLine, bar_index-200, inLvl)
+            line.set_xy2(inLine, bar_index, inLvl)
+            line.set_extend(inLine, extend.right)
+            line.set_color(inLine, col)
+            line.set_width(inLine, 2)
+    else
+        if not na(inLine)
+            line.delete(inLine), inLine := na
+
+//====================================================
+// Panel (re-ordered by Gates + OK/NO)
+//====================================================
+var table t = table.new(pos, 1, 10, frame_width=1)
+panelBg  = color.new(color.black, panelBgAlpha)
+panelTxt = color.new(color.white, panelTextAlpha)
+
+// Decide which side to evaluate OK/NO (prefer verdict, else bias)
+sideLong  = verdict == "LONG"  or (verdict == "NO-TRADE" and biasLong and not biasShort)
+sideShort = verdict == "SHORT" or (verdict == "NO-TRADE" and biasShort and not biasLong)
+
+// Gate OK/NO strings
+// Gate OK/NO strings (avoid na in ternaries for bool)
+sOK = "OK"
+sNO = "NO"
+sNA = "—"
+
+// aVWAP OK/NO
+sAvwap = sideLong ? (vwapLong ? sOK : sNO) : sideShort ? (vwapShort ? sOK : sNO) : sNA
+// Momentum OK/NO
+sMom   = sideLong ? (momLong ? sOK : sNO) : sideShort ? (momShort ? sOK : sNO) : sNA
+// Space OK/NO
+sSpace = sideLong ? (spaceLong ? sOK : sNO) : sideShort ? (spaceShort ? sOK : sNO) : sNA
+// Trigger OK/NO
+sTrig  = (sideLong ? triggerLong : sideShort ? triggerShort : (inDir != 0)) ? sOK : sNO
+
+
+// Trigger type (non-event)
+trigType = breakUp or breakDown ? "BRK" : (retestUp or retestDown ? "RET" : "—")
+
+// Conflict string
+cStr = conflict ? ("YES(-" + str.tostring(conflictPenalty) + ")") : "NO"
+
+// TF summary
+tfLine = "PROFILE: " + profile + " | TriggerTF: " + tf_trigger_eff + " | BiasTF: " + tf_bias1 + "/" + tf_bias2 + " | StructTF: " + tf_struct_eff
+mini = "B:" + (biasLong ? "LONG" : biasShort ? "SHORT" : "NEU") + " S:" + (st==1 ? "UP" : st==-1 ? "DOWN" : "—") + " T:" + ((sideLong ? triggerLong : sideShort ? triggerShort : (inDir != 0)) ? "ON" : "OFF") + " IP:" + (inDir!=0 ? "ON" : "OFF")
+
+// Mini summary
+
+if barstate.islast and showPanel
+    if panelCompact
+        // 6-line compact (gate order)
+        table.cell(t, 0, 0, "PROFILE: " + profile + " | TF: " + tf_trigger_eff + " | VEREDITO: " + verdict + " | " + state + " | QUAL: " + quality, text_color=panelTxt, bgcolor=panelBg, text_size=pTextSize)
+        table.cell(t, 0, 1, "MODO: " + mode + " | IN_PLAY: " + inPlayStatus + (fakeout ? " | FAKEOUT" : ""), text_color=panelTxt, bgcolor=panelBg, text_size=pTextSize)
+        table.cell(t, 0, 2, "G1 Bias: " + (biasLong ? "LONG" : biasShort ? "SHORT" : "NEU") + " | aVWAP: " + sAvwap, text_color=panelTxt, bgcolor=panelBg, text_size=pTextSize)
+        table.cell(t, 0, 3, "G2 Struct: " + (st==1 ? "UP" : st==-1 ? "DOWN" : "—") + " | MSS: " + mssStatus + " | Range: " + (modeB ? "YES" : "NO"), text_color=panelTxt, bgcolor=panelBg, text_size=pTextSize)
+        table.cell(t, 0, 4, "G3 Trigger: " + trigType + " | Trig: " + sTrig + " | IN_PLAY: " + (inDir!=0 ? "ON" : "OFF"), text_color=panelTxt, bgcolor=panelBg, text_size=pTextSize)
+        table.cell(t, 0, 5, "SCORES L/S: " + str.tostring(scoreLong) + " / " + str.tostring(scoreShort) + " | G4 Mom: " + sMom + " | G5 Space: " + sSpace, text_color=panelTxt, bgcolor=panelBg, text_size=pTextSize)
+        for r = 6 to 9
+            table.cell(t, 0, r, "", text_color=panelTxt, bgcolor=panelBg, text_size=pTextSize)
+    else
+        // Normal (10 lines) – canonic order: TF → verdict → G1..G5 → scores → conflict → mini
+        table.cell(t, 0, 0, tfLine, text_color=panelTxt, bgcolor=panelBg, text_size=pTextSize)
+        table.cell(t, 0, 1, "VEREDITO: " + verdict + " | " + state + " | QUAL: " + quality + " | MODO: " + mode, text_color=panelTxt, bgcolor=panelBg, text_size=pTextSize)
+        table.cell(t, 0, 2, "G1 Bias: " + (biasLong ? "LONG" : biasShort ? "SHORT" : "NEU") + " | EMA200: " + (biasLong or biasShort ? "OK" : "—") + " | aVWAP: " + sAvwap, text_color=panelTxt, bgcolor=panelBg, text_size=pTextSize)
+        table.cell(t, 0, 3, "G2 Struct: " + (st==1 ? "UP" : st==-1 ? "DOWN" : "—") + " | BOS/CHoCH: " + (bosUpEvt or bosDownEvt or chochUpEvt or chochDownEvt ? "EVENT" : "—") + " | MSS: " + mssStatus + " | Range: " + (modeB ? "YES" : "NO"), text_color=panelTxt, bgcolor=panelBg, text_size=pTextSize)
+        table.cell(t, 0, 4, "G3 Trigger: " + trigType + " | Trig: " + sTrig + " | IN_PLAY: " + inPlayStatus + (fakeout ? " | FAKEOUT" : ""), text_color=panelTxt, bgcolor=panelBg, text_size=pTextSize)
+        table.cell(t, 0, 5, "G4 Momentum: " + sMom + " | MACD/RSI: " + (sideLong ? (momLong ? "OK" : "NO") : sideShort ? (momShort ? "OK" : "NO") : "—"), text_color=panelTxt, bgcolor=panelBg, text_size=pTextSize)
+        table.cell(t, 0, 6, "G5 Space ATR (Res/Sup): " + str.tostring(distToResATR, "#.##") + " / " + str.tostring(distToSupATR, "#.##") + " | Space: " + sSpace, text_color=panelTxt, bgcolor=panelBg, text_size=pTextSize)
+        table.cell(t, 0, 7, "SCORES L/S: " + str.tostring(scoreLong) + " / " + str.tostring(scoreShort), text_color=panelTxt, bgcolor=panelBg, text_size=pTextSize)
+        table.cell(t, 0, 8, "Conflict: " + cStr, text_color=panelTxt, bgcolor=panelBg, text_size=pTextSize)
+        table.cell(t, 0, 9, mini, text_color=panelTxt, bgcolor=panelBg, text_size=pTextSize)

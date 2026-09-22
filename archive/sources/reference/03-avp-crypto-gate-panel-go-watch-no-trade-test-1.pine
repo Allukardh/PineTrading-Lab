@@ -1,0 +1,226 @@
+//@version=6
+indicator("AVP Crypto Gate Panel (GO/WATCH/NO-TRADE)", overlay=true, max_labels_count=500)
+
+//====================================================
+// Inputs
+//====================================================
+profile      = input.string("Balanced", "Profile", options=["Sniper","Balanced","Aggressive"])
+tf_bias1     = input.timeframe("240", "Bias TF #1 (4H)")
+tf_bias2     = input.timeframe("D",   "Bias TF #2 (Daily)")
+useMonthlyVW = input.bool(true, "Use Monthly Anchored VWAP (crypto 24/7)")
+useWeeklyVW  = input.bool(true, "Use Weekly Anchored VWAP (crypto 24/7)")
+atrLen       = input.int(14, "ATR Length", minval=5)
+rangeLen     = input.int(40, "Range Window (for breakout)", minval=20)
+
+pivotL = input.int(3, "Pivot Left", minval=1, maxval=10)
+pivotR = input.int(3, "Pivot Right", minval=1, maxval=10)
+
+showPanel    = input.bool(true, "Show Panel")
+
+//====================================================
+// Helpers (NO repaint MTF)
+//====================================================
+f_sec(_tf, _expr) =>
+    request.security(syminfo.tickerid, _tf, _expr, barmerge.gaps_off, barmerge.lookahead_off)
+
+//====================================================
+// Anchored VWAPs for 24/7 crypto (weekly/monthly)
+//====================================================
+f_anchored_vwap(_anchorTf) =>
+    // newPeriod precisa ser series bool (comparação)
+    newPeriod = ta.change(time(_anchorTf)) != 0
+
+    var float cumPV = na
+    var float cumV  = na
+    var bool  init  = false
+
+    if (not init) or newPeriod
+        cumPV := hlc3 * volume
+        cumV  := volume
+        init  := true
+    else
+        cumPV += hlc3 * volume
+        cumV  += volume
+
+    cumPV / math.max(cumV, 1)
+
+//====================================================
+// Gate 1: Trend Bias (HTF)
+//====================================================
+ema200_4h = f_sec(tf_bias1, ta.ema(close, 200))
+ema200_d  = f_sec(tf_bias2, ta.ema(close, 200))
+
+wvwap = useWeeklyVW  ? f_anchored_vwap("W") : na
+mvwap = useMonthlyVW ? f_anchored_vwap("M") : na
+
+biasLong  = close > ema200_4h and close > ema200_d
+biasShort = close < ema200_4h and close < ema200_d
+
+vwapLong  = (not useWeeklyVW or close > wvwap) and (not useMonthlyVW or close > mvwap)
+vwapShort = (not useWeeklyVW or close < wvwap) and (not useMonthlyVW or close < mvwap)
+
+//====================================================
+// Gate 2: Structure / Regime (A/B/C)
+//====================================================
+ph = ta.pivothigh(high, pivotL, pivotR)
+pl = ta.pivotlow(low,  pivotL, pivotR)
+
+var float lastSwingHigh = na
+var float lastSwingLow  = na
+
+if not na(ph)
+    lastSwingHigh := ph
+if not na(pl)
+    lastSwingLow  := pl
+
+bosUp   = not na(lastSwingHigh) and close > lastSwingHigh
+bosDown = not na(lastSwingLow)  and close < lastSwingLow
+
+var int st = 0 // 1=up, -1=down, 0=unknown/range
+if bosUp
+    st := 1
+else if bosDown
+    st := -1
+
+chochUp   = st == -1 and bosUp
+chochDown = st == 1  and bosDown
+
+atr = ta.atr(atrLen)
+atrPct = atr / close
+ema50 = ta.ema(close, 50)
+trendFlat = math.abs(ta.change(ema50, 10)) / close < 0.005
+
+isRange = (atrPct < 0.015) and trendFlat and (not bosUp) and (not bosDown)
+
+modeA = (st == 1 and biasLong) or (st == -1 and biasShort)
+modeB = isRange
+modeC = chochUp or chochDown
+
+//====================================================
+// Gate 3: Trigger (1H breakout / retest / micro-structure)
+//====================================================
+rangeHigh = ta.highest(high, rangeLen)
+rangeLow  = ta.lowest(low,  rangeLen)
+
+breakUp   = close > rangeHigh[1] and close[1] <= rangeHigh[1]
+breakDown = close < rangeLow[1]  and close[1] >= rangeLow[1]
+
+retestUp   = low <= rangeHigh and close > rangeHigh
+retestDown = high >= rangeLow and close < rangeLow
+
+[stLine, stDir] = ta.supertrend(3.0, 10)
+stOkLong  = stDir == 1
+stOkShort = stDir == -1
+
+triggerLong =
+     profile == "Sniper"   ? (breakUp and retestUp) :
+     profile == "Balanced" ? (breakUp or retestUp) :
+                             (breakUp or retestUp)
+
+triggerShort =
+     profile == "Sniper"   ? (breakDown and retestDown) :
+     profile == "Balanced" ? (breakDown or retestDown) :
+                             (breakDown or retestDown)
+
+//====================================================
+// Gate 4: Momentum (MACD hist slope + RSI 50)
+//====================================================
+[macdLine, signalLine, hist] = ta.macd(close, 12, 26, 9)
+histSlope = hist - hist[1]
+
+rsi = ta.rsi(close, 14)
+momLong  = (hist > 0 and histSlope > 0) and (rsi >= 50)
+momShort = (hist < 0 and histSlope < 0) and (rsi <= 50)
+
+//====================================================
+// Gate 5: Zones + Space (ATR distance to nearest swing level)
+//====================================================
+nearestRes = lastSwingHigh
+nearestSup = lastSwingLow
+
+distToResATR = not na(nearestRes) ? (nearestRes - close) / atr : na
+distToSupATR = not na(nearestSup) ? (close - nearestSup) / atr : na
+
+spaceLong  = not na(distToResATR) ? distToResATR >= 1.2 : true
+spaceShort = not na(distToSupATR) ? distToSupATR >= 1.2 : true
+
+//====================================================
+// Scoring
+//====================================================
+int scoreLong  = 0
+int scoreShort = 0
+
+scoreLong  += biasLong  ? 2 : 0
+scoreShort += biasShort ? 2 : 0
+scoreLong  += vwapLong  ? 1 : 0
+scoreShort += vwapShort ? 1 : 0
+
+scoreLong  += (st == 1)  ? 2 : 0
+scoreShort += (st == -1) ? 2 : 0
+scoreLong  += (modeC and chochUp)   ? 1 : 0
+scoreShort += (modeC and chochDown) ? 1 : 0
+
+scoreLong  += triggerLong  ? 2 : 0
+scoreShort += triggerShort ? 2 : 0
+
+scoreLong  += momLong  ? 2 : 0
+scoreShort += momShort ? 2 : 0
+
+scoreLong  += spaceLong  ? 1 : 0
+scoreShort += spaceShort ? 1 : 0
+
+scoreLong  += stOkLong  ? 1 : 0
+scoreShort += stOkShort ? 1 : 0
+
+goTh    = profile == "Sniper"   ? 8 : profile == "Balanced" ? 7 : 6
+watchTh = profile == "Sniper"   ? 7 : profile == "Balanced" ? 6 : 5
+
+//====================================================
+// Verdict / State / Quality / Mode (NO multiline ternary)
+//====================================================
+maxScore = math.max(scoreLong, scoreShort)
+
+string verdict = "NO-TRADE"
+if scoreLong >= scoreShort and scoreLong >= goTh
+    verdict := "LONG"
+else if scoreShort > scoreLong and scoreShort >= goTh
+    verdict := "SHORT"
+
+string state = "⛔ NO-TRADE"
+if verdict != "NO-TRADE"
+    state := "✅ GO"
+else if maxScore >= watchTh
+    state := "⚠️ WATCH"
+
+string quality = "—"
+if maxScore >= (goTh + 2)
+    quality := "EXCELENTE"
+else if maxScore >= goTh
+    quality := "BOM"
+else if maxScore >= watchTh
+    quality := "REGULAR"
+
+string mode = "A (CONTINUAÇÃO)"
+if modeC
+    mode := "C (REVERSÃO)"
+else if modeB
+    mode := "B (BREAKOUT)"
+
+//====================================================
+// Panel
+//====================================================
+var table t = table.new(position.top_right, 1, 6, frame_width=1)
+
+if barstate.islast and showPanel
+    table.cell(t, 0, 0, "VEREDITO: " + verdict)
+    table.cell(t, 0, 1, "ESTADO: " + state)
+    table.cell(t, 0, 2, "QUALIDADE: " + quality)
+    table.cell(t, 0, 3, "MODO: " + mode)
+    table.cell(t, 0, 4, "SCORES L/S: " + str.tostring(scoreLong) + " / " + str.tostring(scoreShort))
+    table.cell(t, 0, 5, "ESPACO ATR (Res/Sup): " + str.tostring(distToResATR, "#.##") + " / " + str.tostring(distToSupATR, "#.##"))
+
+// Debug (hidden)
+plot(ema200_4h, "EMA200 4H", display=display.none)
+plot(ema200_d,  "EMA200 D",  display=display.none)
+plot(wvwap, "Weekly aVWAP", display=display.none)
+plot(mvwap, "Monthly aVWAP", display=display.none)

@@ -1,0 +1,30 @@
+
+//@version=4
+// Buy Sell signal based on EMA price action for Long Term Trading (Particularly for Index Investing) Keeps you out of the emotions. 
+//Script Copyright (c) Bony Mathew 2019-Present
+
+study("Buy/Sell Signal by Bony", overlay=true)
+
+o = security(syminfo.tickerid, timeframe.period, open)
+h = security(syminfo.tickerid, timeframe.period, high)
+l = security(syminfo.tickerid, timeframe.period, low)
+c = security(syminfo.tickerid, timeframe.period, close)
+
+avg_price = (o + h + l + c)/ 4
+
+exponential_moving_average = input(title="1st EMA", type=input.integer, defval=5, minval=5, maxval=250)
+exponential2_moving_average = input(title="2nd EMA", type=input.integer, defval=21, minval=10, maxval=250)
+
+
+ema = ema(close, exponential_moving_average)
+ema2 = ema(close, exponential2_moving_average)
+
+
+sellsignal = (ema > avg_price) and (ema2 > avg_price) and (ema2 > ema)
+buysignal = (ema < avg_price) and (ema2 < avg_price) and (ema2 < ema)
+
+sellseries = sellsignal and crossover(ema2, ema)
+buyseries = buysignal and crossunder(ema2, ema)
+
+plotshape(series=sellseries, title="Short", style=shape.triangledown, location=location.abovebar, color=color.red, text="Sell", size=size.small)
+plotshape(series=buyseries, title="Long", style=shape.triangleup, location=location.belowbar, color=color.green, text="Buy", size=size.small)

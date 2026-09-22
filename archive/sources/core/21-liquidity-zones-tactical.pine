@@ -1,0 +1,591 @@
+//@version=6
+indicator("Liquidity Zones Tactical v0.2.2", shorttitle="LQZ v0.2.2", overlay=true, max_labels_count=200, max_lines_count=100, max_boxes_count=50)
+
+//==================================================================================================
+// Liquidity Zones Tactical v0.2.2
+// -------------------------------------------------------------------------------------------------
+// Purpose:
+// - Detect probable liquidity zones using equal highs/lows, sweeps, wick rejection, volume spike,
+//   zone mitigation state, nearest liquidity above/below, and a proximity-aware score.
+//
+// Important limitation:
+// - This script DOES NOT read real exchange order book / DOM / Level 2 data.
+// - It estimates probable liquidity zones from chart structure and volume behavior.
+//==================================================================================================
+
+//==================================================================================================
+// Groups
+//==================================================================================================
+groupProfile   = "1) Profile"
+groupStructure = "2) Structure / Equal Highs-Lows"
+groupSweep     = "3) Sweeps / Reclaim"
+groupVolume    = "4) Volume / Absorption"
+groupVisual    = "5) Visual"
+groupPanel     = "6) Panel"
+groupAlerts    = "7) Alerts"
+
+//==================================================================================================
+// Inputs — Profile
+//==================================================================================================
+visualMode = input.string("Clean", "Visual mode", options=["Ultra Clean", "Clean", "Standard", "Detailed"], group=groupProfile, display=display.none)
+profile    = input.string("Balanced", "Sensitivity profile", options=["Sniper", "Balanced", "Aggressive"], group=groupProfile, display=display.none)
+
+//==================================================================================================
+// Inputs — Structure
+//==================================================================================================
+pivotL          = input.int(3, "Pivot left", minval=1, maxval=20, group=groupStructure, display=display.none)
+pivotR          = input.int(3, "Pivot right", minval=1, maxval=20, group=groupStructure, display=display.none)
+atrLen          = input.int(14, "ATR length", minval=1, group=groupStructure, display=display.none)
+manualTol       = input.bool(false, "Manual equal-level tolerance", group=groupStructure, display=display.none)
+equalTolAtrIn   = input.float(0.12, "Equal level tolerance (x ATR)", minval=0.01, step=0.01, group=groupStructure, display=display.none)
+zoneHeightAtr   = input.float(0.18, "Zone half-height (x ATR)", minval=0.01, step=0.01, group=groupStructure, display=display.none)
+zoneForwardBars = input.int(80, "Extend zones forward (bars)", minval=5, maxval=500, group=groupStructure, display=display.none)
+maxZoneLifeBars = input.int(350, "Max zone life (bars)", minval=20, maxval=5000, group=groupStructure, display=display.none)
+invalidAtr      = input.float(0.35, "Invalidate after close beyond level (x ATR)", minval=0.01, step=0.01, group=groupStructure, display=display.none)
+keepInvalidatedZones = input.bool(false, "Keep invalidated zones on chart", group=groupStructure, display=display.none)
+
+//==================================================================================================
+// Inputs — Sweeps
+//==================================================================================================
+signalOnClose   = input.bool(true, "Confirm sweep only on candle close", group=groupSweep, display=display.none)
+reclaimMode     = input.string("Close back inside", "Sweep confirmation", options=["Close back inside", "Wick only"], group=groupSweep, display=display.none)
+minWickRatioIn  = input.float(0.38, "Min rejection wick (% of range)", minval=0.05, maxval=0.95, step=0.01, group=groupSweep, display=display.none)
+
+//==================================================================================================
+// Inputs — Volume / Absorption
+//==================================================================================================
+volLen            = input.int(20, "Volume MA length", minval=1, group=groupVolume, display=display.none)
+volMultIn         = input.float(1.50, "Volume spike multiplier", minval=0.10, step=0.05, group=groupVolume, display=display.none)
+minPressurePctIn  = input.float(56.0, "Min pressure dominance (%)", minval=50.0, maxval=90.0, step=0.5, group=groupVolume, display=display.none)
+
+//==================================================================================================
+// Inputs — Visual
+//==================================================================================================
+showEqualLevels          = input.bool(true, "Show equal high/low levels", group=groupVisual, display=display.none)
+showZones                = input.bool(true, "Show liquidity zones", group=groupVisual, display=display.none)
+showSweepMarkers         = input.bool(true, "Show sweep markers", group=groupVisual, display=display.none)
+showAbsorptionMarkers    = input.bool(true, "Show absorption markers", group=groupVisual, display=display.none)
+showScoreLabels          = input.bool(false, "Show score labels on sweeps", group=groupVisual, display=display.none)
+scoreLabelLatestOnly     = input.bool(true, "Keep only latest score label per side", group=groupVisual, display=display.none)
+scoreLabelMinScore       = input.int(65, "Min score for score labels", minval=1, maxval=100, group=groupVisual, display=display.none)
+scoreLabelCooldownBars   = input.int(24, "Score label cooldown (bars)", minval=0, maxval=500, group=groupVisual, display=display.none)
+
+buyColor     = input.color(color.lime, "Buy-side color", group=groupVisual, display=display.none)
+sellColor    = input.color(color.red, "Sell-side color", group=groupVisual, display=display.none)
+neutralColor = input.color(color.gray, "Neutral color", group=groupVisual, display=display.none)
+
+zoneTransparency      = input.int(88, "Zone transparency", minval=0, maxval=100, group=groupVisual, display=display.none)
+mitigatedExtraFade    = input.int(6, "Extra fade on mitigated zone", minval=0, maxval=20, group=groupVisual, display=display.none)
+lineTransparency      = input.int(25, "Level line transparency", minval=0, maxval=100, group=groupVisual, display=display.none)
+mitigatedLineFade     = input.int(30, "Mitigated line extra fade", minval=0, maxval=70, group=groupVisual, display=display.none)
+
+//==================================================================================================
+// Inputs — Panel
+//==================================================================================================
+showPanel      = input.bool(true, "Show panel", group=groupPanel, display=display.none)
+panelPosS      = input.string("Bottom Right", "Panel position", options=["Top Right", "Top Left", "Bottom Right", "Bottom Left", "Middle Right", "Middle Left"], group=groupPanel, display=display.none)
+panelTextSizeS = input.string("Small", "Panel text size", options=["Tiny", "Small", "Normal"], group=groupPanel, display=display.none)
+panelBgAlpha   = input.int(85, "Panel background alpha", minval=0, maxval=100, group=groupPanel, display=display.none)
+panelTextAlpha = input.int(0, "Panel text alpha", minval=0, maxval=100, group=groupPanel, display=display.none)
+
+//==================================================================================================
+// Inputs — Alerts
+//==================================================================================================
+enableDynamicAlertCalls = input.bool(false, "Enable dynamic alert() calls", group=groupAlerts, display=display.none)
+alertMinScore           = input.int(65, "Dynamic alert min score", minval=1, maxval=100, group=groupAlerts, display=display.none)
+alertCooldownBars       = input.int(12, "Dynamic alert cooldown (bars)", minval=0, maxval=500, group=groupAlerts, display=display.none)
+
+//==================================================================================================
+// Profile presets
+//==================================================================================================
+float equalTolAtr    = equalTolAtrIn
+float volMult        = volMultIn
+float minWickRatio   = minWickRatioIn
+float minPressurePct = minPressurePctIn
+
+if not manualTol
+    if profile == "Sniper"
+        equalTolAtr    := 0.08
+        volMult        := 1.75
+        minWickRatio   := 0.42
+        minPressurePct := 58.0
+    else if profile == "Aggressive"
+        equalTolAtr    := 0.18
+        volMult        := 1.25
+        minWickRatio   := 0.32
+        minPressurePct := 54.0
+    else
+        equalTolAtr    := 0.12
+        volMult        := 1.50
+        minWickRatio   := 0.38
+        minPressurePct := 56.0
+
+//==================================================================================================
+// Helpers
+//==================================================================================================
+f_pos(_s) =>
+    _s == "Top Left" ? position.top_left :
+     _s == "Bottom Right" ? position.bottom_right :
+     _s == "Bottom Left" ? position.bottom_left :
+     _s == "Middle Right" ? position.middle_right :
+     _s == "Middle Left" ? position.middle_left :
+     position.top_right
+
+f_size(_s) =>
+    _s == "Tiny" ? size.tiny : _s == "Normal" ? size.normal : size.small
+
+f_profile_pt(_s) =>
+    _s == "Sniper" ? "Sniper" :
+     _s == "Aggressive" ? "Agressivo" :
+     "Balanceado"
+
+f_visual_pt(_s) =>
+    _s == "Ultra Clean" ? "Ultra limpo" :
+     _s == "Clean" ? "Limpo" :
+     _s == "Standard" ? "Padrão" :
+     "Detalhado"
+
+f_quality(_score) =>
+    _score >= 80 ? "Muito forte" :
+     _score >= 65 ? "Forte" :
+     _score >= 45 ? "Média" :
+     _score >= 25 ? "Fraca" :
+     "Sem leitura"
+
+f_quality_short(_score) =>
+    _score >= 80 ? "Muito forte" :
+     _score >= 65 ? "Forte" :
+     _score >= 45 ? "Média" :
+     _score >= 25 ? "Fraca" :
+     "—"
+
+f_score_color(_score, _bull) =>
+    _base = _bull ? buyColor : sellColor
+    _score >= 65 ? color.new(_base, 0) :
+     _score >= 45 ? color.new(_base, 25) :
+     _score >= 25 ? color.new(_base, 45) :
+     color.new(neutralColor, 20)
+
+f_compact_price(_v) =>
+    na(_v) ? "—" : str.tostring(_v, format.mintick)
+
+f_state_short(_exists, _mitigated) =>
+    _exists ? (_mitigated ? "Mitig." : "Ativa") : "—"
+
+f_prox_points(_price, _level, _atr) =>
+    if na(_level) or _atr <= 0
+        0.0
+    else
+        _distAtr = math.abs(_price - _level) / _atr
+        _distAtr <= 0.25 ? 25.0 :
+         _distAtr <= 0.50 ? 18.0 :
+         _distAtr <= 1.00 ? 10.0 :
+         _distAtr <= 1.50 ? 5.0 :
+         0.0
+
+f_pick_min_na(_a, _b) =>
+    na(_a) ? _b : na(_b) ? _a : math.min(_a, _b)
+
+f_pick_max_na(_a, _b) =>
+    na(_a) ? _b : na(_b) ? _a : math.max(_a, _b)
+
+f_dist_atr_txt(_price, _level, _atr) =>
+    na(_level) or _atr <= 0 ? "—" : str.tostring(math.abs(_price - _level) / _atr, "#.##") + " ATR"
+
+displayNoStatus = display.all - display.status_line
+
+//==================================================================================================
+// Core calculations
+//==================================================================================================
+atr = ta.atr(atrLen)
+ph  = ta.pivothigh(high, pivotL, pivotR)
+pl  = ta.pivotlow(low, pivotL, pivotR)
+
+rangeSafe      = math.max(high - low, syminfo.mintick)
+upperWick      = high - math.max(open, close)
+lowerWick      = math.min(open, close) - low
+upperWickRatio = upperWick / rangeSafe
+lowerWickRatio = lowerWick / rangeSafe
+
+volSafe     = nz(volume, 0.0)
+volMA       = ta.sma(volSafe, volLen)
+volumeSpike = volMA > 0 and volSafe >= volMA * volMult
+
+buyVol   = rangeSafe > 0 ? volSafe * (close - low) / rangeSafe : 0.0
+sellVol  = rangeSafe > 0 ? volSafe * (high - close) / rangeSafe : 0.0
+totalVol = buyVol + sellVol
+buyPct   = totalVol > 0 ? 100.0 * buyVol / totalVol : 50.0
+sellPct  = totalVol > 0 ? 100.0 * sellVol / totalVol : 50.0
+
+upperReject   = upperWickRatio >= minWickRatio
+lowerReject   = lowerWickRatio >= minWickRatio
+buyDominance  = buyPct >= minPressurePct
+sellDominance = sellPct >= minPressurePct
+
+//==================================================================================================
+// Persistent state
+//==================================================================================================
+var float lastSwingHigh = na
+var int   lastSwingHighIndex = na
+var float lastSwingLow = na
+var int   lastSwingLowIndex = na
+
+var float eqHighLevel = na
+var int   eqHighBorn = na
+var bool  eqHighExists = false
+var bool  eqHighMitigated = false
+var float sellZoneTop = na
+var float sellZoneBottom = na
+var line  eqHighLine = na
+var box   sellZoneBox = na
+
+var float eqLowLevel = na
+var int   eqLowBorn = na
+var bool  eqLowExists = false
+var bool  eqLowMitigated = false
+var float buyZoneTop = na
+var float buyZoneBottom = na
+var line  eqLowLine = na
+var box   buyZoneBox = na
+
+//==================================================================================================
+// Equal highs / lows detection
+//==================================================================================================
+if not na(ph)
+    curHighIndex = bar_index - pivotR
+    tolHigh = nz(atr[pivotR], atr) * equalTolAtr
+    if not na(lastSwingHigh) and math.abs(ph - lastSwingHigh) <= tolHigh
+        eqHighLevel := (ph + lastSwingHigh) / 2.0
+        eqHighBorn := curHighIndex
+        eqHighExists := true
+        eqHighMitigated := false
+
+        zoneHalfH = nz(atr[pivotR], atr) * zoneHeightAtr
+        sellZoneTop := eqHighLevel + zoneHalfH
+        sellZoneBottom := eqHighLevel - zoneHalfH
+
+        if not na(eqHighLine)
+            line.delete(eqHighLine)
+        if not na(sellZoneBox)
+            box.delete(sellZoneBox)
+
+        eqHighLine := line.new(
+             x1=lastSwingHighIndex,
+             y1=eqHighLevel,
+             x2=curHighIndex,
+             y2=eqHighLevel,
+             xloc=xloc.bar_index,
+             extend=extend.right,
+             color=color.new(sellColor, lineTransparency),
+             style=line.style_dashed,
+             width=1)
+
+        sellZoneBox := box.new(
+             left=lastSwingHighIndex,
+             top=sellZoneTop,
+             right=bar_index + zoneForwardBars,
+             bottom=sellZoneBottom,
+             xloc=xloc.bar_index,
+             bgcolor=color.new(sellColor, zoneTransparency),
+             border_color=color.new(sellColor, 35))
+
+    lastSwingHigh := ph
+    lastSwingHighIndex := curHighIndex
+
+if not na(pl)
+    curLowIndex = bar_index - pivotR
+    tolLow = nz(atr[pivotR], atr) * equalTolAtr
+    if not na(lastSwingLow) and math.abs(pl - lastSwingLow) <= tolLow
+        eqLowLevel := (pl + lastSwingLow) / 2.0
+        eqLowBorn := curLowIndex
+        eqLowExists := true
+        eqLowMitigated := false
+
+        zoneHalfL = nz(atr[pivotR], atr) * zoneHeightAtr
+        buyZoneTop := eqLowLevel + zoneHalfL
+        buyZoneBottom := eqLowLevel - zoneHalfL
+
+        if not na(eqLowLine)
+            line.delete(eqLowLine)
+        if not na(buyZoneBox)
+            box.delete(buyZoneBox)
+
+        eqLowLine := line.new(
+             x1=lastSwingLowIndex,
+             y1=eqLowLevel,
+             x2=curLowIndex,
+             y2=eqLowLevel,
+             xloc=xloc.bar_index,
+             extend=extend.right,
+             color=color.new(buyColor, lineTransparency),
+             style=line.style_dashed,
+             width=1)
+
+        buyZoneBox := box.new(
+             left=lastSwingLowIndex,
+             top=buyZoneTop,
+             right=bar_index + zoneForwardBars,
+             bottom=buyZoneBottom,
+             xloc=xloc.bar_index,
+             bgcolor=color.new(buyColor, zoneTransparency),
+             border_color=color.new(buyColor, 35))
+
+    lastSwingLow := pl
+    lastSwingLowIndex := curLowIndex
+
+//==================================================================================================
+// Zone maintenance: extend, mitigation, invalidation
+//==================================================================================================
+if not na(sellZoneBox)
+    box.set_right(sellZoneBox, bar_index + zoneForwardBars)
+
+if not na(buyZoneBox)
+    box.set_right(buyZoneBox, bar_index + zoneForwardBars)
+
+sellTouched = eqHighExists and not na(sellZoneTop) and high >= sellZoneBottom and low <= sellZoneTop
+buyTouched  = eqLowExists and not na(buyZoneTop) and high >= buyZoneBottom and low <= buyZoneTop
+
+if sellTouched
+    eqHighMitigated := true
+
+if buyTouched
+    eqLowMitigated := true
+
+sellExpired = eqHighExists and not na(eqHighBorn) and bar_index - eqHighBorn > maxZoneLifeBars
+buyExpired  = eqLowExists and not na(eqLowBorn) and bar_index - eqLowBorn > maxZoneLifeBars
+sellInvalid = eqHighExists and not na(eqHighLevel) and close > eqHighLevel + atr * invalidAtr
+buyInvalid  = eqLowExists and not na(eqLowLevel) and close < eqLowLevel - atr * invalidAtr
+
+if sellExpired or sellInvalid
+    eqHighExists := false
+    eqHighMitigated := false
+    if not keepInvalidatedZones
+        if not na(eqHighLine)
+            line.delete(eqHighLine)
+            eqHighLine := na
+        if not na(sellZoneBox)
+            box.delete(sellZoneBox)
+            sellZoneBox := na
+        sellZoneTop := na
+        sellZoneBottom := na
+
+if buyExpired or buyInvalid
+    eqLowExists := false
+    eqLowMitigated := false
+    if not keepInvalidatedZones
+        if not na(eqLowLine)
+            line.delete(eqLowLine)
+            eqLowLine := na
+        if not na(buyZoneBox)
+            box.delete(buyZoneBox)
+            buyZoneBox := na
+        buyZoneTop := na
+        buyZoneBottom := na
+
+//==================================================================================================
+// Zone styling: active vs mitigated
+//==================================================================================================
+if not na(sellZoneBox)
+    sellBgAlpha = eqHighMitigated ? math.min(zoneTransparency + mitigatedExtraFade, 97) : zoneTransparency
+    sellLineAlpha = eqHighMitigated ? math.min(lineTransparency + mitigatedLineFade, 95) : lineTransparency
+    box.set_bgcolor(sellZoneBox, showZones ? color.new(sellColor, sellBgAlpha) : color.new(sellColor, 100))
+    box.set_border_color(sellZoneBox, color.new(sellColor, eqHighMitigated ? 70 : 35))
+    if not na(eqHighLine)
+        line.set_color(eqHighLine, showEqualLevels and visualMode != "Ultra Clean" ? color.new(sellColor, sellLineAlpha) : color.new(sellColor, 100))
+
+if not na(buyZoneBox)
+    buyBgAlpha = eqLowMitigated ? math.min(zoneTransparency + mitigatedExtraFade, 97) : zoneTransparency
+    buyLineAlpha = eqLowMitigated ? math.min(lineTransparency + mitigatedLineFade, 95) : lineTransparency
+    box.set_bgcolor(buyZoneBox, showZones ? color.new(buyColor, buyBgAlpha) : color.new(buyColor, 100))
+    box.set_border_color(buyZoneBox, color.new(buyColor, eqLowMitigated ? 70 : 35))
+    if not na(eqLowLine)
+        line.set_color(eqLowLine, showEqualLevels and visualMode != "Ultra Clean" ? color.new(buyColor, buyLineAlpha) : color.new(buyColor, 100))
+
+//==================================================================================================
+// Sweep logic
+//==================================================================================================
+sellReclaimOk = reclaimMode == "Close back inside" ? close < eqHighLevel : true
+buyReclaimOk  = reclaimMode == "Close back inside" ? close > eqLowLevel : true
+
+sweepHighRaw = eqHighExists and not na(eqHighLevel) and high > eqHighLevel + syminfo.mintick and sellReclaimOk
+sweepLowRaw  = eqLowExists and not na(eqLowLevel) and low < eqLowLevel - syminfo.mintick and buyReclaimOk
+
+sweepHigh = signalOnClose ? (sweepHighRaw and barstate.isconfirmed) : sweepHighRaw
+sweepLow  = signalOnClose ? (sweepLowRaw and barstate.isconfirmed) : sweepLowRaw
+
+bearAbsorption = sweepHigh and volumeSpike and upperReject and sellDominance
+bullAbsorption = sweepLow and volumeSpike and lowerReject and buyDominance
+
+//==================================================================================================
+// Score with proximity
+//==================================================================================================
+buyProxPts  = eqLowExists ? f_prox_points(close, eqLowLevel, atr) : 0.0
+sellProxPts = eqHighExists ? f_prox_points(close, eqHighLevel, atr) : 0.0
+
+buyScoreRaw = 0.0
+buyScoreRaw += eqLowExists ? 15.0 : 0.0
+buyScoreRaw += eqLowMitigated ? 5.0 : 10.0
+buyScoreRaw += sweepLow ? 25.0 : 0.0
+buyScoreRaw += volumeSpike ? 8.0 : 0.0
+buyScoreRaw += lowerReject ? 12.0 : 0.0
+buyScoreRaw += buyDominance ? 10.0 : 0.0
+buyScoreRaw += close > open ? 5.0 : 0.0
+buyScoreRaw += not na(eqLowLevel) and close > eqLowLevel ? 5.0 : 0.0
+buyScoreRaw += buyProxPts
+buyScore = math.min(buyScoreRaw, 100.0)
+
+sellScoreRaw = 0.0
+sellScoreRaw += eqHighExists ? 15.0 : 0.0
+sellScoreRaw += eqHighMitigated ? 5.0 : 10.0
+sellScoreRaw += sweepHigh ? 25.0 : 0.0
+sellScoreRaw += volumeSpike ? 8.0 : 0.0
+sellScoreRaw += upperReject ? 12.0 : 0.0
+sellScoreRaw += sellDominance ? 10.0 : 0.0
+sellScoreRaw += close < open ? 5.0 : 0.0
+sellScoreRaw += not na(eqHighLevel) and close < eqHighLevel ? 5.0 : 0.0
+sellScoreRaw += sellProxPts
+sellScore = math.min(sellScoreRaw, 100.0)
+
+buyQuality  = f_quality(buyScore)
+sellQuality = f_quality(sellScore)
+
+//==================================================================================================
+// Nearest liquidity above / below
+//==================================================================================================
+candAbove1 = eqHighExists and eqHighLevel > close ? eqHighLevel : na
+candAbove2 = eqLowExists and eqLowLevel > close ? eqLowLevel : na
+nearestAbove = f_pick_min_na(candAbove1, candAbove2)
+
+candBelow1 = eqHighExists and eqHighLevel < close ? eqHighLevel : na
+candBelow2 = eqLowExists and eqLowLevel < close ? eqLowLevel : na
+nearestBelow = f_pick_max_na(candBelow1, candBelow2)
+
+aboveFromSell = not na(nearestAbove) and not na(eqHighLevel) and nearestAbove == eqHighLevel
+aboveFromBuy  = not na(nearestAbove) and not na(eqLowLevel) and nearestAbove == eqLowLevel
+
+belowFromSell = not na(nearestBelow) and not na(eqHighLevel) and nearestBelow == eqHighLevel
+belowFromBuy  = not na(nearestBelow) and not na(eqLowLevel) and nearestBelow == eqLowLevel
+
+aboveState = aboveFromSell ? f_state_short(eqHighExists, eqHighMitigated) : aboveFromBuy ? f_state_short(eqLowExists, eqLowMitigated) : "—"
+belowState = belowFromSell ? f_state_short(eqHighExists, eqHighMitigated) : belowFromBuy ? f_state_short(eqLowExists, eqLowMitigated) : "—"
+
+aboveSide = aboveFromSell ? "Res " : aboveFromBuy ? "Sup " : ""
+belowSide = belowFromSell ? "Res " : belowFromBuy ? "Sup " : ""
+
+aboveDistTxt = f_dist_atr_txt(close, nearestAbove, atr)
+belowDistTxt = f_dist_atr_txt(close, nearestBelow, atr)
+
+nearestAboveTxt = na(nearestAbove) ? "—" : aboveSide + f_compact_price(nearestAbove) + " | " + aboveDistTxt + " | " + aboveState
+nearestBelowTxt = na(nearestBelow) ? "—" : belowSide + f_compact_price(nearestBelow) + " | " + belowDistTxt + " | " + belowState
+
+//==================================================================================================
+// Visual conditions
+//==================================================================================================
+isUltra    = visualMode == "Ultra Clean"
+isStandard = visualMode == "Standard"
+isDetailed = visualMode == "Detailed"
+
+showSweepMarkersEff      = showSweepMarkers and not isUltra
+showAbsorptionMarkersEff = showAbsorptionMarkers and (isStandard or isDetailed) and not isUltra
+showScoreLabelsEff       = showScoreLabels and isDetailed and not isUltra
+
+//==================================================================================================
+// Visual markers
+//==================================================================================================
+plotshape(showSweepMarkersEff and sweepLow, title="Sweep Low / Buy Liquidity", style=shape.triangleup, location=location.belowbar, color=color.new(buyColor, 0), text="SW↓", textcolor=color.new(color.white, 0), size=size.tiny, display=displayNoStatus)
+plotshape(showSweepMarkersEff and sweepHigh, title="Sweep High / Sell Liquidity", style=shape.triangledown, location=location.abovebar, color=color.new(sellColor, 0), text="SW↑", textcolor=color.new(color.white, 0), size=size.tiny, display=displayNoStatus)
+
+plotshape(showAbsorptionMarkersEff and bullAbsorption, title="Bullish Absorption", style=shape.circle, location=location.belowbar, color=color.new(buyColor, 0), text="A", textcolor=color.new(color.white, 0), size=size.tiny, display=displayNoStatus)
+plotshape(showAbsorptionMarkersEff and bearAbsorption, title="Bearish Absorption", style=shape.circle, location=location.abovebar, color=color.new(sellColor, 0), text="A", textcolor=color.new(color.white, 0), size=size.tiny, display=displayNoStatus)
+
+//==================================================================================================
+// Score labels
+//==================================================================================================
+var label lastBuyScoreLbl = na
+var label lastSellScoreLbl = na
+var int lastBuyScoreLabelBar = na
+var int lastSellScoreLabelBar = na
+
+canPrintBuyScore = showScoreLabelsEff and sweepLow and buyScore >= scoreLabelMinScore and (na(lastBuyScoreLabelBar) or bar_index - lastBuyScoreLabelBar > scoreLabelCooldownBars)
+canPrintSellScore = showScoreLabelsEff and sweepHigh and sellScore >= scoreLabelMinScore and (na(lastSellScoreLabelBar) or bar_index - lastSellScoreLabelBar > scoreLabelCooldownBars)
+
+if canPrintBuyScore
+    if scoreLabelLatestOnly and not na(lastBuyScoreLbl)
+        label.delete(lastBuyScoreLbl)
+    buyScoreTxt = "Força C " + str.tostring(math.round(buyScore)) + " | " + buyQuality
+    lastBuyScoreLbl := label.new(bar_index, low, buyScoreTxt, xloc=xloc.bar_index, style=label.style_label_up, textcolor=color.white, color=f_score_color(buyScore, true), size=size.tiny)
+    lastBuyScoreLabelBar := bar_index
+
+if canPrintSellScore
+    if scoreLabelLatestOnly and not na(lastSellScoreLbl)
+        label.delete(lastSellScoreLbl)
+    sellScoreTxt = "Força V " + str.tostring(math.round(sellScore)) + " | " + sellQuality
+    lastSellScoreLbl := label.new(bar_index, high, sellScoreTxt, xloc=xloc.bar_index, style=label.style_label_down, textcolor=color.white, color=f_score_color(sellScore, false), size=size.tiny)
+    lastSellScoreLabelBar := bar_index
+
+//==================================================================================================
+// Compact Operational Panel
+//==================================================================================================
+panelPos = f_pos(panelPosS)
+panelTextSize = f_size(panelTextSizeS)
+
+var table panel = table.new(panelPos, 2, 6, border_width=1, frame_color=color.new(color.gray, 80), border_color=color.new(color.gray, 80))
+
+if showPanel and barstate.islast
+    headerBg = color.new(color.blue, 70)
+    bg = color.new(color.black, panelBgAlpha)
+    txt = color.new(color.white, panelTextAlpha)
+
+    buyTxt  = str.tostring(math.round(buyScore)) + " | " + f_quality_short(buyScore)
+    sellTxt = str.tostring(math.round(sellScore)) + " | " + f_quality_short(sellScore)
+
+    eventTxt =
+         bullAbsorption ? "Sweep fundo + absorção C" :
+         bearAbsorption ? "Sweep topo + absorção V" :
+         sweepLow ? "Sweep fundo" :
+         sweepHigh ? "Sweep topo" :
+         "Sem evento"
+
+    eventColor =
+         bullAbsorption ? buyColor :
+         bearAbsorption ? sellColor :
+         sweepLow ? buyColor :
+         sweepHigh ? sellColor :
+         neutralColor
+
+    table.cell(panel, 0, 0, "LQZ", text_color=color.white, bgcolor=headerBg, text_size=panelTextSize)
+    table.cell(panel, 1, 0, f_visual_pt(visualMode) + " / " + f_profile_pt(profile), text_color=color.white, bgcolor=headerBg, text_size=panelTextSize)
+
+    table.cell(panel, 0, 1, "Força C", text_color=txt, bgcolor=bg, text_size=panelTextSize)
+    table.cell(panel, 1, 1, buyTxt, text_color=f_score_color(buyScore, true), bgcolor=bg, text_size=panelTextSize)
+
+    table.cell(panel, 0, 2, "Força V", text_color=txt, bgcolor=bg, text_size=panelTextSize)
+    table.cell(panel, 1, 2, sellTxt, text_color=f_score_color(sellScore, false), bgcolor=bg, text_size=panelTextSize)
+
+    table.cell(panel, 0, 3, "Evento", text_color=txt, bgcolor=bg, text_size=panelTextSize)
+    table.cell(panel, 1, 3, eventTxt, text_color=color.new(eventColor, panelTextAlpha), bgcolor=bg, text_size=panelTextSize)
+
+    table.cell(panel, 0, 4, "Liq. ↑", text_color=txt, bgcolor=bg, text_size=panelTextSize)
+    table.cell(panel, 1, 4, nearestAboveTxt, text_color=txt, bgcolor=bg, text_size=panelTextSize)
+
+    table.cell(panel, 0, 5, "Liq. ↓", text_color=txt, bgcolor=bg, text_size=panelTextSize)
+    table.cell(panel, 1, 5, nearestBelowTxt, text_color=txt, bgcolor=bg, text_size=panelTextSize)
+
+//==================================================================================================
+// Alerts
+//==================================================================================================
+alertcondition(sweepLow, title="LQZ Sweep Low", message="LQZ: downside liquidity sweep/reclaim detected.")
+alertcondition(sweepHigh, title="LQZ Sweep High", message="LQZ: upside liquidity sweep/rejection detected.")
+alertcondition(bullAbsorption, title="LQZ Bullish Absorption", message="LQZ: bullish absorption after downside liquidity sweep.")
+alertcondition(bearAbsorption, title="LQZ Bearish Absorption", message="LQZ: bearish absorption after upside liquidity sweep.")
+
+var int lastDynamicAlertBar = na
+canDynAlert = na(lastDynamicAlertBar) or bar_index - lastDynamicAlertBar > alertCooldownBars
+
+if enableDynamicAlertCalls and canDynAlert
+    if sweepLow and buyScore >= alertMinScore
+        alert("LQZ BUY: sweep low + reclaim | score " + str.tostring(math.round(buyScore)) + " | " + syminfo.ticker, alert.freq_once_per_bar_close)
+        lastDynamicAlertBar := bar_index
+    else if sweepHigh and sellScore >= alertMinScore
+        alert("LQZ SELL: sweep high + rejection | score " + str.tostring(math.round(sellScore)) + " | " + syminfo.ticker, alert.freq_once_per_bar_close)
+        lastDynamicAlertBar := bar_index

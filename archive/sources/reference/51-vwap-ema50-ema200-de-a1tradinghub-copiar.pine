@@ -1,0 +1,23 @@
+//@version=4
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// FrogAlgo LLC
+
+study("VWAP/EMA50/EMA200", overlay=true)
+src = close
+
+
+//===============================================
+// VWAP
+vwapval =  vwap(close)
+emaval50 = ema(close,50)
+emaval200 = ema(close,200)
+
+vwapBoolean = input(true, title="VWAP", type=input.bool)
+
+ema50Boolean = input(true, title="EMA50", type=input.bool)
+
+ema200Boolean = input(true, title="EMA200", type=input.bool)
+
+plot(vwapBoolean ? vwapval:na,title="VWAP", color=color.white, linewidth=2)
+plot(ema50Boolean ? emaval50:na,  title="EMA 50", color=color.yellow, linewidth=2)
+plot(ema200Boolean? emaval200:na,  title="EMA 200", color=color.blue, linewidth=2)

@@ -1,0 +1,76 @@
+//@version=6
+indicator("Buying Selling Volume VI v2", shorttitle="BSV VI v2", format=format.volume, precision=2, overlay=false)
+
+//---------------------------------------------------------
+// Inputs
+//---------------------------------------------------------
+groupGeneral = "General"
+emaLen         = input.int(20, "EMA length", minval=1, group=groupGeneral)
+vnThreshold    = input.float(1.0, "Volume Index threshold", minval=0.0, step=0.1, group=groupGeneral)
+showVNLine     = input.bool(true, "Show Volume Index line", group=groupGeneral)
+showThreshold  = input.bool(true, "Show threshold line", group=groupGeneral)
+
+groupBarColors = "Price Bar Colors"
+applyPressureBarColor = input.bool(false, "Color price bars by normalized pressure", group=groupBarColors)
+applyVNBarColor       = input.bool(false, "Color price bars by Volume Index", group=groupBarColors)
+
+//---------------------------------------------------------
+// Safe base calculations
+//---------------------------------------------------------
+volSafe   = nz(volume, 0.0)
+rangeSafe = high - low
+
+buyVol  = rangeSafe > 0 ? volSafe * (close - low) / rangeSafe : 0.0
+sellVol = rangeSafe > 0 ? volSafe * (high - close) / rangeSafe : 0.0
+
+emaVol  = ta.ema(volSafe, emaLen)
+emaBuy  = ta.ema(buyVol, emaLen)
+emaSell = ta.ema(sellVol, emaLen)
+
+vn = emaVol > 0 ? volSafe / emaVol : 0.0
+
+normBuy  = emaBuy > 0 ? (buyVol / emaBuy) * vn * 100.0 : 0.0
+normSell = emaSell > 0 ? (sellVol / emaSell) * vn * 100.0 : 0.0
+
+buyPressure  = normBuy > normSell ? normBuy : -math.abs(normBuy)
+sellPressure = normSell > normBuy ? normSell : -math.abs(normSell)
+
+//---------------------------------------------------------
+// Colors
+//---------------------------------------------------------
+color pressureBarColor = na
+if buyPressure > sellPressure
+    pressureBarColor := color.blue
+else if buyPressure < sellPressure
+    pressureBarColor := color.purple
+else
+    pressureBarColor := color.gray
+
+color vnColor = na
+if vn > vnThreshold and close > open
+    vnColor := color.aqua
+else if vn > vnThreshold and close < open
+    vnColor := color.new(color.gray, 10)
+else
+    vnColor := color.new(color.yellow, 10)
+
+color finalBarColor = na
+if applyVNBarColor
+    finalBarColor := vnColor
+else if applyPressureBarColor
+    finalBarColor := pressureBarColor
+else
+    finalBarColor := na
+
+barcolor(finalBarColor)
+
+//---------------------------------------------------------
+// Plots
+//---------------------------------------------------------
+hline(0, "Zero Line", color=color.new(color.gray, 75))
+
+plot(buyPressure,  title="Buy Pressure Normalized",  color=color.new(color.green, 10), style=plot.style_columns, linewidth=2)
+plot(sellPressure, title="Sell Pressure Normalized", color=color.new(color.red, 10),   style=plot.style_columns, linewidth=2)
+
+plot(showVNLine ? vn : na, title="Volume Index", color=vnColor, linewidth=2)
+plot(showThreshold ? vnThreshold : na, title="VI Threshold", color=color.orange, linewidth=1)

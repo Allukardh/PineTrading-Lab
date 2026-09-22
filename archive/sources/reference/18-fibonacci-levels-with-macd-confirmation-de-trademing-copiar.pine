@@ -1,0 +1,68 @@
+//@version=5
+indicator('Fibonacci Levels with MACD Confirmation', overlay=true)
+
+// User Inputs
+atrLength = input.int(14, title="ATR Period")
+minLookback = input.int(20, title="Min Lookback Period")
+maxLookback = input.int(100, title="Max Lookback Period")
+isInverse = input.bool(false, title="Inverse Candle Chart")
+
+// ATR Calculation
+atrValue = ta.atr(atrLength)
+atrPercentage = (atrValue / close) * 100
+
+// Dynamic Lookback Calculation
+lookbackRaw = int(ta.sma(atrValue, 10) / ta.sma(close, 10) * 500)
+lookbackPeriod = math.max(minLookback, math.min(lookbackRaw, maxLookback))
+lookbackPeriod := lookbackPeriod > 1 ? lookbackPeriod : minLookback
+
+// Adjusted High and Low for Inverse Candles
+adjustedHigh = isInverse ? -low : high
+adjustedLow = isInverse ? -high : low
+
+// Find Swing High & Low
+swingHigh = ta.highest(adjustedHigh, lookbackPeriod)
+swingLow = ta.lowest(adjustedLow, lookbackPeriod)
+
+// Convert back if using inverse mode
+swingHigh := isInverse ? -swingHigh : swingHigh
+swingLow := isInverse ? -swingLow : swingLow
+
+// Calculate Fibonacci Levels
+fib_236 = swingLow + (swingHigh - swingLow) * 0.236
+fib_50 = swingLow + (swingHigh - swingLow) * 0.5
+fib_618 = swingLow + (swingHigh - swingLow) * 0.618
+
+// MACD Calculation (24, 52, 18 settings)
+[macdLine, signalLine, hist] = ta.macd(close, 24, 52, 18)
+
+// Determine MACD Histogram Colors
+histColor = hist > 0 ? (hist > hist[1] ? color.green : color.lime) : (hist < hist[1] ? color.red : color.maroon)
+
+// Define Fib Level Colors Based on MACD Histogram
+fibColor_236 = hist > 0 ? (hist > hist[1] ? color.green : color.lime) : (hist < hist[1] ? color.red : color.maroon)
+fibColor_618 = hist > 0 ? (hist > hist[1] ? color.green : color.lime) : (hist < hist[1] ? color.red : color.maroon)
+
+// Plot Fibonacci Levels with MACD-Based Color for 23.6% & 61.8%
+plot(fib_236, color=fibColor_236, linewidth=2, title="Fib 23.6% (MACD Confirmed)")
+plot(fib_50, color=color.white, linewidth=2, title="Fib 50%")
+plot(fib_618, color=fibColor_618, linewidth=2, title="Fib 61.8% (MACD Confirmed)")
+
+// Plot MACD Histogram
+histoPlot = plot(hist, style=plot.style_columns, color=histColor, title="MACD Histogram")
+
+// Label for ATR Information
+var label atrLabel = na
+label.delete(atrLabel)
+atrLabel := label.new(bar_index, fib_236, text="ATR: " + str.tostring(atrValue, "#.##") + " (" + str.tostring(atrPercentage, "#.##") + "%)", style=label.style_label_down, color=color.blue, textcolor=color.white, size=size.small)
+
+// CC Labels for Trend Confirmation
+if ta.crossover(close, fib_236) and hist > hist[1]
+    label.new(bar_index, fib_236, text="CC 23.6", color=color.green, textcolor=color.white, style=label.style_label_up)
+if ta.crossunder(close, fib_236) and hist < hist[1]
+    label.new(bar_index, fib_236, text="CC 23.6", color=color.red, textcolor=color.white, style=label.style_label_down)
+
+if ta.crossover(close, fib_618) and hist > hist[1]
+    label.new(bar_index, fib_618, text="CC 61.8", color=color.green, textcolor=color.white, style=label.style_label_up)
+if ta.crossunder(close, fib_618) and hist < hist[1]
+    label.new(bar_index, fib_618, text="CC 61.8", color=color.red, textcolor=color.white, style=label.style_label_down)

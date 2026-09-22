@@ -1,0 +1,1517 @@
+//@version=6
+indicator("MA 6x PRO Unified v3.8.4", shorttitle="MA6x", overlay=true, max_labels_count=500, max_lines_count=500)
+
+// =====================
+// Grupos
+// =====================
+groupMain       = "Geral"
+groupPreset     = "Presets"
+groupPeriod     = "Períodos"
+groupVisual     = "Visual"
+groupColor      = "Cores"
+groupTrend      = "Leitura por Tendência"
+groupProj       = "Projeções"
+groupStatus     = "Status / Eventos"
+groupLabel      = "Labels das Médias"
+groupPanel      = "Painel Integrado"
+groupPanelStyle = "Painel Integrado Style"
+groupMTF        = "Multi-timeframe"
+groupAlert      = "Alertas"
+
+// =====================
+// Inputs principais
+// =====================
+src    = input.source(close, "Source", group=groupMain, display=display.none)
+offset = input.int(0, "Offset", minval=-500, maxval=500, group=groupMain, display=display.none)
+
+maType = input.string(
+     "EMA",
+     "MA Type",
+     options=["SMA", "EMA", "WMA", "SMMA (RMA)", "VWMA"],
+     group=groupMain
+, display=display.none)
+
+presetMode = input.string(
+     "Custom",
+     "Preset Mode",
+     options=["Custom", "Scalp", "Swing", "Macro"],
+     group=groupPreset
+, display=display.none)
+
+overridePresetVisibility = input.bool(false, "Sobrescrever visibilidade manual nos presets", group=groupPreset, display=display.none)
+overridePresetWidth      = input.bool(false, "Sobrescrever espessura manual nos presets", group=groupPreset, display=display.none)
+
+// =====================
+// Períodos
+// =====================
+len1 = input.int(7,   "Período MA 1", minval=1, group=groupPeriod, display=display.none)
+len2 = input.int(20,  "Período MA 2", minval=1, group=groupPeriod, display=display.none)
+len3 = input.int(50,  "Período MA 3", minval=1, group=groupPeriod, display=display.none)
+len4 = input.int(100, "Período MA 4", minval=1, group=groupPeriod, display=display.none)
+len5 = input.int(200, "Período MA 5", minval=1, group=groupPeriod, display=display.none)
+len6 = input.int(350, "Período MA 6", minval=1, group=groupPeriod, display=display.none)
+
+// =====================
+// Visual
+// =====================
+overlayView = input.string(
+     "Standard",
+     "Preset visual do overlay",
+     options=["Clean", "Standard", "Detailed"],
+     group=groupVisual
+, display=display.none)
+showMA1 = input.bool(true, "Mostrar MA 1", group=groupVisual, display=display.none)
+showMA2 = input.bool(true, "Mostrar MA 2", group=groupVisual, display=display.none)
+showMA3 = input.bool(true, "Mostrar MA 3", group=groupVisual, display=display.none)
+showMA4 = input.bool(true, "Mostrar MA 4", group=groupVisual, display=display.none)
+showMA5 = input.bool(true, "Mostrar MA 5", group=groupVisual, display=display.none)
+showMA6 = input.bool(true, "Mostrar MA 6", group=groupVisual, display=display.none)
+
+widthMA1 = input.int(1, "Espessura MA 1", minval=1, maxval=10, group=groupVisual, display=display.none)
+widthMA2 = input.int(1, "Espessura MA 2", minval=1, maxval=10, group=groupVisual, display=display.none)
+widthMA3 = input.int(2, "Espessura MA 3", minval=1, maxval=10, group=groupVisual, display=display.none)
+widthMA4 = input.int(2, "Espessura MA 4", minval=1, maxval=10, group=groupVisual, display=display.none)
+widthMA5 = input.int(2, "Espessura MA 5", minval=1, maxval=10, group=groupVisual, display=display.none)
+widthMA6 = input.int(3, "Espessura MA 6", minval=1, maxval=10, group=groupVisual, display=display.none)
+
+fillMode = input.string(
+     "Ribbon Core",
+     "Modo de Fill",
+     options=["Off", "Adjacente", "Fast x Slow", "Ribbon Core"],
+     group=groupVisual
+, display=display.none)
+fillTransparency = input.int(88, "Transparência do Fill", minval=0, maxval=100, group=groupVisual, display=display.none)
+
+// =====================
+// Cores
+// =====================
+colorMA1 = input.color(color.aqua,    "Cor base MA 1", group=groupColor, display=display.none)
+colorMA2 = input.color(color.orange,  "Cor base MA 2", group=groupColor, display=display.none)
+colorMA3 = input.color(color.yellow,  "Cor base MA 3", group=groupColor, display=display.none)
+colorMA4 = input.color(color.green,   "Cor base MA 4", group=groupColor, display=display.none)
+colorMA5 = input.color(color.red,     "Cor base MA 5", group=groupColor, display=display.none)
+colorMA6 = input.color(color.fuchsia, "Cor base MA 6", group=groupColor, display=display.none)
+
+// =====================
+// Tendência / Semântica
+// =====================
+trendColorMode = input.string(
+     "Off",
+     "Coloração por tendência",
+     options=["Off", "Slope"],
+     group=groupTrend
+, display=display.none)
+
+slopeLookback = input.int(2, "Lookback da inclinação", minval=1, maxval=50, group=groupTrend, display=display.none)
+trendUpColor  = input.color(color.lime, "Cor de alta", group=groupTrend, display=display.none)
+trendDnColor  = input.color(color.red,  "Cor de baixa", group=groupTrend, display=display.none)
+
+atrLen               = input.int(14, "ATR Length", minval=1, group=groupTrend, display=display.none)
+compressionThreshAtr = input.float(0.50, "Ribbon comprimido abaixo de X ATR", minval=0.05, step=0.05, group=groupTrend, display=display.none)
+expansionThreshAtr   = input.float(1.10, "Ribbon expandido acima de X ATR", minval=0.10, step=0.05, group=groupTrend, display=display.none)
+statusConfirmBars    = input.int(2, "Barras mínimas para confirmar status", minval=1, maxval=10, group=groupTrend, display=display.none)
+strongThreshold      = input.int(68, "Score forte", minval=1, maxval=100, group=groupTrend, display=display.none)
+mediumThreshold      = input.int(48, "Score favorável", minval=1, maxval=100, group=groupTrend, display=display.none)
+reversalLocalThreshold = input.int(18, "Limiar local da reversão incipiente", minval=1, maxval=100, group=groupTrend, display=display.none)
+pullbackThreatThreshold = input.int(22, "Limiar do pullback ameaçando estrutura", minval=1, maxval=100, group=groupTrend, display=display.none)
+
+// =====================
+// Projeções
+// =====================
+showProjectionLines = input.bool(true, "Mostrar projeções curtas", group=groupProj, display=display.none)
+projSlotA = input.string("MA 1", "Projeção A", options=["MA 1", "MA 2", "MA 3", "MA 4", "MA 5", "MA 6"], group=groupProj, display=display.none)
+projSlotB = input.string("MA 2", "Projeção B", options=["MA 1", "MA 2", "MA 3", "MA 4", "MA 5", "MA 6"], group=groupProj, display=display.none)
+projectionBars = input.int(4, "Barras projetadas", minval=1, maxval=50, group=groupProj, display=display.none)
+projectionSlopeLookback = input.int(2, "Lookback da projeção", minval=1, maxval=20, group=groupProj, display=display.none)
+showCrossEta = input.bool(true, "Mostrar ETA de cruzamento provável", group=groupProj, display=display.none)
+crossEtaMode = input.string("Auto", "Modo do Cross ETA", options=["Auto", "Manual"], group=groupProj, display=display.none)
+maxCrossEtaBars = input.int(10, "Máximo ETA exibido", minval=1, maxval=200, group=groupProj, display=display.none)
+minRelativeSpeedTicks = input.float(1.8, "Velocidade relativa mínima (ticks)", minval=0.1, step=0.1, group=groupProj, display=display.none)
+
+// =====================
+// Status / Eventos
+// =====================
+showStatusChip = input.bool(true, "Mostrar chip de status", group=groupStatus, display=display.none)
+statusChipYatr = input.float(0.55, "Distância vertical do chip (ATR)", minval=0.1, step=0.1, group=groupStatus, display=display.none)
+statusChipAtBottom = input.bool(false, "Fixar chip abaixo do preço", group=groupStatus, display=display.none)
+statusTextMode = input.string("Compacto", "Formato do texto", options=["Compacto", "Detalhado"], group=groupStatus, display=display.none)
+
+showEventLabel = input.bool(true, "Mostrar label do evento principal", group=groupStatus, display=display.none)
+eventLabelYatr = input.float(0.95, "Distância vertical do evento (ATR)", minval=0.2, step=0.1, group=groupStatus, display=display.none)
+eventCooldownBars = input.int(6, "Cooldown do evento principal (barras)", minval=0, maxval=100, group=groupStatus, display=display.none)
+
+// =====================
+// Labels das médias
+// =====================
+showEndLabels = input.bool(true, "Mostrar labels na última barra", group=groupLabel, display=display.none)
+labelDensity = input.string("Todas", "Densidade dos labels", options=["Off", "Rápidas", "Clássicas", "Estruturais", "Todas"], group=groupLabel, display=display.none)
+labelTextMode = input.string("Período + Valor", "Texto do label", options=["Período", "Período + Valor"], group=groupLabel, display=display.none)
+labelBarsForward = input.int(1, "Deslocar labels X barras à frente", minval=0, maxval=20, group=groupLabel, display=display.none)
+labelBgColor = input.color(color.new(color.black, 80), "Fundo dos labels", group=groupLabel, display=display.none)
+labelAutoStack = input.bool(true, "Empilhar labels automaticamente", group=groupLabel, display=display.none)
+labelMinGapTicks = input.int(10, "Gap mínimo entre labels (ticks)", minval=1, maxval=500, group=groupLabel, display=display.none)
+
+// =====================
+// Painel Integrado
+// =====================
+showInfoTable = input.bool(true, "Show info table", group=groupPanel, display=display.none)
+tableDetailMode = input.string("Standard", "Detalhe da tabela", options=["Compact", "Standard", "Full"], group=groupPanel, display=display.none)
+tablePositionS = input.string("Bottom Right", "Table position", options=["Top Right", "Top Left", "Bottom Right", "Bottom Left"], group=groupPanel, display=display.none)
+showProbabilities = input.bool(false, "Mostrar probabilidades", group=groupPanel, display=display.none)
+showMtfRow = input.bool(true, "Mostrar linha MTF", group=groupPanel, display=display.none)
+showCrossRow = input.bool(true, "Mostrar linha de Cruzamento", group=groupPanel, display=display.none)
+showContextRows = input.bool(false, "Show context rows", group=groupPanel, display=display.none)
+
+// =====================
+// Painel Integrado Style
+// =====================
+panelBaseColor = input.color(color.black, "Panel color", group=groupPanelStyle, display=display.none)
+headerBaseColor = input.color(color.blue, "Header color", group=groupPanelStyle, display=display.none)
+panelTransparency = input.int(83, "Panel transparency", minval=0, maxval=100, group=groupPanelStyle, display=display.none)
+fontTransparency = input.int(23, "Font transparency", minval=0, maxval=100, group=groupPanelStyle, display=display.none)
+accentTransparency = input.int(83, "Accent transparency", minval=0, maxval=100, group=groupPanelStyle, display=display.none)
+borderTransparency = input.int(23, "Border transparency", minval=0, maxval=100, group=groupPanelStyle, display=display.none)
+frameTransparency = input.int(75, "Frame transparency", minval=0, maxval=100, group=groupPanelStyle, display=display.none)
+headerTextSizeS = input.string("Small", "Header font size", options=["Tiny", "Small", "Normal", "Large", "Huge"], group=groupPanelStyle, display=display.none)
+bodyTextSizeS = input.string("Small", "Body font size", options=["Tiny", "Small", "Normal", "Large", "Huge"], group=groupPanelStyle, display=display.none)
+labelColWidth = input.int(4, "Label column width", minval=0, maxval=100, group=groupPanelStyle, display=display.none)
+valueColWidth = input.int(9, "Value column width", minval=0, maxval=100, group=groupPanelStyle, display=display.none)
+rowHeight = input.int(2, "Row height (0 = auto)", minval=0, maxval=100, group=groupPanelStyle, display=display.none)
+panelBorderWidth = input.int(1, "Border width", minval=0, maxval=4, group=groupPanelStyle, display=display.none)
+
+// =====================
+// Multi-timeframe
+// =====================
+useMtf = input.bool(true, "Usar bias do timeframe maior", group=groupMTF, display=display.none)
+mtfTf  = input.timeframe("240", "Timeframe maior", group=groupMTF, display=display.none)
+mtfFastSlot = input.string("MA 2", "MA rápida do MTF", options=["MA 1", "MA 2", "MA 3", "MA 4", "MA 5", "MA 6"], group=groupMTF, display=display.none)
+mtfSlowSlot = input.string("MA 5", "MA lenta do MTF", options=["MA 1", "MA 2", "MA 3", "MA 4", "MA 5", "MA 6"], group=groupMTF, display=display.none)
+
+// =====================
+// Alertas
+// =====================
+enableDynamicAlertCalls = input.bool(true, "Ativar alert() dinâmico", group=groupAlert, display=display.none)
+alertStrongThreshold = input.int(62, "Score mínimo de força para alertas", minval=1, maxval=100, group=groupAlert, display=display.none)
+alertCrossEtaBars    = input.int(5, "Alertar ETA até X barras", minval=1, maxval=50, group=groupAlert, display=display.none)
+alertCooldownBars   = input.int(10, "Cooldown dos alertas (barras)", minval=0, maxval=200, group=groupAlert, display=display.none)
+
+// =====================
+// Funções
+// =====================
+f_ma(source, length, maType) =>
+    switch maType
+        "SMA"         => ta.sma(source, length)
+        "EMA"         => ta.ema(source, length)
+        "WMA"         => ta.wma(source, length)
+        "SMMA (RMA)"  => ta.rma(source, length)
+        "VWMA"        => ta.vwma(source, length)
+
+f_resolveColor(baseColor, maValue) =>
+    trendColorMode == "Slope" ?
+         maValue > maValue[slopeLookback] ? trendUpColor :
+         maValue < maValue[slopeLookback] ? trendDnColor :
+         baseColor
+         : baseColor
+
+f_labelText(slotName, len, value) =>
+    labelTextMode == "Período" ?
+         slotName + " (" + str.tostring(len) + ")" :
+         slotName + " (" + str.tostring(len) + ")  " + str.tostring(value, format.mintick)
+
+f_updateLabel(label lbl, bool enabled, float y, string txt, color txtColor, color bgColor, int barsForward) =>
+    label result = lbl
+    if enabled and not na(y)
+        if na(result)
+            result := label.new(
+                 x=bar_index + offset + barsForward,
+                 y=y,
+                 text=txt,
+                 xloc=xloc.bar_index,
+                 style=label.style_label_left,
+                 textcolor=txtColor,
+                 color=bgColor,
+                 size=size.small
+            )
+        else
+            label.set_x(result, bar_index + offset + barsForward)
+            label.set_y(result, y)
+            label.set_text(result, txt)
+            label.set_textcolor(result, txtColor)
+            label.set_color(result, bgColor)
+            label.set_style(result, label.style_label_left)
+    else
+        if not na(result)
+            label.delete(result)
+            result := na
+    result
+
+f_updateChip(label lbl, bool enabled, float y, string txt, color txtColor, color bgColor, int barsForward, bool pointUp) =>
+    label result = lbl
+    chipStyle = pointUp ? label.style_label_up : label.style_label_down
+    if enabled and not na(y)
+        if na(result)
+            result := label.new(
+                 x=bar_index + offset + barsForward,
+                 y=y,
+                 text=txt,
+                 xloc=xloc.bar_index,
+                 style=chipStyle,
+                 textcolor=txtColor,
+                 color=bgColor,
+                 size=size.small
+            )
+        else
+            label.set_x(result, bar_index + offset + barsForward)
+            label.set_y(result, y)
+            label.set_text(result, txt)
+            label.set_textcolor(result, txtColor)
+            label.set_color(result, bgColor)
+            label.set_style(result, chipStyle)
+    else
+        if not na(result)
+            label.delete(result)
+            result := na
+    result
+
+f_pickValue(slot, ma1_, ma2_, ma3_, ma4_, ma5_, ma6_) =>
+    switch slot
+        "MA 1" => ma1_
+        "MA 2" => ma2_
+        "MA 3" => ma3_
+        "MA 4" => ma4_
+        "MA 5" => ma5_
+        "MA 6" => ma6_
+        => na
+
+f_pickColor(slot, c1, c2, c3, c4, c5, c6) =>
+    switch slot
+        "MA 1" => c1
+        "MA 2" => c2
+        "MA 3" => c3
+        "MA 4" => c4
+        "MA 5" => c5
+        "MA 6" => c6
+        => color.white
+
+f_pickLen(slot, len1_, len2_, len3_, len4_, len5_, len6_) =>
+    switch slot
+        "MA 1" => len1_
+        "MA 2" => len2_
+        "MA 3" => len3_
+        "MA 4" => len4_
+        "MA 5" => len5_
+        "MA 6" => len6_
+        => 0
+
+f_swapFloat(arr, i, j) =>
+    tmp = array.get(arr, i)
+    array.set(arr, i, array.get(arr, j))
+    array.set(arr, j, tmp)
+
+f_swapInt(arr, i, j) =>
+    tmp = array.get(arr, i)
+    array.set(arr, i, array.get(arr, j))
+    array.set(arr, j, tmp)
+
+f_slotText(slot, len1_, len2_, len3_, len4_, len5_, len6_, ma1_, ma2_, ma3_, ma4_, ma5_, ma6_) =>
+    switch slot
+        1 => f_labelText("MA 1", len1_, ma1_)
+        2 => f_labelText("MA 2", len2_, ma2_)
+        3 => f_labelText("MA 3", len3_, ma3_)
+        4 => f_labelText("MA 4", len4_, ma4_)
+        5 => f_labelText("MA 5", len5_, ma5_)
+        6 => f_labelText("MA 6", len6_, ma6_)
+        => ""
+
+f_slotColor(slot, c1, c2, c3, c4, c5, c6) =>
+    switch slot
+        1 => c1
+        2 => c2
+        3 => c3
+        4 => c4
+        5 => c5
+        6 => c6
+        => color.white
+
+f_qualityText(scoreAbs) =>
+    scoreAbs >= 80 ? "Muito forte" :
+     scoreAbs >= 65 ? "Forte" :
+     scoreAbs >= 45 ? "Favorável" :
+     scoreAbs >= 25 ? "Em formação" :
+     "Fraco"
+
+f_regimeShort(regimeTxt) =>
+    regimeTxt == "Tendência em expansão" ? "Expansão" :
+     regimeTxt == "Tendência estável" ? "Tendência" :
+     regimeTxt == "Tendência cansando" ? "Cansando" :
+     regimeTxt == "Transição" ? "Transição" :
+     regimeTxt == "Compressão" ? "Compressão" :
+     regimeTxt == "Neutro / Ruído" or regimeTxt == "Lateral / Ruído" ? "Lateral / Ruído" :
+     regimeTxt
+
+f_exhaustionText(distAtr, scoreAbs) =>
+    distAtr >= 2.2 and scoreAbs >= 65 ? "Alta" :
+     distAtr >= 1.2 and scoreAbs >= 45 ? "Média" :
+     "Baixa"
+
+f_statusText(netScore, regimeTxt, localTxt, textMode) =>
+    directionTxt = netScore >= 15 ? "ALTA" : netScore <= -15 ? "BAIXA" : "NEUTRO"
+    coreTxt = directionTxt + " | " + f_qualityText(math.abs(netScore)) + " | " + f_regimeShort(regimeTxt)
+    textMode == "Detalhado" ? coreTxt + " | " + localTxt : coreTxt
+
+f_scoreColor(netScore) =>
+    netScore >= 15 ? color.new(color.lime, 0) :
+     netScore <= -15 ? color.new(color.red, 0) :
+     color.new(color.orange, 0)
+
+f_safeEta(distance, relativeSpeed, minSpeed) =>
+    absSpeed = math.abs(relativeSpeed)
+    converging = distance > 0 and relativeSpeed < 0 or distance < 0 and relativeSpeed > 0
+    converging and absSpeed >= minSpeed ? math.abs(distance / relativeSpeed) : na
+
+f_maSlope(source, length, maType, lookback) =>
+    maValue = f_ma(source, length, maType)
+    maValue - maValue[lookback]
+
+f_pairName(lenFast, lenSlow) =>
+    str.tostring(lenFast) + "/" + str.tostring(lenSlow)
+
+f_isClassicCrossPair(lenFast, lenSlow) =>
+    lenFast == 50 and lenSlow == 200
+
+f_isClassicCrossPairAnyOrder(lenA, lenB) =>
+    f_isClassicCrossPair(lenA, lenB) or f_isClassicCrossPair(lenB, lenA)
+
+f_signedArrowText(v) =>
+    absTxt = str.tostring(math.round(math.abs(v)))
+    v > 0 ? absTxt + "↑" :
+     v < 0 ? absTxt + "↓" :
+     "0~"
+
+f_crossDirection(validEta, confirmedUp, confirmedDn, diffNow, relSpeedNow) =>
+    int result = 0
+    if confirmedUp
+        result := 1
+    else if confirmedDn
+        result := -1
+    else if validEta
+        result := diffNow < 0 and relSpeedNow > 0 ? 1 : diffNow > 0 and relSpeedNow < 0 ? -1 : 0
+    result
+
+f_crossPanelValue(validEta, etaValue, confirmedUp, confirmedDn, diffNow, relSpeedNow, isGoldenPair) =>
+    string result = "sem ETA"
+    int dir = f_crossDirection(validEta, confirmedUp, confirmedDn, diffNow, relSpeedNow)
+    if confirmedUp
+        result := isGoldenPair ? "Cruz. alta ✓" : "✓ ↑"
+    else if confirmedDn
+        result := isGoldenPair ? "Cruz. baixa ✓" : "✓ ↓"
+    else if validEta
+        if isGoldenPair
+            result := dir > 0 ? "Cruz. alta ~" + str.tostring(math.round(etaValue)) :
+             dir < 0 ? "Cruz. baixa ~" + str.tostring(math.round(etaValue)) :
+             "~" + str.tostring(math.round(etaValue))
+        else
+            result := "~" + str.tostring(math.round(etaValue)) + (dir > 0 ? " ↑" : dir < 0 ? " ↓" : "")
+    result
+
+f_crossEventText(name, validEta, etaValue, confirmedUp, confirmedDn, diffNow, relSpeedNow, isGoldenPair) =>
+    string result = ""
+    int dir = f_crossDirection(validEta, confirmedUp, confirmedDn, diffNow, relSpeedNow)
+    if confirmedUp
+        result := isGoldenPair ? "Cruzamento de alta confirmado: " + name : "Cruzamento confirmado para alta: " + name
+    else if confirmedDn
+        result := isGoldenPair ? "Cruzamento de baixa confirmado: " + name : "Cruzamento confirmado para baixa: " + name
+    else if validEta
+        if isGoldenPair
+            result := dir > 0 ? "Cruzamento de alta provável: " + name + " ~ " + str.tostring(math.round(etaValue)) + " barras" :
+             dir < 0 ? "Cruzamento de baixa provável: " + name + " ~ " + str.tostring(math.round(etaValue)) + " barras" :
+             "Cruzamento provável: " + name + " ~ " + str.tostring(math.round(etaValue)) + " barras"
+        else
+            result := dir > 0 ? "Cruzamento provável para alta: " + name + " ~ " + str.tostring(math.round(etaValue)) + " barras" :
+             dir < 0 ? "Cruzamento provável para baixa: " + name + " ~ " + str.tostring(math.round(etaValue)) + " barras" :
+             "Cruzamento provável: " + name + " ~ " + str.tostring(math.round(etaValue)) + " barras"
+    result
+
+f_crossPriority(baseImportance, validEta, etaValue, confirmedUp, confirmedDn, isGoldenPair) =>
+    int result = 0
+    if confirmedUp or confirmedDn
+        result := (isGoldenPair ? 380 : 240) + baseImportance
+    else if validEta
+        int etaBonus = maxCrossEtaBars - math.min(maxCrossEtaBars, math.round(etaValue))
+        result := (isGoldenPair ? 260 : 140) + baseImportance + etaBonus
+    result
+
+f_pos(pos) =>
+    switch pos
+        "Top Right" => position.top_right
+        "Top Left" => position.top_left
+        "Bottom Right" => position.bottom_right
+        "Bottom Left" => position.bottom_left
+        => position.bottom_right
+
+sizeFromString(s) =>
+    switch s
+        "Tiny" => size.tiny
+        "Small" => size.small
+        "Normal" => size.normal
+        "Large" => size.large
+        => size.huge
+
+f_probText(score) =>
+    score >= 85 ? "Muito alta" :
+     score >= 70 ? "Alta" :
+     score >= 50 ? "Moderada" :
+     score >= 30 ? "Baixa" :
+     "Muito baixa"
+
+f_contQualText(score) =>
+    score >= 70 ? "Boa" :
+     score >= 50 ? "Média" :
+     "Fraca"
+
+f_confText(score) =>
+    score >= 80 ? "Alta" :
+     score >= 60 ? "Boa" :
+     score >= 40 ? "Média" :
+     "Baixa"
+
+f_riskText(netScore, insideRibbon, compression, mtfAligned, mixedSlopes, confidenceScore) =>
+    compression or insideRibbon and math.abs(netScore) < 45 ? "Alto" :
+     mixedSlopes or not mtfAligned or confidenceScore < 45 ? "Médio" :
+     "Baixo"
+
+f_regimeText(alignmentBull, alignmentBear, widthAtr, widthAtrPrev, compressionThresh, expansionThresh, insideRibbon) =>
+    widthAtr < compressionThresh ? "Compressão" :
+     alignmentBull or alignmentBear ? (widthAtr > widthAtrPrev ? "Tendência em expansão" : "Tendência") :
+     insideRibbon ? "Lateral / Ruído" :
+     widthAtr > expansionThresh ? "Expansão sem alinhamento" :
+     "Transição"
+
+// =====================
+// Visibilidade efetiva
+// =====================
+presetShow1 = presetMode == "Scalp" ? true  : presetMode == "Swing" ? false : presetMode == "Macro" ? false : showMA1
+presetShow2 = presetMode == "Scalp" ? true  : presetMode == "Swing" ? true  : presetMode == "Macro" ? false : showMA2
+presetShow3 = presetMode == "Scalp" ? true  : presetMode == "Swing" ? true  : presetMode == "Macro" ? true  : showMA3
+presetShow4 = presetMode == "Scalp" ? true  : presetMode == "Swing" ? true  : presetMode == "Macro" ? true  : showMA4
+presetShow5 = presetMode == "Scalp" ? false : presetMode == "Swing" ? true  : presetMode == "Macro" ? true  : showMA5
+presetShow6 = presetMode == "Scalp" ? false : presetMode == "Swing" ? false : presetMode == "Macro" ? true  : showMA6
+
+show1 = presetMode == "Custom" or overridePresetVisibility ? showMA1 : presetShow1
+show2 = presetMode == "Custom" or overridePresetVisibility ? showMA2 : presetShow2
+show3 = presetMode == "Custom" or overridePresetVisibility ? showMA3 : presetShow3
+show4 = presetMode == "Custom" or overridePresetVisibility ? showMA4 : presetShow4
+show5 = presetMode == "Custom" or overridePresetVisibility ? showMA5 : presetShow5
+show6 = presetMode == "Custom" or overridePresetVisibility ? showMA6 : presetShow6
+
+// =====================
+// Espessura efetiva
+// =====================
+presetWidth1 = presetMode == "Scalp" ? 2 : presetMode == "Swing" ? 1 : presetMode == "Macro" ? 1 : widthMA1
+presetWidth2 = presetMode == "Scalp" ? 2 : presetMode == "Swing" ? 2 : presetMode == "Macro" ? 1 : widthMA2
+presetWidth3 = presetMode == "Scalp" ? 2 : presetMode == "Swing" ? 2 : presetMode == "Macro" ? 2 : widthMA3
+presetWidth4 = presetMode == "Scalp" ? 1 : presetMode == "Swing" ? 2 : presetMode == "Macro" ? 2 : widthMA4
+presetWidth5 = presetMode == "Scalp" ? 1 : presetMode == "Swing" ? 2 : presetMode == "Macro" ? 3 : widthMA5
+presetWidth6 = presetMode == "Scalp" ? 1 : presetMode == "Swing" ? 1 : presetMode == "Macro" ? 3 : widthMA6
+
+w1 = presetMode == "Custom" or overridePresetWidth ? widthMA1 : presetWidth1
+w2 = presetMode == "Custom" or overridePresetWidth ? widthMA2 : presetWidth2
+w3 = presetMode == "Custom" or overridePresetWidth ? widthMA3 : presetWidth3
+w4 = presetMode == "Custom" or overridePresetWidth ? widthMA4 : presetWidth4
+w5 = presetMode == "Custom" or overridePresetWidth ? widthMA5 : presetWidth5
+w6 = presetMode == "Custom" or overridePresetWidth ? widthMA6 : presetWidth6
+
+// =====================
+// Cálculo das médias
+// =====================
+ma1 = f_ma(src, len1, maType)
+ma2 = f_ma(src, len2, maType)
+ma3 = f_ma(src, len3, maType)
+ma4 = f_ma(src, len4, maType)
+ma5 = f_ma(src, len5, maType)
+ma6 = f_ma(src, len6, maType)
+
+// =====================
+// Cores finais
+// =====================
+plotColor1 = f_resolveColor(colorMA1, ma1)
+plotColor2 = f_resolveColor(colorMA2, ma2)
+plotColor3 = f_resolveColor(colorMA3, ma3)
+plotColor4 = f_resolveColor(colorMA4, ma4)
+plotColor5 = f_resolveColor(colorMA5, ma5)
+plotColor6 = f_resolveColor(colorMA6, ma6)
+
+// =====================
+// Plots
+// =====================
+pMA1 = plot(show1 ? ma1 : na, title="MA 1", color=plotColor1, linewidth=w1, offset=offset, display=display.all - display.status_line)
+pMA2 = plot(show2 ? ma2 : na, title="MA 2", color=plotColor2, linewidth=w2, offset=offset, display=display.all - display.status_line)
+pMA3 = plot(show3 ? ma3 : na, title="MA 3", color=plotColor3, linewidth=w3, offset=offset, display=display.all - display.status_line)
+pMA4 = plot(show4 ? ma4 : na, title="MA 4", color=plotColor4, linewidth=w4, offset=offset, display=display.all - display.status_line)
+pMA5 = plot(show5 ? ma5 : na, title="MA 5", color=plotColor5, linewidth=w5, offset=offset, display=display.all - display.status_line)
+pMA6 = plot(show6 ? ma6 : na, title="MA 6", color=plotColor6, linewidth=w6, offset=offset, display=display.all - display.status_line)
+
+// Status line enxuta: mostra apenas os períodos das médias
+plot(show1 ? len1 : na, title="MA1", color=plotColor1, display=display.status_line, precision=0)
+plot(show2 ? len2 : na, title="MA2", color=plotColor2, display=display.status_line, precision=0)
+plot(show3 ? len3 : na, title="MA3", color=plotColor3, display=display.status_line, precision=0)
+plot(show4 ? len4 : na, title="MA4", color=plotColor4, display=display.status_line, precision=0)
+plot(show5 ? len5 : na, title="MA5", color=plotColor5, display=display.status_line, precision=0)
+plot(show6 ? len6 : na, title="MA6", color=plotColor6, display=display.status_line, precision=0)
+
+// =====================
+// Métricas estruturais
+// =====================
+atr = ta.atr(atrLen)
+
+ribbonTop = math.max(math.max(math.max(ma1, ma2), math.max(ma3, ma4)), math.max(ma5, ma6))
+ribbonBot = math.min(math.min(math.min(ma1, ma2), math.min(ma3, ma4)), math.min(ma5, ma6))
+ribbonMid = (ribbonTop + ribbonBot) * 0.5
+ribbonWidth = ribbonTop - ribbonBot
+ribbonWidthAtr = atr > 0 ? ribbonWidth / atr : na
+ribbonWidthAtrPrev = nz(ribbonWidthAtr[1], ribbonWidthAtr)
+distRibbonMidAtr = atr > 0 ? math.abs(close - ribbonMid) / atr : 0.0
+
+s1 = ma1 - ma1[slopeLookback]
+s2 = ma2 - ma2[slopeLookback]
+s3 = ma3 - ma3[slopeLookback]
+s4 = ma4 - ma4[slopeLookback]
+s5 = ma5 - ma5[slopeLookback]
+s6 = ma6 - ma6[slopeLookback]
+
+upCount = (s1 > 0 ? 1 : 0) + (s2 > 0 ? 1 : 0) + (s3 > 0 ? 1 : 0) + (s4 > 0 ? 1 : 0) + (s5 > 0 ? 1 : 0) + (s6 > 0 ? 1 : 0)
+dnCount = (s1 < 0 ? 1 : 0) + (s2 < 0 ? 1 : 0) + (s3 < 0 ? 1 : 0) + (s4 < 0 ? 1 : 0) + (s5 < 0 ? 1 : 0) + (s6 < 0 ? 1 : 0)
+mixedSlopes = upCount > 0 and dnCount > 0
+
+alignmentBull = ma1 > ma2 and ma2 > ma3 and ma3 > ma4 and ma4 > ma5 and ma5 > ma6
+alignmentBear = ma1 < ma2 and ma2 < ma3 and ma3 < ma4 and ma4 < ma5 and ma5 < ma6
+
+priceAboveRibbon = close > ribbonTop
+priceBelowRibbon = close < ribbonBot
+priceInsideRibbon = close <= ribbonTop and close >= ribbonBot
+
+slopeAccelFast = s1 - s1[slopeLookback]
+slopeAccelSlow = s3 - s3[slopeLookback]
+
+// =====================
+// Score prudente + local
+// =====================
+bullScore = 0.0
+bullScore += alignmentBull ? 25 : 0
+bullScore += upCount * 6
+bullScore += priceAboveRibbon ? 15 : close > ribbonMid ? 8 : 0
+bullScore += ribbonWidthAtr > expansionThreshAtr ? 10 : ribbonWidthAtr > compressionThreshAtr ? 5 : 0
+bullScore += slopeAccelFast > 0 ? 6 : 0
+bullScore += slopeAccelSlow > 0 ? 4 : 0
+
+bearScore = 0.0
+bearScore += alignmentBear ? 25 : 0
+bearScore += dnCount * 6
+bearScore += priceBelowRibbon ? 15 : close < ribbonMid ? 8 : 0
+bearScore += ribbonWidthAtr > expansionThreshAtr ? 10 : ribbonWidthAtr > compressionThreshAtr ? 5 : 0
+bearScore += slopeAccelFast < 0 ? 6 : 0
+bearScore += slopeAccelSlow < 0 ? 4 : 0
+
+netScoreRaw = bullScore - bearScore
+netScore = math.max(-100, math.min(100, netScoreRaw))
+
+localBullScore = 0.0
+localBullScore += s1 > 0 ? 15 : 0
+localBullScore += s2 > 0 ? 12 : 0
+localBullScore += s3 > 0 ? 10 : 0
+localBullScore += ma1 > ma2 ? 10 : 0
+localBullScore += close > ma2 ? 10 : 0
+localBullScore += close > ma3 ? 10 : 0
+
+localBearScore = 0.0
+localBearScore += s1 < 0 ? 15 : 0
+localBearScore += s2 < 0 ? 12 : 0
+localBearScore += s3 < 0 ? 10 : 0
+localBearScore += ma1 < ma2 ? 10 : 0
+localBearScore += close < ma2 ? 10 : 0
+localBearScore += close < ma3 ? 10 : 0
+
+localNetScore = math.max(-100, math.min(100, localBullScore - localBearScore))
+
+baseRegime = f_regimeText(alignmentBull, alignmentBear, ribbonWidthAtr, ribbonWidthAtrPrev, compressionThreshAtr, expansionThreshAtr, priceInsideRibbon)
+
+var int bullPersist = 0
+var int bearPersist = 0
+var int neutralPersist = 0
+
+isBullNow = netScore >= 15
+isBearNow = netScore <= -15
+isNeutralNow = not isBullNow and not isBearNow
+
+bullPersist := isBullNow ? bullPersist + 1 : 0
+bearPersist := isBearNow ? bearPersist + 1 : 0
+neutralPersist := isNeutralNow ? neutralPersist + 1 : 0
+
+effectiveBull = bullPersist >= statusConfirmBars
+effectiveBear = bearPersist >= statusConfirmBars
+
+displayScore =
+     effectiveBull ? math.max(netScore, 15) :
+     effectiveBear ? math.min(netScore, -15) :
+     netScore
+
+priceZoneTxt =
+     priceAboveRibbon ? "Acima do ribbon" :
+     priceBelowRibbon ? "Abaixo do ribbon" :
+     close > ribbonMid ? "Na metade superior" :
+     close < ribbonMid ? "Na metade inferior" :
+     "No miolo"
+
+localStateTxt =
+     priceInsideRibbon and math.abs(localNetScore) < 25 ? "Lateral curta" :
+     displayScore <= -35 and localNetScore > 10 ? "Alívio contra a baixa" :
+     displayScore >= 35 and localNetScore < -10 ? "Alívio contra a alta" :
+     localNetScore >= 35 ? "Impulso local comprador" :
+     localNetScore <= -35 ? "Impulso local vendedor" :
+     "Transição local"
+
+dominantBull = displayScore >= mediumThreshold
+dominantBear = displayScore <= -mediumThreshold
+
+revIncBull = dominantBear and localNetScore >= reversalLocalThreshold and s1 > 0 and s2 > 0 and (priceInsideRibbon or close > ma2) and ribbonWidthAtr <= ribbonWidthAtrPrev
+revIncBear = dominantBull and localNetScore <= -reversalLocalThreshold and s1 < 0 and s2 < 0 and (priceInsideRibbon or close < ma2) and ribbonWidthAtr <= ribbonWidthAtrPrev
+lossBear = dominantBear and not revIncBull and localNetScore > -10 and slopeAccelFast > 0 and ribbonWidthAtr <= ribbonWidthAtrPrev
+lossBull = dominantBull and not revIncBear and localNetScore < 10 and slopeAccelFast < 0 and ribbonWidthAtr <= ribbonWidthAtrPrev
+
+reversalWarnTxt =
+     revIncBull ? "Reversão incipiente para alta" :
+     revIncBear ? "Reversão incipiente para baixa" :
+     lossBear ? "Perda de pressão baixista" :
+     lossBull ? "Perda de pressão altista" :
+     "Sem alerta de reversão"
+
+pullbackTxt =
+     dominantBull ?
+         localNetScore >= 20 ? "Sem pullback relevante" :
+         close >= ma2 and close >= ribbonMid ? "Pullback fraco" :
+         close >= ma3 and close >= ribbonBot ? "Pullback saudável" :
+         close < ribbonBot or localNetScore <= -pullbackThreatThreshold ? "Pullback ameaçando estrutura" :
+         "Pullback profundo" :
+     dominantBear ?
+         localNetScore <= -20 ? "Sem pullback relevante" :
+         close <= ma2 and close <= ribbonMid ? "Pullback fraco" :
+         close <= ma3 and close <= ribbonTop ? "Pullback saudável" :
+         close > ribbonTop or localNetScore >= pullbackThreatThreshold ? "Pullback ameaçando estrutura" :
+         "Pullback profundo" :
+     "Sem estrutura dominante"
+
+pullbackHealthy = pullbackTxt == "Pullback saudável"
+pullbackDeep = pullbackTxt == "Pullback profundo"
+pullbackThreat = pullbackTxt == "Pullback ameaçando estrutura"
+
+macroBiasTxt = displayScore >= 15 ? "Alta estrutural" : displayScore <= -15 ? "Baixa estrutural" : "Estrutura neutra"
+exhaustionTxt = f_exhaustionText(distRibbonMidAtr, math.abs(displayScore))
+
+baseTrendTiring =
+     dominantBull ? ((lossBull or localNetScore < 15) and ribbonWidthAtr <= ribbonWidthAtrPrev) :
+     dominantBear ? ((lossBear or localNetScore > -15) and ribbonWidthAtr <= ribbonWidthAtrPrev) :
+     false
+
+transitionActive = revIncBull or revIncBear or pullbackThreat
+trendTiring = baseTrendTiring or exhaustionTxt == "Alta"
+
+regimeTxt =
+     ribbonWidthAtr < compressionThreshAtr ? "Compressão" :
+     transitionActive ? "Transição" :
+     dominantBull or dominantBear ? (trendTiring ? "Tendência cansando" : ribbonWidthAtr > ribbonWidthAtrPrev ? "Tendência em expansão" : "Tendência estável") :
+     neutralPersist >= statusConfirmBars ? "Neutro / Ruído" :
+     baseRegime
+
+ribbonStateTxt = ribbonWidthAtr < compressionThreshAtr ? "Comprimido" : ribbonWidthAtr > expansionThreshAtr and ribbonWidthAtr > ribbonWidthAtrPrev ? "Expandindo" : ribbonWidthAtr > expansionThreshAtr ? "Muito expandido" : "Neutro"
+statusColor = f_scoreColor(displayScore)
+
+// =====================
+// Bias MTF
+// =====================
+mtfFastLen = f_pickLen(mtfFastSlot, len1, len2, len3, len4, len5, len6)
+mtfSlowLen = f_pickLen(mtfSlowSlot, len1, len2, len3, len4, len5, len6)
+mtfPairValid = mtfFastLen < mtfSlowLen
+
+mtfFast = useMtf ? request.security(syminfo.tickerid, mtfTf, f_ma(src, mtfFastLen, maType)) : na
+mtfSlow = useMtf ? request.security(syminfo.tickerid, mtfTf, f_ma(src, mtfSlowLen, maType)) : na
+
+mtfFastSlope = useMtf ? request.security(syminfo.tickerid, mtfTf, f_maSlope(src, mtfFastLen, maType, slopeLookback)) : na
+mtfSlowSlope = useMtf ? request.security(syminfo.tickerid, mtfTf, f_maSlope(src, mtfSlowLen, maType, slopeLookback)) : na
+
+mtfBull = useMtf and mtfPairValid and not na(mtfFast) and not na(mtfSlow) and mtfFast > mtfSlow and mtfFastSlope > 0 and mtfSlowSlope > 0
+mtfBear = useMtf and mtfPairValid and not na(mtfFast) and not na(mtfSlow) and mtfFast < mtfSlow and mtfFastSlope < 0 and mtfSlowSlope < 0
+
+mtfTxt = not useMtf ? "Desligado" : not mtfPairValid ? "Config inválida" : mtfBull ? "Alinhado na alta" : mtfBear ? "Alinhado na baixa" : "Neutro / contra"
+mtfAligned = not useMtf ? true : not mtfPairValid ? false : displayScore >= 15 ? mtfBull : displayScore <= -15 ? mtfBear : true
+
+// =====================
+// Confiança, risco e leitura
+// =====================
+directionAlignedLocal =
+     dominantBull ? localNetScore >= 20 :
+     dominantBear ? localNetScore <= -20 :
+     false
+
+directionPriceAligned =
+     dominantBull ? priceAboveRibbon or close > ma2 :
+     dominantBear ? priceBelowRibbon or close < ma2 :
+     false
+
+continuationQualityScore = math.abs(displayScore)
+continuationQualityScore += directionAlignedLocal ? 15 : 0
+continuationQualityScore += mtfAligned ? 10 : -10
+continuationQualityScore += directionPriceAligned ? 10 : 0
+continuationQualityScore -= priceInsideRibbon ? 15 : 0
+continuationQualityScore -= ribbonWidthAtr < compressionThreshAtr ? 12 : 0
+continuationQualityScore -= transitionActive ? 15 : 0
+continuationQualityScore -= trendTiring ? 10 : 0
+continuationQualityScore -= pullbackThreat ? 20 : pullbackDeep ? 10 : 0
+continuationQualityScore -= exhaustionTxt == "Alta" ? 18 : exhaustionTxt == "Média" ? 8 : 0
+continuationQualityScore := math.max(0, math.min(100, continuationQualityScore))
+continuationQualityTxt = f_contQualText(continuationQualityScore)
+
+confidenceScore = 0.0
+confidenceScore += alignmentBull or alignmentBear ? 35 : 10
+confidenceScore += not mixedSlopes ? 20 : 0
+confidenceScore += mtfAligned ? 15 : 0
+confidenceScore += not priceInsideRibbon ? 10 : 0
+confidenceScore += ribbonWidthAtr > compressionThreshAtr ? 10 : 0
+confidenceScore += exhaustionTxt == "Baixa" ? 10 : exhaustionTxt == "Média" ? 5 : 0
+confidenceScore += continuationQualityScore >= 70 ? 10 : continuationQualityScore >= 50 ? 5 : 0
+confidenceScore := math.max(0, math.min(100, confidenceScore))
+confidenceTxt = f_confText(confidenceScore)
+
+riskTxt = f_riskText(displayScore, priceInsideRibbon, ribbonWidthAtr < compressionThreshAtr, mtfAligned, mixedSlopes, confidenceScore)
+
+continuationProb = continuationQualityScore
+
+noiseProb = math.min(100, math.max(0,
+     transitionActive ? 75 :
+     trendTiring ? 60 :
+     priceInsideRibbon ? 70 :
+     ribbonWidthAtr < compressionThreshAtr ? 60 :
+     mixedSlopes ? 55 :
+     25
+))
+
+biasTxt = displayScore >= 15 ? "Alta" : displayScore <= -15 ? "Baixa" : "Neutro"
+strengthTxt =
+     math.abs(displayScore) >= strongThreshold and continuationQualityScore >= 60 ? "Forte" :
+     math.abs(displayScore) >= mediumThreshold and continuationQualityScore >= 45 ? "Favorável" :
+     math.abs(displayScore) >= 25 ? "Em formação" :
+     "Fraco"
+
+readingTxt =
+     revIncBull ? "Reversão incipiente para alta" :
+     revIncBear ? "Reversão incipiente para baixa" :
+     pullbackThreat ? "Pullback ameaçando a estrutura" :
+     regimeTxt == "Transição" ? "Mudança de regime em observação" :
+     regimeTxt == "Compressão" ? "Compressão: aguardar expansão" :
+     trendTiring and dominantBull ? "Alta cansando" :
+     trendTiring and dominantBear ? "Baixa cansando" :
+     pullbackDeep ? "Pullback profundo / continuidade sob teste" :
+     lossBear ? "Perda de pressão baixista" :
+     lossBull ? "Perda de pressão altista" :
+     continuationQualityScore >= 70 and mtfAligned ? "Continuação favorecida" :
+     continuationQualityScore >= 50 and (dominantBull or dominantBear) ? "Continuação possível" :
+     pullbackHealthy ? "Pullback saudável na estrutura" :
+     displayScore <= -35 and localNetScore > 10 ? "Alívio dentro da baixa" :
+     displayScore >= 35 and localNetScore < -10 ? "Alívio dentro da alta" :
+     "Sem vantagem estatística"
+
+// =====================
+// Fill semântico
+// =====================
+fillAdjColor =
+     displayScore >= 15 ? color.new(color.lime, fillTransparency) :
+     displayScore <= -15 ? color.new(color.red, fillTransparency) :
+     color.new(color.orange, fillTransparency)
+
+fillCoreColor =
+     ribbonWidthAtr < compressionThreshAtr ? color.new(color.yellow, fillTransparency) :
+     displayScore >= 15 ? color.new(color.lime, fillTransparency) :
+     displayScore <= -15 ? color.new(color.red, fillTransparency) :
+     color.new(color.orange, fillTransparency)
+
+fill(pMA1, pMA2, color=fillMode == "Adjacente" and show1 and show2 ? fillAdjColor : na, title="Fill Adj 1")
+fill(pMA2, pMA3, color=fillMode == "Adjacente" and show2 and show3 ? fillAdjColor : na, title="Fill Adj 2")
+fill(pMA3, pMA4, color=fillMode == "Adjacente" and show3 and show4 ? fillAdjColor : na, title="Fill Adj 3")
+fill(pMA4, pMA5, color=fillMode == "Adjacente" and show4 and show5 ? fillAdjColor : na, title="Fill Adj 4")
+fill(pMA5, pMA6, color=fillMode == "Adjacente" and show5 and show6 ? fillAdjColor : na, title="Fill Adj 5")
+
+fill(pMA1, pMA6, color=fillMode == "Fast x Slow" and show1 and show6 ? fillCoreColor : na, title="Fill Fast x Slow")
+fill(pMA2, pMA5, color=fillMode == "Ribbon Core" and show2 and show5 ? fillCoreColor : na, title="Fill Ribbon Core")
+
+// =====================
+// Labels dinâmicos na última barra
+// =====================
+var label l1 = na
+var label l2 = na
+var label l3 = na
+var label l4 = na
+var label l5 = na
+var label l6 = na
+
+var slotsArr = array.new_int(0)
+var ysArr = array.new_float(0)
+
+
+if barstate.islast
+    densityAll = labelDensity == "Todas"
+    densityFast = labelDensity == "Rápidas"
+    densityClassic = labelDensity == "Clássicas"
+    densityStructural = labelDensity == "Estruturais"
+
+    // Rápidas = 1/2/3 | Clássicas = 2/3/4/5 | Estruturais = 3/4/5/6 | Todas = 1..6
+    allow1 = densityAll or densityFast
+    allow2 = densityAll or densityFast or densityClassic
+    allow3 = densityAll or densityFast or densityClassic or densityStructural
+    allow4 = densityAll or densityClassic or densityStructural
+    allow5 = densityAll or densityClassic or densityStructural
+    allow6 = densityAll or densityStructural
+
+    want1 = showEndLabels and labelDensity != "Off" and allow1 and show1 and not na(ma1)
+    want2 = showEndLabels and labelDensity != "Off" and allow2 and show2 and not na(ma2)
+    want3 = showEndLabels and labelDensity != "Off" and allow3 and show3 and not na(ma3)
+    want4 = showEndLabels and labelDensity != "Off" and allow4 and show4 and not na(ma4)
+    want5 = showEndLabels and labelDensity != "Off" and allow5 and show5 and not na(ma5)
+    want6 = showEndLabels and labelDensity != "Off" and allow6 and show6 and not na(ma6)
+
+    if not want1
+        l1 := f_updateLabel(l1, false, float(na), "", plotColor1, labelBgColor, labelBarsForward)
+    if not want2
+        l2 := f_updateLabel(l2, false, float(na), "", plotColor2, labelBgColor, labelBarsForward)
+    if not want3
+        l3 := f_updateLabel(l3, false, float(na), "", plotColor3, labelBgColor, labelBarsForward)
+    if not want4
+        l4 := f_updateLabel(l4, false, float(na), "", plotColor4, labelBgColor, labelBarsForward)
+    if not want5
+        l5 := f_updateLabel(l5, false, float(na), "", plotColor5, labelBgColor, labelBarsForward)
+    if not want6
+        l6 := f_updateLabel(l6, false, float(na), "", plotColor6, labelBgColor, labelBarsForward)
+
+    array.clear(slotsArr)
+    array.clear(ysArr)
+
+    if want1
+        array.push(slotsArr, 1)
+        array.push(ysArr, ma1)
+    if want2
+        array.push(slotsArr, 2)
+        array.push(ysArr, ma2)
+    if want3
+        array.push(slotsArr, 3)
+        array.push(ysArr, ma3)
+    if want4
+        array.push(slotsArr, 4)
+        array.push(ysArr, ma4)
+    if want5
+        array.push(slotsArr, 5)
+        array.push(ysArr, ma5)
+    if want6
+        array.push(slotsArr, 6)
+        array.push(ysArr, ma6)
+
+    nLabels = array.size(ysArr)
+
+    if labelAutoStack and nLabels > 1
+        for i = 0 to nLabels - 2
+            for j = 0 to nLabels - 2 - i
+                if array.get(ysArr, j) > array.get(ysArr, j + 1)
+                    f_swapFloat(ysArr, j, j + 1)
+                    f_swapInt(slotsArr, j, j + 1)
+
+        minGap = syminfo.mintick * labelMinGapTicks
+
+        for i = 1 to nLabels - 1
+            prevY = array.get(ysArr, i - 1)
+            currY = array.get(ysArr, i)
+            if currY - prevY < minGap
+                array.set(ysArr, i, prevY + minGap)
+
+    for i = 0 to nLabels - 1
+        slot = array.get(slotsArr, i)
+        yAdj = array.get(ysArr, i)
+        txt = f_slotText(slot, len1, len2, len3, len4, len5, len6, ma1, ma2, ma3, ma4, ma5, ma6)
+        txtColor = f_slotColor(slot, plotColor1, plotColor2, plotColor3, plotColor4, plotColor5, plotColor6)
+
+        switch slot
+            1 => l1 := f_updateLabel(l1, true, yAdj, txt, txtColor, labelBgColor, labelBarsForward)
+            2 => l2 := f_updateLabel(l2, true, yAdj, txt, txtColor, labelBgColor, labelBarsForward)
+            3 => l3 := f_updateLabel(l3, true, yAdj, txt, txtColor, labelBgColor, labelBarsForward)
+            4 => l4 := f_updateLabel(l4, true, yAdj, txt, txtColor, labelBgColor, labelBarsForward)
+            5 => l5 := f_updateLabel(l5, true, yAdj, txt, txtColor, labelBgColor, labelBarsForward)
+            6 => l6 := f_updateLabel(l6, true, yAdj, txt, txtColor, labelBgColor, labelBarsForward)
+
+// =====================
+// Projeções e ETA
+// =====================
+projA = f_pickValue(projSlotA, ma1, ma2, ma3, ma4, ma5, ma6)
+projB = f_pickValue(projSlotB, ma1, ma2, ma3, ma4, ma5, ma6)
+
+projAColor = f_pickColor(projSlotA, plotColor1, plotColor2, plotColor3, plotColor4, plotColor5, plotColor6)
+projBColor = f_pickColor(projSlotB, plotColor1, plotColor2, plotColor3, plotColor4, plotColor5, plotColor6)
+
+v1 = (ma1 - ma1[projectionSlopeLookback]) / projectionSlopeLookback
+v2 = (ma2 - ma2[projectionSlopeLookback]) / projectionSlopeLookback
+v3 = (ma3 - ma3[projectionSlopeLookback]) / projectionSlopeLookback
+v4 = (ma4 - ma4[projectionSlopeLookback]) / projectionSlopeLookback
+v5 = (ma5 - ma5[projectionSlopeLookback]) / projectionSlopeLookback
+projASlopePerBar = (projA - projA[projectionSlopeLookback]) / projectionSlopeLookback
+projBSlopePerBar = (projB - projB[projectionSlopeLookback]) / projectionSlopeLookback
+
+projAEnd = projA + projASlopePerBar * projectionBars
+projBEnd = projB + projBSlopePerBar * projectionBars
+
+etaMinSpeed = syminfo.mintick * minRelativeSpeedTicks
+
+// Cross manual (para linhas / fallback)
+crossEtaManual = f_safeEta(projA - projB, projASlopePerBar - projBSlopePerBar, etaMinSpeed)
+crossEtaManualValid = showCrossEta and not na(crossEtaManual) and crossEtaManual <= maxCrossEtaBars
+// Crosses relevantes
+pair12Name = f_pairName(len1, len2)
+pair23Name = f_pairName(len2, len3)
+pair24Name = f_pairName(len2, len4)
+pair34Name = f_pairName(len3, len4)
+pair35Name = f_pairName(len3, len5)
+pair45Name = f_pairName(len4, len5)
+manualLenA = f_pickLen(projSlotA, len1, len2, len3, len4, len5, len6)
+manualLenB = f_pickLen(projSlotB, len1, len2, len3, len4, len5, len6)
+
+maOrderValid = len1 < len2 and len2 < len3 and len3 < len4 and len4 < len5 and len5 < len6
+crossConfigInvalidText = "Config inválida"
+classic12 = maOrderValid and f_isClassicCrossPair(len1, len2)
+classic23 = maOrderValid and f_isClassicCrossPair(len2, len3)
+classic24 = maOrderValid and f_isClassicCrossPair(len2, len4)
+classic34 = maOrderValid and f_isClassicCrossPair(len3, len4)
+classic35 = maOrderValid and f_isClassicCrossPair(len3, len5)
+classic45 = maOrderValid and f_isClassicCrossPair(len4, len5)
+manualClassicPair = maOrderValid and f_isClassicCrossPairAnyOrder(manualLenA, manualLenB)
+pairManualName = manualClassicPair ? f_pairName(50, 200) : f_pairName(manualLenA, manualLenB)
+
+eta12 = f_safeEta(ma1 - ma2, v1 - v2, etaMinSpeed)
+eta23 = f_safeEta(ma2 - ma3, v2 - v3, etaMinSpeed)
+eta24 = f_safeEta(ma2 - ma4, v2 - v4, etaMinSpeed)
+eta34 = f_safeEta(ma3 - ma4, v3 - v4, etaMinSpeed)
+eta35 = f_safeEta(ma3 - ma5, v3 - v5, etaMinSpeed)
+eta45 = f_safeEta(ma4 - ma5, v4 - v5, etaMinSpeed)
+
+eta12Valid = showCrossEta and not na(eta12) and eta12 <= maxCrossEtaBars
+eta23Valid = showCrossEta and not na(eta23) and eta23 <= maxCrossEtaBars
+eta24Valid = showCrossEta and not na(eta24) and eta24 <= maxCrossEtaBars
+eta34Valid = showCrossEta and not na(eta34) and eta34 <= maxCrossEtaBars
+eta35Valid = showCrossEta and not na(eta35) and eta35 <= maxCrossEtaBars
+eta45Valid = showCrossEta and not na(eta45) and eta45 <= maxCrossEtaBars
+
+cross12Up = ta.crossover(ma1, ma2)
+cross12Dn = ta.crossunder(ma1, ma2)
+cross23Up = ta.crossover(ma2, ma3)
+cross23Dn = ta.crossunder(ma2, ma3)
+cross24Up = ta.crossover(ma2, ma4)
+cross24Dn = ta.crossunder(ma2, ma4)
+cross34Up = ta.crossover(ma3, ma4)
+cross34Dn = ta.crossunder(ma3, ma4)
+cross35Up = ta.crossover(ma3, ma5)
+cross35Dn = ta.crossunder(ma3, ma5)
+cross45Up = ta.crossover(ma4, ma5)
+cross45Dn = ta.crossunder(ma4, ma5)
+
+cross12Panel = f_crossPanelValue(eta12Valid, eta12, cross12Up, cross12Dn, ma1 - ma2, v1 - v2, classic12)
+cross23Panel = f_crossPanelValue(eta23Valid, eta23, cross23Up, cross23Dn, ma2 - ma3, v2 - v3, classic23)
+cross24Panel = f_crossPanelValue(eta24Valid, eta24, cross24Up, cross24Dn, ma2 - ma4, v2 - v4, classic24)
+cross34Panel = f_crossPanelValue(eta34Valid, eta34, cross34Up, cross34Dn, ma3 - ma4, v3 - v4, classic34)
+cross35Panel = f_crossPanelValue(eta35Valid, eta35, cross35Up, cross35Dn, ma3 - ma5, v3 - v5, classic35)
+cross45Panel = f_crossPanelValue(eta45Valid, eta45, cross45Up, cross45Dn, ma4 - ma5, v4 - v5, classic45)
+
+cross12EventText = f_crossEventText(pair12Name, eta12Valid, eta12, cross12Up, cross12Dn, ma1 - ma2, v1 - v2, classic12)
+cross23EventText = f_crossEventText(pair23Name, eta23Valid, eta23, cross23Up, cross23Dn, ma2 - ma3, v2 - v3, classic23)
+cross24EventText = f_crossEventText(pair24Name, eta24Valid, eta24, cross24Up, cross24Dn, ma2 - ma4, v2 - v4, classic24)
+cross34EventText = f_crossEventText(pair34Name, eta34Valid, eta34, cross34Up, cross34Dn, ma3 - ma4, v3 - v4, classic34)
+cross35EventText = f_crossEventText(pair35Name, eta35Valid, eta35, cross35Up, cross35Dn, ma3 - ma5, v3 - v5, classic35)
+cross45EventText = f_crossEventText(pair45Name, eta45Valid, eta45, cross45Up, cross45Dn, ma4 - ma5, v4 - v5, classic45)
+
+cross12Priority = f_crossPriority(35, eta12Valid, eta12, cross12Up, cross12Dn, classic12)
+cross23Priority = f_crossPriority(55, eta23Valid, eta23, cross23Up, cross23Dn, classic23)
+cross24Priority = f_crossPriority(70, eta24Valid, eta24, cross24Up, cross24Dn, classic24)
+cross34Priority = f_crossPriority(75, eta34Valid, eta34, cross34Up, cross34Dn, classic34)
+cross35Priority = f_crossPriority(100, eta35Valid, eta35, cross35Up, cross35Dn, classic35)
+cross45Priority = f_crossPriority(85, eta45Valid, eta45, cross45Up, cross45Dn, classic45)
+
+manualDiffNow = projA - projB
+manualDiffPrev = nz(projA[1] - projB[1], manualDiffNow)
+manualConfirmedUp = manualDiffNow > 0 and manualDiffPrev <= 0
+manualConfirmedDn = manualDiffNow < 0 and manualDiffPrev >= 0
+manualCrossDir = f_crossDirection(crossEtaManualValid, manualConfirmedUp, manualConfirmedDn, manualDiffNow, projASlopePerBar - projBSlopePerBar)
+
+selectedCrossPriority = f_crossPriority(60, crossEtaManualValid, crossEtaManual, manualConfirmedUp, manualConfirmedDn, manualClassicPair)
+selectedCrossPanel = pairManualName + " " + f_crossPanelValue(crossEtaManualValid, crossEtaManual, manualConfirmedUp, manualConfirmedDn, manualDiffNow, projASlopePerBar - projBSlopePerBar, manualClassicPair)
+selectedCrossEventText = f_crossEventText(pairManualName, crossEtaManualValid, crossEtaManual, manualConfirmedUp, manualConfirmedDn, manualDiffNow, projASlopePerBar - projBSlopePerBar, manualClassicPair)
+selectedCrossAvailable = crossEtaManualValid or manualConfirmedUp or manualConfirmedDn
+selectedCrossDir = manualCrossDir
+selectedCrossEtaValue = manualConfirmedUp or manualConfirmedDn ? 0.0 : crossEtaManualValid ? crossEtaManual : na
+selectedCrossConfirmed = manualConfirmedUp or manualConfirmedDn
+
+if crossEtaMode == "Auto"
+    selectedCrossPriority := 0
+    selectedCrossPanel := "sem ETA"
+    selectedCrossEventText := ""
+    selectedCrossAvailable := false
+    selectedCrossDir := 0
+    selectedCrossEtaValue := na
+    selectedCrossConfirmed := false
+
+    if cross12Priority > selectedCrossPriority
+        selectedCrossPriority := cross12Priority
+        selectedCrossPanel := pair12Name + " " + cross12Panel
+        selectedCrossEventText := cross12EventText
+        selectedCrossAvailable := cross12Up or cross12Dn or eta12Valid
+        selectedCrossDir := f_crossDirection(eta12Valid, cross12Up, cross12Dn, ma1 - ma2, v1 - v2)
+        selectedCrossEtaValue := cross12Up or cross12Dn ? 0.0 : eta12Valid ? eta12 : na
+        selectedCrossConfirmed := cross12Up or cross12Dn
+    if cross23Priority > selectedCrossPriority
+        selectedCrossPriority := cross23Priority
+        selectedCrossPanel := pair23Name + " " + cross23Panel
+        selectedCrossEventText := cross23EventText
+        selectedCrossAvailable := cross23Up or cross23Dn or eta23Valid
+        selectedCrossDir := f_crossDirection(eta23Valid, cross23Up, cross23Dn, ma2 - ma3, v2 - v3)
+        selectedCrossEtaValue := cross23Up or cross23Dn ? 0.0 : eta23Valid ? eta23 : na
+        selectedCrossConfirmed := cross23Up or cross23Dn
+    if cross24Priority > selectedCrossPriority
+        selectedCrossPriority := cross24Priority
+        selectedCrossPanel := pair24Name + " " + cross24Panel
+        selectedCrossEventText := cross24EventText
+        selectedCrossAvailable := cross24Up or cross24Dn or eta24Valid
+        selectedCrossDir := f_crossDirection(eta24Valid, cross24Up, cross24Dn, ma2 - ma4, v2 - v4)
+        selectedCrossEtaValue := cross24Up or cross24Dn ? 0.0 : eta24Valid ? eta24 : na
+        selectedCrossConfirmed := cross24Up or cross24Dn
+    if cross34Priority > selectedCrossPriority
+        selectedCrossPriority := cross34Priority
+        selectedCrossPanel := pair34Name + " " + cross34Panel
+        selectedCrossEventText := cross34EventText
+        selectedCrossAvailable := cross34Up or cross34Dn or eta34Valid
+        selectedCrossDir := f_crossDirection(eta34Valid, cross34Up, cross34Dn, ma3 - ma4, v3 - v4)
+        selectedCrossEtaValue := cross34Up or cross34Dn ? 0.0 : eta34Valid ? eta34 : na
+        selectedCrossConfirmed := cross34Up or cross34Dn
+    if cross35Priority > selectedCrossPriority
+        selectedCrossPriority := cross35Priority
+        selectedCrossPanel := pair35Name + " " + cross35Panel
+        selectedCrossEventText := cross35EventText
+        selectedCrossAvailable := cross35Up or cross35Dn or eta35Valid
+        selectedCrossDir := f_crossDirection(eta35Valid, cross35Up, cross35Dn, ma3 - ma5, v3 - v5)
+        selectedCrossEtaValue := cross35Up or cross35Dn ? 0.0 : eta35Valid ? eta35 : na
+        selectedCrossConfirmed := cross35Up or cross35Dn
+    if cross45Priority > selectedCrossPriority
+        selectedCrossPriority := cross45Priority
+        selectedCrossPanel := pair45Name + " " + cross45Panel
+        selectedCrossEventText := cross45EventText
+        selectedCrossAvailable := cross45Up or cross45Dn or eta45Valid
+        selectedCrossDir := f_crossDirection(eta45Valid, cross45Up, cross45Dn, ma4 - ma5, v4 - v5)
+        selectedCrossEtaValue := cross45Up or cross45Dn ? 0.0 : eta45Valid ? eta45 : na
+        selectedCrossConfirmed := cross45Up or cross45Dn
+
+if not maOrderValid
+    selectedCrossPriority := 0
+    selectedCrossPanel := crossConfigInvalidText
+    selectedCrossEventText := ""
+    selectedCrossAvailable := false
+    selectedCrossDir := 0
+    selectedCrossEtaValue := na
+    selectedCrossConfirmed := false
+
+
+crossPrincipalSummary = not maOrderValid ? crossConfigInvalidText : selectedCrossAvailable ? selectedCrossPanel : "sem ETA"
+
+effectiveShowProjectionLines = showProjectionLines and overlayView != "Clean"
+
+var line lineProjA = na
+var line lineProjB = na
+
+if barstate.islast
+    if effectiveShowProjectionLines and not na(projA) and not na(projAEnd)
+        if na(lineProjA)
+            lineProjA := line.new(bar_index + offset, projA, bar_index + offset + projectionBars, projAEnd, xloc=xloc.bar_index, extend=extend.none, color=color.new(projAColor, 10), style=line.style_dotted, width=2)
+        else
+            line.set_xy1(lineProjA, bar_index + offset, projA)
+            line.set_xy2(lineProjA, bar_index + offset + projectionBars, projAEnd)
+            line.set_color(lineProjA, color.new(projAColor, 10))
+    else
+        if not na(lineProjA)
+            line.delete(lineProjA)
+            lineProjA := na
+
+    if effectiveShowProjectionLines and not na(projB) and not na(projBEnd)
+        if na(lineProjB)
+            lineProjB := line.new(bar_index + offset, projB, bar_index + offset + projectionBars, projBEnd, xloc=xloc.bar_index, extend=extend.none, color=color.new(projBColor, 10), style=line.style_dotted, width=2)
+        else
+            line.set_xy1(lineProjB, bar_index + offset, projB)
+            line.set_xy2(lineProjB, bar_index + offset + projectionBars, projBEnd)
+            line.set_color(lineProjB, color.new(projBColor, 10))
+    else
+        if not na(lineProjB)
+            line.delete(lineProjB)
+            lineProjB := na
+
+// =====================
+// Chip de status e evento
+// =====================
+chipXForward = 0
+eventXForward = 1
+chipYBase = statusChipAtBottom ? ribbonBot - atr * statusChipYatr : ribbonTop + atr * statusChipYatr
+eventYBase = ribbonTop + atr * eventLabelYatr
+minStatusGap = math.max(syminfo.mintick * 25, atr * 0.35)
+chipY = chipYBase
+eventY = eventYBase
+
+if showStatusChip and showEventLabel and not statusChipAtBottom
+    eventY := math.max(eventYBase, chipYBase + minStatusGap)
+else if showStatusChip and showEventLabel and statusChipAtBottom and math.abs(eventYBase - chipYBase) < minStatusGap
+    eventY := chipYBase + minStatusGap
+
+rawEventPriority =
+     not maOrderValid ? 120 :
+     revIncBull or revIncBear ? 100 :
+     pullbackThreat ? 95 :
+     lossBear or lossBull ? 92 :
+     regimeTxt == "Transição" ? 91 :
+     ribbonWidthAtr < compressionThreshAtr ? 90 :
+     trendTiring ? 82 :
+     math.abs(displayScore) >= strongThreshold and exhaustionTxt == "Alta" ? 80 :
+     pullbackDeep ? 75 :
+     continuationQualityScore >= 70 and readingTxt == "Continuação favorecida" ? 70 :
+     pullbackHealthy ? 60 :
+     selectedCrossAvailable and selectedCrossPriority > 0 ? math.min(89, selectedCrossPriority) :
+     30
+
+rawEventKey =
+     not maOrderValid ? "config_invalid" :
+     revIncBull ? "rev_bull" :
+     revIncBear ? "rev_bear" :
+     pullbackThreat ? "pullback_threat" :
+     lossBear ? "loss_bear" :
+     lossBull ? "loss_bull" :
+     regimeTxt == "Transição" ? "transition" :
+     ribbonWidthAtr < compressionThreshAtr ? "compression" :
+     trendTiring ? "tiring" :
+     math.abs(displayScore) >= strongThreshold and exhaustionTxt == "Alta" ? "exhausted" :
+     pullbackDeep ? "pullback_deep" :
+     continuationQualityScore >= 70 and readingTxt == "Continuação favorecida" ? "continuation" :
+     pullbackHealthy ? "pullback_healthy" :
+     selectedCrossAvailable and selectedCrossPriority > 0 ? "cross_eta" :
+     "context"
+
+rawEventText =
+     not maOrderValid ? "Config inválida: ordene os períodos das MAs" :
+     revIncBull ? "Reversão incipiente para alta" :
+     revIncBear ? "Reversão incipiente para baixa" :
+     pullbackThreat ? "Pullback ameaçando a estrutura" :
+     lossBear ? "Perda de pressão baixista" :
+     lossBull ? "Perda de pressão altista" :
+     regimeTxt == "Transição" ? "Mudança de regime em observação" :
+     ribbonWidthAtr < compressionThreshAtr ? "Compressão: aguardar expansão" :
+     trendTiring ? (displayScore > 0 ? "Alta cansando" : "Baixa cansando") :
+     math.abs(displayScore) >= strongThreshold and exhaustionTxt == "Alta" ? (displayScore > 0 ? "Alta forte, mas esticada" : "Baixa forte, mas esticada") :
+     pullbackDeep ? "Pullback profundo: continuidade sob teste" :
+     continuationQualityScore >= 70 and readingTxt == "Continuação favorecida" ? "Continuação favorecida" :
+     pullbackHealthy ? "Pullback saudável na estrutura" :
+     selectedCrossAvailable and selectedCrossPriority > 0 ? selectedCrossEventText :
+     localStateTxt + " · " + priceZoneTxt
+
+var label statusChip = na
+var label eventLabel = na
+var string activeEventKey = ""
+var string activeEventText = ""
+var int activeEventPriority = 0
+var int lastEventChangeBar = na
+
+if barstate.isconfirmed
+    sameEvent = rawEventKey == activeEventKey
+    cooldownPassed = na(lastEventChangeBar) or bar_index - lastEventChangeBar >= eventCooldownBars
+    higherPriority = rawEventPriority > activeEventPriority
+    if sameEvent
+        activeEventText := rawEventText
+        activeEventPriority := rawEventPriority
+    else if cooldownPassed or higherPriority or activeEventKey == ""
+        activeEventKey := rawEventKey
+        activeEventText := rawEventText
+        activeEventPriority := rawEventPriority
+        lastEventChangeBar := bar_index
+
+eventText = activeEventText != "" ? activeEventText : rawEventText
+
+effectiveShowStatusChip = showStatusChip and overlayView != "Clean"
+effectiveShowEvent = showEventLabel and overlayView != "Clean"
+effectiveStatusMode = overlayView == "Detailed" ? "Detalhado" : overlayView == "Clean" ? "Compacto" : statusTextMode
+effectiveStatusTxt = not maOrderValid ? "Config inválida" : f_statusText(displayScore, regimeTxt, localStateTxt, effectiveStatusMode)
+effectiveStatusColor = not maOrderValid ? color.orange : statusColor
+
+if barstate.islast
+    statusChip := f_updateChip(statusChip, effectiveShowStatusChip, chipY, effectiveStatusTxt, color.white, color.new(effectiveStatusColor, 20), chipXForward, statusChipAtBottom)
+    eventLabel := f_updateLabel(eventLabel, effectiveShowEvent, eventY, eventText, color.white, color.new(color.black, 45), eventXForward)
+
+// =====================
+// Painel integrado
+// =====================
+biasColor = not maOrderValid ? color.new(color.orange, 0) : f_scoreColor(displayScore)
+panelBg = color.new(panelBaseColor, panelTransparency)
+headerBg = color.new(headerBaseColor, panelTransparency)
+panelTextColor = color.new(color.white, fontTransparency)
+panelMutedTextColor = color.new(color.silver, math.min(100, fontTransparency + 10))
+panelAccentTextColor = color.new(biasColor, fontTransparency)
+panelAccentBg = color.new(biasColor, accentTransparency)
+panelBorderColor = color.new(panelBaseColor, borderTransparency)
+panelFrameColor = color.new(panelBaseColor, frameTransparency)
+headerTextSize = sizeFromString(headerTextSizeS)
+bodyTextSize = sizeFromString(bodyTextSizeS)
+
+var table panel = table.new(position.bottom_right, 2, 32, frame_color=color.new(color.black, 70), border_color=color.new(color.black, 70), border_width=1)
+
+if barstate.islast
+    table.set_position(panel, f_pos(tablePositionS))
+    table.set_border_color(panel, panelBorderColor)
+    table.set_frame_color(panel, panelFrameColor)
+    table.set_border_width(panel, panelBorderWidth)
+    table.clear(panel, 0, 0, 1, 31)
+
+    if showInfoTable
+        isCompact = tableDetailMode == "Compact"
+        isFull = tableDetailMode == "Full"
+        int row = 0
+
+        table.cell(panel, 0, row, "MA6x", text_color=panelTextColor, text_size=headerTextSize, bgcolor=headerBg, width=labelColWidth, height=rowHeight)
+        table.cell(panel, 1, row, tableDetailMode == "Compact" ? "Compacto" : tableDetailMode == "Full" ? "Completo" : "Padrão", text_color=panelTextColor, text_size=headerTextSize, bgcolor=headerBg, width=valueColWidth, height=rowHeight)
+        row := row + 1
+
+        // Direção
+        table.cell(panel, 0, row, "Tendência", text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=labelColWidth, height=rowHeight)
+        table.cell(panel, 1, row, maOrderValid ? biasTxt + " | " + strengthTxt : crossConfigInvalidText, text_color=panelAccentTextColor, text_size=bodyTextSize, bgcolor=panelAccentBg, width=valueColWidth, height=rowHeight)
+        row := row + 1
+
+        table.cell(panel, 0, row, "Local", text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=labelColWidth, height=rowHeight)
+        table.cell(panel, 1, row, maOrderValid ? localStateTxt : crossConfigInvalidText, text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=valueColWidth, height=rowHeight)
+        row := row + 1
+
+        table.cell(panel, 0, row, "Regime", text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=labelColWidth, height=rowHeight)
+        table.cell(panel, 1, row, maOrderValid ? regimeTxt : crossConfigInvalidText, text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=valueColWidth, height=rowHeight)
+        row := row + 1
+
+        if showMtfRow
+            table.cell(panel, 0, row, "MTF", text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=labelColWidth, height=rowHeight)
+            table.cell(panel, 1, row, mtfTxt, text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=valueColWidth, height=rowHeight)
+            row := row + 1
+
+        if not isCompact
+            // Qualidade
+            table.cell(panel, 0, row, "Força", text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=labelColWidth, height=rowHeight)
+            table.cell(panel, 1, row, maOrderValid ? "Estr. " + f_signedArrowText(displayScore) + " | Local " + f_signedArrowText(localNetScore) : crossConfigInvalidText, text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=valueColWidth, height=rowHeight)
+            row := row + 1
+
+            table.cell(panel, 0, row, "Qualidade", text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=labelColWidth, height=rowHeight)
+            table.cell(panel, 1, row, maOrderValid ? continuationQualityTxt + " (" + str.tostring(math.round(continuationQualityScore)) + ")" : crossConfigInvalidText, text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=valueColWidth, height=rowHeight)
+            row := row + 1
+
+            table.cell(panel, 0, row, "Confiança", text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=labelColWidth, height=rowHeight)
+            table.cell(panel, 1, row, maOrderValid ? confidenceTxt + " (" + str.tostring(math.round(confidenceScore)) + ")" : crossConfigInvalidText, text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=valueColWidth, height=rowHeight)
+            row := row + 1
+
+            table.cell(panel, 0, row, "Risco", text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=labelColWidth, height=rowHeight)
+            table.cell(panel, 1, row, maOrderValid ? riskTxt : crossConfigInvalidText, text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=valueColWidth, height=rowHeight)
+            row := row + 1
+
+        if isFull and showContextRows
+            // Contexto
+            table.cell(panel, 0, row, "Estrutura", text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=labelColWidth, height=rowHeight)
+            table.cell(panel, 1, row, maOrderValid ? macroBiasTxt : crossConfigInvalidText, text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=valueColWidth, height=rowHeight)
+            row := row + 1
+
+            table.cell(panel, 0, row, "Preço x Ribbon", text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=labelColWidth, height=rowHeight)
+            table.cell(panel, 1, row, priceZoneTxt, text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=valueColWidth, height=rowHeight)
+            row := row + 1
+
+            table.cell(panel, 0, row, "Ribbon", text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=labelColWidth, height=rowHeight)
+            table.cell(panel, 1, row, ribbonStateTxt, text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=valueColWidth, height=rowHeight)
+            row := row + 1
+
+            table.cell(panel, 0, row, "Exaustão", text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=labelColWidth, height=rowHeight)
+            table.cell(panel, 1, row, exhaustionTxt, text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=valueColWidth, height=rowHeight)
+            row := row + 1
+
+            if reversalWarnTxt != "Sem alerta de reversão"
+                table.cell(panel, 0, row, "Reversão", text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=labelColWidth, height=rowHeight)
+                table.cell(panel, 1, row, reversalWarnTxt, text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=valueColWidth, height=rowHeight)
+                row := row + 1
+
+            if pullbackTxt != "Sem pullback relevante" and pullbackTxt != "Sem estrutura dominante"
+                table.cell(panel, 0, row, "Pullback", text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=labelColWidth, height=rowHeight)
+                table.cell(panel, 1, row, pullbackTxt, text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=valueColWidth, height=rowHeight)
+                row := row + 1
+
+        if showCrossRow
+            crossTextColor = selectedCrossDir > 0 ? color.new(color.lime, fontTransparency) : selectedCrossDir < 0 ? color.new(color.red, fontTransparency) : panelTextColor
+            table.cell(panel, 0, row, "Cruzamento", text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=labelColWidth, height=rowHeight)
+            table.cell(panel, 1, row, crossPrincipalSummary, text_color=crossTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=valueColWidth, height=rowHeight)
+            row := row + 1
+
+        table.cell(panel, 0, row, "Leitura", text_color=panelMutedTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=labelColWidth, height=rowHeight)
+        table.cell(panel, 1, row, maOrderValid ? readingTxt : crossConfigInvalidText, text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=valueColWidth, height=rowHeight)
+        row := row + 1
+
+        if isFull or showProbabilities
+            table.cell(panel, 0, row, "Continuação", text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=labelColWidth, height=rowHeight)
+            table.cell(panel, 1, row, maOrderValid ? str.tostring(math.round(continuationProb)) + "% | " + f_probText(continuationProb) : crossConfigInvalidText, text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=valueColWidth, height=rowHeight)
+            row := row + 1
+
+            table.cell(panel, 0, row, "Ruído", text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=labelColWidth, height=rowHeight)
+            table.cell(panel, 1, row, maOrderValid ? str.tostring(math.round(noiseProb)) + "%" : crossConfigInvalidText, text_color=panelTextColor, text_size=bodyTextSize, bgcolor=panelBg, width=valueColWidth, height=rowHeight)
+            row := row + 1
+
+// =====================
+// Alertas
+// =====================
+bullStrong = barstate.isconfirmed and maOrderValid and displayScore >= alertStrongThreshold and priceAboveRibbon and mtfAligned and exhaustionTxt != "Alta"
+bearStrong = barstate.isconfirmed and maOrderValid and displayScore <= -alertStrongThreshold and priceBelowRibbon and mtfAligned and exhaustionTxt != "Alta"
+compressionNow = barstate.isconfirmed and ribbonWidthAtr < compressionThreshAtr
+selectedCrossNow = barstate.isconfirmed and selectedCrossAvailable and (
+     selectedCrossConfirmed or
+     (not na(selectedCrossEtaValue) and selectedCrossEtaValue <= alertCrossEtaBars)
+)
+
+classicPairName = classic12 ? pair12Name :
+ classic23 ? pair23Name :
+ classic24 ? pair24Name :
+ classic34 ? pair34Name :
+ classic35 ? pair35Name :
+ classic45 ? pair45Name : ""
+
+classicEtaValue = classic12 ? eta12 :
+ classic23 ? eta23 :
+ classic24 ? eta24 :
+ classic34 ? eta34 :
+ classic35 ? eta35 :
+ classic45 ? eta45 : na
+
+classicEtaValid = classic12 ? eta12Valid :
+ classic23 ? eta23Valid :
+ classic24 ? eta24Valid :
+ classic34 ? eta34Valid :
+ classic35 ? eta35Valid :
+ classic45 ? eta45Valid : false
+
+classicDiffNow = classic12 ? ma1 - ma2 :
+ classic23 ? ma2 - ma3 :
+ classic24 ? ma2 - ma4 :
+ classic34 ? ma3 - ma4 :
+ classic35 ? ma3 - ma5 :
+ classic45 ? ma4 - ma5 : na
+
+classicRelSpeedNow = classic12 ? v1 - v2 :
+ classic23 ? v2 - v3 :
+ classic24 ? v2 - v4 :
+ classic34 ? v3 - v4 :
+ classic35 ? v3 - v5 :
+ classic45 ? v4 - v5 : na
+
+classicCrossUp = classic12 ? cross12Up :
+ classic23 ? cross23Up :
+ classic24 ? cross24Up :
+ classic34 ? cross34Up :
+ classic35 ? cross35Up :
+ classic45 ? cross45Up : false
+
+classicCrossDn = classic12 ? cross12Dn :
+ classic23 ? cross23Dn :
+ classic24 ? cross24Dn :
+ classic34 ? cross34Dn :
+ classic35 ? cross35Dn :
+ classic45 ? cross45Dn : false
+
+goldenProbableNow = barstate.isconfirmed and classicEtaValid and classicEtaValue <= alertCrossEtaBars and classicDiffNow < 0 and classicRelSpeedNow > 0
+deathProbableNow = barstate.isconfirmed and classicEtaValid and classicEtaValue <= alertCrossEtaBars and classicDiffNow > 0 and classicRelSpeedNow < 0
+goldenConfirmedNow = barstate.isconfirmed and classicCrossUp
+deathConfirmedNow = barstate.isconfirmed and classicCrossDn
+noiseHigh = barstate.isconfirmed and maOrderValid and noiseProb >= 60
+reversalWarnNow = barstate.isconfirmed and maOrderValid and (revIncBull or revIncBear)
+pullbackThreatNow = barstate.isconfirmed and maOrderValid and pullbackThreat
+
+var int lastBullAlertBar = na
+var int lastBearAlertBar = na
+var int lastCompressionAlertBar = na
+var int lastCrossAlertBar = na
+var int lastGoldenProbBar = na
+var int lastDeathProbBar = na
+var int lastGoldenConfBar = na
+var int lastDeathConfBar = na
+var int lastNoiseAlertBar = na
+var int lastReversalAlertBar = na
+var int lastPullbackAlertBar = na
+
+bullStrongEvent = bullStrong and (na(lastBullAlertBar) or bar_index - lastBullAlertBar >= alertCooldownBars)
+bearStrongEvent = bearStrong and (na(lastBearAlertBar) or bar_index - lastBearAlertBar >= alertCooldownBars)
+compressionEvent = compressionNow and (na(lastCompressionAlertBar) or bar_index - lastCompressionAlertBar >= alertCooldownBars)
+selectedCrossEvent = selectedCrossNow and (na(lastCrossAlertBar) or bar_index - lastCrossAlertBar >= alertCooldownBars)
+goldenProbEvent = goldenProbableNow and (na(lastGoldenProbBar) or bar_index - lastGoldenProbBar >= alertCooldownBars)
+deathProbEvent = deathProbableNow and (na(lastDeathProbBar) or bar_index - lastDeathProbBar >= alertCooldownBars)
+goldenConfEvent = goldenConfirmedNow and (na(lastGoldenConfBar) or bar_index - lastGoldenConfBar >= alertCooldownBars)
+deathConfEvent = deathConfirmedNow and (na(lastDeathConfBar) or bar_index - lastDeathConfBar >= alertCooldownBars)
+noiseHighEvent = noiseHigh and (na(lastNoiseAlertBar) or bar_index - lastNoiseAlertBar >= alertCooldownBars)
+reversalWarnEvent = reversalWarnNow and (na(lastReversalAlertBar) or bar_index - lastReversalAlertBar >= alertCooldownBars)
+pullbackThreatEvent = pullbackThreatNow and (na(lastPullbackAlertBar) or bar_index - lastPullbackAlertBar >= alertCooldownBars)
+
+if barstate.isconfirmed
+    if bullStrongEvent
+        lastBullAlertBar := bar_index
+    if bearStrongEvent
+        lastBearAlertBar := bar_index
+    if compressionEvent
+        lastCompressionAlertBar := bar_index
+    if selectedCrossEvent
+        lastCrossAlertBar := bar_index
+    if goldenProbEvent
+        lastGoldenProbBar := bar_index
+    if deathProbEvent
+        lastDeathProbBar := bar_index
+    if goldenConfEvent
+        lastGoldenConfBar := bar_index
+    if deathConfEvent
+        lastDeathConfBar := bar_index
+    if noiseHighEvent
+        lastNoiseAlertBar := bar_index
+    if reversalWarnEvent
+        lastReversalAlertBar := bar_index
+    if pullbackThreatEvent
+        lastPullbackAlertBar := bar_index
+
+alertcondition(bullStrongEvent, "Estrutura altista forte", "Estrutura altista forte e preço acima do ribbon.")
+alertcondition(bearStrongEvent, "Estrutura baixista forte", "Estrutura baixista forte e preço abaixo do ribbon.")
+alertcondition(compressionEvent, "Compressão do ribbon", "Ribbon comprimido: possível expansão futura.")
+alertcondition(selectedCrossEvent, "Cross ETA relevante", "Há um cruzamento relevante provável ou confirmado no painel.")
+alertcondition(goldenProbEvent, "Golden Cross estrutural provável", "Há um Golden Cross estrutural provável no par clássico 50/200.")
+alertcondition(deathProbEvent, "Death Cross estrutural provável", "Há um Death Cross estrutural provável no par clássico 50/200.")
+alertcondition(goldenConfEvent, "Golden Cross estrutural confirmado", "Houve um Golden Cross estrutural confirmado no par clássico 50/200.")
+alertcondition(deathConfEvent, "Death Cross estrutural confirmado", "Houve um Death Cross estrutural confirmado no par clássico 50/200.")
+alertcondition(noiseHighEvent, "Ruído alto", "Estrutura com ruído alto ou compressão.")
+alertcondition(reversalWarnEvent, "Reversão incipiente", "O indicador detectou perda de pressão ou reversão incipiente.")
+alertcondition(pullbackThreatEvent, "Pullback ameaçando estrutura", "O pullback atual está ameaçando a estrutura dominante.")
+
+if enableDynamicAlertCalls and barstate.isconfirmed
+    if bullStrongEvent
+        alert("MA 6x Unified | " + syminfo.ticker + " | TF " + timeframe.period + " | Estrutura altista forte (" + str.tostring(math.round(displayScore)) + ")", alert.freq_once_per_bar_close)
+    if bearStrongEvent
+        alert("MA 6x Unified | " + syminfo.ticker + " | TF " + timeframe.period + " | Estrutura baixista forte (" + str.tostring(math.round(displayScore)) + ")", alert.freq_once_per_bar_close)
+    if compressionEvent
+        alert("MA 6x Unified | " + syminfo.ticker + " | TF " + timeframe.period + " | Ribbon em compressão", alert.freq_once_per_bar_close)
+    if selectedCrossEvent and selectedCrossEventText != ""
+        alert("MA 6x Unified | " + syminfo.ticker + " | TF " + timeframe.period + " | " + selectedCrossEventText, alert.freq_once_per_bar_close)
+    if goldenProbEvent
+        alert("MA 6x Unified | " + syminfo.ticker + " | TF " + timeframe.period + " | Golden Cross provável: " + classicPairName + " ~ " + str.tostring(math.round(classicEtaValue)) + " barras", alert.freq_once_per_bar_close)
+    if deathProbEvent
+        alert("MA 6x Unified | " + syminfo.ticker + " | TF " + timeframe.period + " | Death Cross provável: " + classicPairName + " ~ " + str.tostring(math.round(classicEtaValue)) + " barras", alert.freq_once_per_bar_close)
+    if goldenConfEvent
+        alert("MA 6x Unified | " + syminfo.ticker + " | TF " + timeframe.period + " | Golden Cross confirmado: " + classicPairName, alert.freq_once_per_bar_close)
+    if deathConfEvent
+        alert("MA 6x Unified | " + syminfo.ticker + " | TF " + timeframe.period + " | Death Cross confirmado: " + classicPairName, alert.freq_once_per_bar_close)
+    if noiseHighEvent
+        alert("MA 6x Unified | " + syminfo.ticker + " | TF " + timeframe.period + " | Ruído alto / esperar confirmação", alert.freq_once_per_bar_close)
+    if reversalWarnEvent
+        alert("MA 6x Unified | " + syminfo.ticker + " | TF " + timeframe.period + " | " + reversalWarnTxt, alert.freq_once_per_bar_close)
+    if pullbackThreatEvent
+        alert("MA 6x Unified | " + syminfo.ticker + " | TF " + timeframe.period + " | Pullback ameaçando estrutura", alert.freq_once_per_bar_close)

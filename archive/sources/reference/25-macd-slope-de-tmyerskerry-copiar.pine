@@ -1,0 +1,20 @@
+//@version=3
+study(title="Moving Average Convergence/Divergence Slope", shorttitle="MACD Slope", precision=8)
+source = close
+radians_to_degrees=180/3.14159265359
+fastLength = input(12, minval=1), slowLength=input(26,minval=1)
+signalLength=input(9,minval=1)
+lookback_period=input(defval=5,title="Lookback periods",type=integer)
+smoothing=input(defval=8,minval=2,title="Smoothing",type=integer)
+fastMA = ema(source, fastLength)
+slowMA = ema(source, slowLength)
+macd = fastMA - slowMA
+signal = ema(macd, signalLength)
+histogram = macd - signal
+macd_slope = radians_to_degrees*atan((macd[0]-nz(macd[lookback_period]))/lookback_period)
+signal_slope = radians_to_degrees*atan((signal[0]-nz(signal[lookback_period]))/lookback_period)
+histogram_slope = radians_to_degrees*atan((histogram[0]-nz(histogram[lookback_period]))/lookback_period)
+plot(linreg(macd_slope, smoothing, 0), color=#FF0099, transp=0, title="MACD Slope")
+plot(signal_slope, color=teal, transp=0, title="Signal Slope")
+plot(linreg(histogram_slope, smoothing, 0), style=area, color=white, transp=95, title="Histogram Slope")
+hline(0, color=white)

@@ -1,0 +1,65 @@
+//@version=6
+indicator("Buying Selling Volume RAW v2", shorttitle="BSV RAW v2", format=format.volume, precision=2, overlay=false)
+
+//---------------------------------------------------------
+// Inputs
+//---------------------------------------------------------
+groupGeneral = "General"
+barColorsOnPrevClose = input.bool(false, "Color volume bars based on previous close", group=groupGeneral)
+showRawVolume        = input.bool(true, "Show total volume", group=groupGeneral)
+showPercentages      = input.bool(true, "Show Buy/Sell %", group=groupGeneral)
+
+groupBarColors = "Price Bar Colors"
+applyPressureBarColor = input.bool(false, "Color price bars by buy/sell pressure", group=groupBarColors)
+
+//---------------------------------------------------------
+// Safe base calculations
+//---------------------------------------------------------
+volSafe   = nz(volume, 0.0)
+rangeSafe = high - low
+prevClose = nz(close[1], close)
+
+buyVol  = rangeSafe > 0 ? volSafe * (close - low) / rangeSafe : 0.0
+sellVol = rangeSafe > 0 ? volSafe * (high - close) / rangeSafe : 0.0
+totalVol = buyVol + sellVol
+
+rawBuy  = totalVol > 0 ? (buyVol / totalVol) * volSafe : 0.0
+rawSell = totalVol > 0 ? (sellVol / totalVol) * volSafe : 0.0
+
+buyPressure  = rawBuy > rawSell ? rawBuy : -math.abs(rawBuy)
+sellPressure = rawSell > rawBuy ? rawSell : -math.abs(rawSell)
+
+buyPct  = totalVol > 0 ? 100.0 * buyVol / totalVol : 0.0
+sellPct = totalVol > 0 ? 100.0 * sellVol / totalVol : 0.0
+
+//---------------------------------------------------------
+// Colors
+//---------------------------------------------------------
+color volumePalette = na
+if barColorsOnPrevClose
+    volumePalette := close < prevClose ? color.new(color.red, 70) : color.new(color.green, 70)
+else
+    volumePalette := close < open ? color.new(color.red, 70) : color.new(color.green, 70)
+
+color pressureBarColor = na
+if buyPressure > sellPressure
+    pressureBarColor := color.blue
+else if buyPressure < sellPressure
+    pressureBarColor := color.purple
+else
+    pressureBarColor := color.gray
+
+barcolor(applyPressureBarColor ? pressureBarColor : na)
+
+//---------------------------------------------------------
+// Plots
+//---------------------------------------------------------
+hline(0, "Zero Line", color=color.new(color.gray, 75))
+
+plot(showRawVolume ? volSafe : na, title="Total Volume", color=volumePalette, style=plot.style_columns, linewidth=3)
+
+plot(buyPressure,  title="Buy Volume",  color=color.new(color.green, 10), style=plot.style_columns, linewidth=2)
+plot(sellPressure, title="Sell Volume", color=color.new(color.red, 10),   style=plot.style_columns, linewidth=2)
+
+plot(showPercentages ? buyPct  : na, title="Buy Volume %",  color=color.green, style=plot.style_line, linewidth=2)
+plot(showPercentages ? sellPct : na, title="Sell Volume %", color=color.red,   style=plot.style_line, linewidth=2)

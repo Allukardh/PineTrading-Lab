@@ -1,0 +1,167 @@
+//@version=5
+indicator("SMC Market Structure (HH/HL/LH/LL + BOS/CHoCH/MSS)", overlay=true, max_lines_count=500, max_labels_count=500)
+
+//──────────────────────────────────────────────────────────────────────────────
+// Inputs
+//──────────────────────────────────────────────────────────────────────────────
+swingLen      = input.int(5, "Swing length (pivot left/right)", minval=1)
+breakConfirm  = input.string("Wick", "Break confirmation", options=["Wick", "Close"])
+
+showSwings    = input.bool(true, "Show HH/HL/LH/LL (swing labels)")
+showBOS       = input.bool(true, "Show BOS")
+showCHoCH     = input.bool(true, "Show CHoCH")
+showMSS       = input.bool(true, "Show MSS (displacement CHoCH)")
+showEQ        = input.bool(false, "Show EQH/EQL (optional)")
+
+atrLen        = input.int(14, "ATR length (MSS filter)", minval=1)
+dispMult      = input.float(1.5, "Displacement: body > ATR ×", step=0.1)
+
+labelPos      = input.string("Middle", "BOS/CHoCH/MSS label position", options=["Middle", "Break bar"])
+textOffsetTk  = input.int(10, "Text offset (ticks)", minval=0)
+
+maxStructObjs = input.int(80, "Max structure objects kept", minval=20, maxval=500)
+maxSwingLbls  = input.int(200, "Max swing labels kept", minval=50, maxval=2000)
+
+bullCol       = input.color(color.new(color.aqua, 0), "Bullish structure color")
+bearCol       = input.color(color.new(color.red, 0), "Bearish structure color")
+swingCol      = input.color(color.new(color.gray, 0), "Swing label color")
+
+lineW         = input.int(1, "Line width", minval=1, maxval=4)
+lineStyleIn   = input.string("Solid", "Line style", options=["Solid", "Dashed", "Dotted"])
+lineStyle     = lineStyleIn == "Solid" ? line.style_solid : lineStyleIn == "Dashed" ? line.style_dashed : line.style_dotted
+
+//──────────────────────────────────────────────────────────────────────────────
+// Helpers (object management)
+//──────────────────────────────────────────────────────────────────────────────
+var line[]  structLines  = array.new_line()
+var label[] structLabels = array.new_label()
+var label[] swingLabels  = array.new_label()
+
+f_trim_lines(line[] arr, int maxCount) =>
+    while array.size(arr) > maxCount
+        line.delete(array.shift(arr))
+
+f_trim_labels(label[] arr, int maxCount) =>
+    while array.size(arr) > maxCount
+        label.delete(array.shift(arr))
+
+f_add_struct(int x1, float level, int x2, string txt, color col, bool isHighLevel) =>
+    if not na(level) and not na(x1)
+        // Line
+        line ln = line.new(x1, level, x2, level, xloc=xloc.bar_index, extend=extend.none, color=col, width=lineW, style=lineStyle)
+        array.push(structLines, ln)
+
+        // Label position
+        int xTxt = labelPos == "Middle" ? int(math.round((x1 + x2) / 2.0)) : x2
+        float off = syminfo.mintick * textOffsetTk
+        float yTxt = isHighLevel ? (level + off) : (level - off)
+
+        label lb = label.new(xTxt, yTxt, txt, xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textcolor=col, size=size.tiny)
+        array.push(structLabels, lb)
+
+        // Trim
+        f_trim_lines(structLines, maxStructObjs)
+        f_trim_labels(structLabels, maxStructObjs)
+
+f_add_swing(int x, float y, string txt, bool isHigh) =>
+    float off = syminfo.mintick * textOffsetTk
+    float yy  = isHigh ? (y + off) : (y - off)
+    label lb  = label.new(x, yy, txt, xloc=xloc.bar_index, yloc=yloc.price, style=label.style_none, textcolor=swingCol, size=size.tiny)
+    array.push(swingLabels, lb)
+    f_trim_labels(swingLabels, maxSwingLbls)
+
+//──────────────────────────────────────────────────────────────────────────────
+// Swing detection (pivots)
+//──────────────────────────────────────────────────────────────────────────────
+ph = ta.pivothigh(high, swingLen, swingLen)
+pl = ta.pivotlow(low,  swingLen, swingLen)
+
+var float lastHigh = na
+var int   lastHighBar = na
+var float lastLow  = na
+var int   lastLowBar  = na
+
+var bool  highBroken = false
+var bool  lowBroken  = false
+
+// Trend state:  1 = bullish, -1 = bearish, 0 = unknown
+var int trend = 0
+
+bool gotPH = not na(ph)
+bool gotPL = not na(pl)
+
+if gotPH
+    float prevHigh = lastHigh
+    lastHigh := ph
+    lastHighBar := bar_index - swingLen
+    highBroken := false
+
+    if showSwings and not na(prevHigh)
+        string t = ph > prevHigh ? "HH" : ph < prevHigh ? "LH" : (showEQ ? "EQH" : "")
+        if t != ""
+            f_add_swing(lastHighBar, lastHigh, t, true)
+
+if gotPL
+    float prevLow = lastLow
+    lastLow := pl
+    lastLowBar := bar_index - swingLen
+    lowBroken := false
+
+    if showSwings and not na(prevLow)
+        string t = pl > prevLow ? "HL" : pl < prevLow ? "LL" : (showEQ ? "EQL" : "")
+        if t != ""
+            f_add_swing(lastLowBar, lastLow, t, false)
+
+//──────────────────────────────────────────────────────────────────────────────
+// Break logic (BOS / CHoCH / MSS)
+//──────────────────────────────────────────────────────────────────────────────
+atrV = ta.atr(atrLen)
+body = math.abs(close - open)
+
+// "Displacement" candle direction + size filter (used for MSS)
+bullDisp = close > open and body > atrV * dispMult
+bearDisp = close < open and body > atrV * dispMult
+
+// Break conditions (choose wick vs close)
+breakUpClose   = not na(lastHigh) and close > lastHigh and close[1] <= lastHigh
+breakDownClose = not na(lastLow)  and close < lastLow  and close[1] >= lastLow
+
+breakUpWick    = not na(lastHigh) and high  > lastHigh and high[1]  <= lastHigh
+breakDownWick  = not na(lastLow)  and low   < lastLow  and low[1]   >= lastLow
+
+breakUp   = breakConfirm == "Close" ? breakUpClose   : breakUpWick
+breakDown = breakConfirm == "Close" ? breakDownClose : breakDownWick
+
+// Prevent duplicate breaks on same watched swing level
+breakUp   := breakUp   and not highBroken and not gotPH
+breakDown := breakDown and not lowBroken  and not gotPL
+
+if breakUp
+    bool reversal = trend == -1
+    string txt = ""
+    if reversal
+        bool isMSS = showMSS and bullDisp and breakUpClose  // MSS requires CLOSE break + displacement
+        txt := isMSS ? "MSS" : (showCHoCH ? "CHoCH" : "")
+    else
+        txt := showBOS ? "BOS" : ""
+
+    if txt != ""
+        f_add_struct(lastHighBar, lastHigh, bar_index, txt, bullCol, true)
+
+    highBroken := true
+    trend := 1
+
+if breakDown
+    bool reversal = trend == 1
+    string txt = ""
+    if reversal
+        bool isMSS = showMSS and bearDisp and breakDownClose // MSS requires CLOSE break + displacement
+        txt := isMSS ? "MSS" : (showCHoCH ? "CHoCH" : "")
+    else
+        txt := showBOS ? "BOS" : ""
+
+    if txt != ""
+        f_add_struct(lastLowBar, lastLow, bar_index, txt, bearCol, false)
+
+    lowBroken := true
+    trend := -1
