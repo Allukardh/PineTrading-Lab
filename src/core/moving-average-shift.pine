@@ -1,0 +1,167 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// Original concept © ChartPrime
+// Optimized adaptation for trend/structure/probability reading
+
+//@version=6
+indicator("Moving Average Shift v0.1.0", "MA Shift v0.1.0", overlay=false)
+
+// --------------------------------------------------------------------------------------------------------------------
+// Inputs
+// --------------------------------------------------------------------------------------------------------------------
+groupMA = "MA"
+typeMA  = input.string("SMA", "Type", options=["SMA", "EMA", "SMMA (RMA)", "WMA", "VWMA"], group=groupMA, display=display.none)
+maLen   = input.int(40, "Length", minval=1, inline="ma", group=groupMA, display=display.none)
+src     = input.source(hl2, "", inline="ma", group=groupMA, display=display.none)
+
+// Oscillator
+groupOsc = "MA Shift Oscillator"
+oscLen         = input.int(15, "Length", minval=1, inline="osc", group=groupOsc, display=display.none)
+oscThreshold   = input.float(0.5, "Threshold", minval=0.0, step=0.1, inline="osc", group=groupOsc, display=display.none)
+showSignals    = input.bool(true, "⯁", inline="osc", group=groupOsc, display=display.none)
+percentileLen  = input.int(500, "Percentile lookback", minval=50, group=groupOsc, display=display.none)
+percentilePct  = input.float(97.5, "Percentile", minval=50.0, maxval=99.9, step=0.5, group=groupOsc, display=display.none)
+oscSmoothLen   = input.int(10, "Osc smoothing", minval=1, group=groupOsc, display=display.none)
+signalMode     = input.string("Original", "Signal mode", options=["Original", "Zero Cross", "Linha de sinal"], group=groupOsc, display=display.none)
+signalLen      = input.int(5, "Signal line length", minval=1, group=groupOsc, display=display.none)
+
+// Trend filters
+groupTrend = "Trend / Signal filters"
+useDirectionalFilter = input.bool(true, "Directional filter", group=groupTrend, display=display.none)
+useSlopeFilter       = input.bool(true, "MA slope filter", group=groupTrend, display=display.none)
+slopeLen             = input.int(3, "Slope lookback", minval=1, group=groupTrend, display=display.none)
+useSetupFilter       = input.bool(true, "Setup filter", group=groupTrend,
+     tooltip="When enabled, signals require oscillator acceleration in the signal direction. Trend direction is controlled separately by Directional filter.", display=display.none)
+
+// Visual
+groupVisual = "Visual"
+paintBars    = input.bool(true, "Paint bars", group=groupVisual, display=display.none)
+paintCandles = input.bool(true, "Paint candles", group=groupVisual, display=display.none)
+showMABand   = input.bool(true, "Show MA glow", group=groupVisual, display=display.none)
+showSignalLn = input.bool(false, "Show signal line", group=groupVisual, display=display.none)
+
+// Colors
+groupColor = "Colors"
+oscColUp1   = input.color(#1dd1c2, "Alta acelerando", inline="c1", group=groupColor, display=display.none)
+oscColUp2   = input.color(#17a297, "Alta sustentada",  inline="c1", group=groupColor, display=display.none)
+oscColDn1   = input.color(color.yellow, "Baixa acelerando", inline="c2", group=groupColor, display=display.none)
+oscColDn2   = input.color(color.orange, "Baixa sustentada",  inline="c2", group=groupColor, display=display.none)
+neutralCol  = input.color(color.gray, "Neutro", group=groupColor, display=display.none)
+
+// --------------------------------------------------------------------------------------------------------------------
+// Functions
+// --------------------------------------------------------------------------------------------------------------------
+maCalc(_src, _len, _type) =>
+    switch _type
+        "SMA"        => ta.sma(_src, _len)
+        "EMA"        => ta.ema(_src, _len)
+        "SMMA (RMA)" => ta.rma(_src, _len)
+        "WMA"        => ta.wma(_src, _len)
+        => ta.vwma(_src, _len)
+
+// --------------------------------------------------------------------------------------------------------------------
+// Core calculations
+// --------------------------------------------------------------------------------------------------------------------
+maBase = maCalc(src, maLen, typeMA)
+maSlope = maBase - maBase[slopeLen]
+
+trendBull = src > maBase and (not useSlopeFilter or maSlope > 0)
+trendBear = src < maBase and (not useSlopeFilter or maSlope < 0)
+trendNeutral = not trendBull and not trendBear
+
+maPaintColor = trendBull ? oscColUp2 : trendBear ? oscColDn2 : neutralCol
+
+// Normalize by percentile of absolute distance to reduce sign distortions.
+// Do not replace an unavailable percentile with mintick: that created extreme
+// normalized values during warmup. Oscillator/signals stay unavailable until
+// the requested percentile window is valid.
+maDiff = src - maBase
+absPercRaw = ta.percentile_linear_interpolation(math.abs(maDiff), percentileLen, percentilePct)
+normReady = not na(absPercRaw) and absPercRaw > 0
+absPercSafe = normReady ? math.max(absPercRaw, syminfo.mintick) : na
+normDiff = normReady ? maDiff / absPercSafe : na
+
+osc = ta.hma(ta.change(normDiff, oscLen), oscSmoothLen)
+oscSignal = ta.ema(osc, signalLen)
+oscReady = not na(osc)
+
+oscCol = osc > 0 ? (osc > osc[1] ? oscColUp1 : oscColUp2) : osc < 0 ? (osc < osc[1] ? oscColDn1 : oscColDn2) : neutralCol
+
+oscAccelBull = oscReady and osc > osc[1]
+oscAccelBear = oscReady and osc < osc[1]
+strengthBull = trendBull and osc > 0 and oscAccelBull
+strengthBear = trendBear and osc < 0 and oscAccelBear
+setupBull = trendBull and oscAccelBull
+setupBear = trendBear and oscAccelBear
+
+// --------------------------------------------------------------------------------------------------------------------
+// Signals
+// --------------------------------------------------------------------------------------------------------------------
+origUp = oscReady and ta.crossover(osc, osc[2]) and osc < -oscThreshold
+origDn = oscReady and ta.crossunder(osc, osc[2]) and osc > oscThreshold
+zeroUp = oscReady and ta.crossover(osc, 0.0)
+zeroDn = oscReady and ta.crossunder(osc, 0.0)
+lineUp = oscReady and ta.crossover(osc, oscSignal) and osc < 0
+lineDn = oscReady and ta.crossunder(osc, oscSignal) and osc > 0
+
+sigUpRaw = switch signalMode
+    "Original"   => origUp
+    "Zero Cross" => zeroUp
+    => lineUp
+
+sigDnRaw = switch signalMode
+    "Original"   => origDn
+    "Zero Cross" => zeroDn
+    => lineDn
+
+sigUp = sigUpRaw
+sigDn = sigDnRaw
+
+if useDirectionalFilter
+    sigUp := sigUp and trendBull
+    sigDn := sigDn and trendBear
+
+if useSetupFilter
+    sigUp := sigUp and oscAccelBull
+    sigDn := sigDn and oscAccelBear
+
+// Entry markers are close-confirmed. The oscillator itself remains live for reading.
+sigUp := sigUp and barstate.isconfirmed
+sigDn := sigDn and barstate.isconfirmed
+
+// --------------------------------------------------------------------------------------------------------------------
+// Visuals
+// --------------------------------------------------------------------------------------------------------------------
+plot(maBase, "Base MA", color=maPaintColor, force_overlay=true, linewidth=2, display=display.all - display.status_line)
+plot(showMABand ? maBase : na, "Base MA Glow", color=color.new(maPaintColor, 80), force_overlay=true, linewidth=7, display=display.all - display.status_line)
+
+barcolor(paintBars ? maPaintColor : na)
+plotcandle(
+     paintCandles ? open : na,
+     paintCandles ? high : na,
+     paintCandles ? low  : na,
+     paintCandles ? close : na,
+     title="Candles de tendência",
+     color=maPaintColor,
+     wickcolor=maPaintColor,
+     bordercolor=maPaintColor,
+     force_overlay=true)
+
+plot(osc, "Impulso MA Shift", style=plot.style_columns, color=oscCol)
+plot(showSignalLn and signalMode == "Linha de sinal" ? oscSignal : na, "Linha de sinal", color=color.new(color.white, 0), linewidth=2)
+
+pTop  = plot(oscThreshold, "Corte superior", display=display.none, editable=false)
+pZero = plot(0, "Zero", display=display.none, editable=false)
+pBot  = plot(-oscThreshold, "Corte inferior", display=display.none, editable=false)
+fill(pTop, pZero, color=color.new(oscCol, 85))
+fill(pBot, pZero, color=color.new(oscCol, 85))
+
+plotshape(showSignals and sigUp, "Sinal C", shape.diamond, location.belowbar, oscColUp1, force_overlay=true, size=size.tiny, text="C", display=display.pane + display.data_window)
+plotshape(showSignals and sigDn, "Sinal V", shape.diamond, location.abovebar, oscColDn1, force_overlay=true, size=size.tiny, text="V", display=display.pane + display.data_window)
+
+// Strength guides in oscillator pane. These are directional states, not calibrated probabilities.
+plot(strengthBull ? osc : na, "Força C", color=color.new(oscColUp1, 0), linewidth=3, display=display.pane + display.data_window)
+plot(strengthBear ? osc : na, "Força V", color=color.new(oscColDn1, 0), linewidth=3, display=display.pane + display.data_window)
+
+// State markers for easier reading without polluting entries
+plotchar(setupBull, "Setup C", "▲", location.top, color.new(oscColUp2, 0), size=size.tiny, display=display.pane + display.data_window)
+plotchar(setupBear, "Setup V", "▼", location.bottom, color.new(oscColDn2, 0), size=size.tiny, display=display.pane + display.data_window)
