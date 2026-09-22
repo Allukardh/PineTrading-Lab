@@ -108,6 +108,36 @@ def main() -> None:
             if token not in sg:
                 fail(f"SignalGate event-edge invariant missing: {token}")
 
+    mas_path = ROOT / "src/core/moving-average-shift.pine"
+    if mas_path.exists():
+        mas = norm(mas_path.read_text(encoding="utf-8"))
+        required_mas = [
+            'indicator("Moving Average Shift v0.1.0"',
+            'normReady = not na(absPercRaw) and absPercRaw > 0',
+            'sigUp := sigUp and oscAccelBull',
+            'sigDn := sigDn and oscAccelBear',
+            'sigUp := sigUp and barstate.isconfirmed',
+            'sigDn := sigDn and barstate.isconfirmed',
+            'plot(strengthBull ? osc : na, "Força C"',
+            'plot(strengthBear ? osc : na, "Força V"',
+        ]
+        for token in required_mas:
+            if token not in mas:
+                fail(f"Moving Average Shift MAS-0 invariant missing: {token}")
+
+        forbidden_mas = [
+            'Moving Average Shift Optimized v1.1',
+            'nz(absPercRaw, 0.0)',
+            'sigUp := sigUp and setupBull',
+            'sigDn := sigDn and setupBear',
+            'probBull',
+            'probBear',
+            'Força provável',
+        ]
+        for token in forbidden_mas:
+            if token in mas:
+                fail(f"Moving Average Shift MAS-0 forbidden legacy pattern present: {token}")
+
     print("PASS: archive integrity + reboot invariants")
 
 
