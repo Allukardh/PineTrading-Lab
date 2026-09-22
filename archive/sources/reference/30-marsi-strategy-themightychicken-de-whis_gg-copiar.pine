@@ -1,0 +1,21 @@
+//Created by TheMightyChicken
+//Based on Larry Connors RSI-2 Strategy - Lower RSI edited by ChrisMoody
+study(title="Marsi Strategy [TheMightyChicken]", shorttitle="MarsiStrategy", overlay=false)
+src = close, 
+//RSI Code
+up = rma(max(change(src),0),2)
+down = rma(-min(change(src),0),2)
+rsi = down==0 ? 100 : up==0 ? 0 : 100 - (100/(1+up/down))
+//MA Code
+ma5 = sma(close,5)
+ma200= sma(close,200)
+//Color Code
+col = close>ma200 and close<ma5 and rsi<10 ? red : close<ma200 and close>ma5 and rsi>90 ? green : silver
+//Graphics Code
+line100 = plot(100, title="Upper Line 100",style=line, linewidth=1, color=silver)
+line90 = plot(90, title="Lower Line 90",style=line, linewidth=1, color=silver)
+line10 = plot(10, title="Upper Line 10",style=line, linewidth=1, color=silver)
+line0 = plot(0, title="Lower Line 0",style=line, linewidth=1, color=silver)
+fill(line90, line10, black, transp=95)
+plot(rsi, title="RSI Line", style=line, linewidth=2,color=col)
+plot(rsi, title="RSI Dots", style=circles, linewidth=3,color=col)

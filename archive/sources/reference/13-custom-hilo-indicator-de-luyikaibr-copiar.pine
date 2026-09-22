@@ -1,0 +1,51 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © luyikaibr
+
+//@version=4
+study("Custom HiLo Indicator", "CHiLo", overlay=true, precision=2)
+
+len = input(34, title="Length", minval=0)
+offset = input(0, title="Offset", minval=0)
+
+hiloType = input(title="Type", defval="HiLo", options=["HiLo", "HiLo Activator"])
+
+simpleHiLo = (hiloType == "HiLo")
+
+maType = input(title="MA Type", defval="SMA", options=["SMA", "EMA"])
+
+useEMA = (maType == "EMA")
+
+hima = (useEMA ? ema(high, len) : sma(high, len))
+loma = (useEMA ? ema(low, len) : sma(low, len))
+
+hihi = (simpleHiLo ? na: highest(high, len))
+lolo = (simpleHiLo ? na: lowest(low, len))
+
+hilo = close
+hilo := if simpleHiLo
+    (close < loma[offset] ? hima : (close > hima[offset] ? loma : hilo[1]))
+else
+    (close < loma[offset] ? hihi : (close > hima[offset] ? lolo : hilo[1]))
+
+hlColor = color.red
+hlColor := (close < loma[offset] ? color.red : (close > hima[offset] ? color.green : hlColor[1]))
+
+buyArith  = sign(close - hima[offset]) 
+sellArith = sign(close - loma[offset])
+
+buy = crossover(buyArith, 0.5)
+sell = crossunder(sellArith, -0.5)
+
+buyState = false
+buyState :=  buy ? true : (sell ? false : buyState[1])
+
+sellState = false
+sellState :=  buy ? false : (sell ? true : sellState[1])
+
+enterBuyState  = buyState[0]  and not buyState[1]
+enterSellState = sellState[0] and not sellState[1]
+ 
+plot(hilo, color=hlColor, linewidth=2, style=plot.style_cross, transp=0, title="HiLo")
+
+plotshape(enterBuyState,  title = "Buy", text = 'Buy', style = shape.labelup, location = location.belowbar, color= color.green,textcolor = color.white, transp = 0, size = size.tiny)
+plotshape(enterSellState, title = "Sell", text = 'Sell', style = shape.labeldown, location = location.abovebar, color= color.maroon,textcolor = color.white, transp = 0, size = size.tiny)

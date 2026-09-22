@@ -1,0 +1,91 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © Mohamed3nan
+
+//@version=4
+
+study(title="Pivots High Low (HH/HL/LH/LL)/Trend [Anan] ",shorttitle="Pivots HL/Trend [Anan]", overlay = true)
+
+Period = input(defval = 2 , title="Pivot Point Period", minval = 1)
+showPP = input(defval = true, title="Show Pivot Points Labels")
+showLabels = input(defval = false, title="Show Bull/Bear Labels")
+showCL = input(defval = true, title="Show PP Center Line")
+showSR = input(defval = true, title="Show Support/Resistance Level Extensions")
+ShowFB = input(true, title="Show Fractal Break Arrows")
+
+/////////////////////////////////
+float pivotHigh = na
+float pivotLow = na
+pivotHigh := pivothigh(Period, Period)
+pivotLow := pivotlow(Period, Period)
+/////////////////////////////////
+// Higher Highs, Lower Highs, Higher Lows, Lower Lows  //
+valuewhen_1 = valuewhen(pivotHigh, high[Period], 1)
+valuewhen_2 = valuewhen(pivotHigh, high[Period], 0)
+higherhigh = na(pivotHigh) ? na : valuewhen_1 < valuewhen_2 ? pivotHigh : na
+valuewhen_3 = valuewhen(pivotHigh, high[Period], 1)
+valuewhen_4 = valuewhen(pivotHigh, high[Period], 0)
+lowerhigh = na(pivotHigh) ? na : valuewhen_3 > valuewhen_4 ? pivotHigh : na
+valuewhen_5 = valuewhen(pivotLow, low[Period], 1)
+valuewhen_6 = valuewhen(pivotLow, low[Period ], 0)
+higherlow = na(pivotLow) ? na : valuewhen_5 < valuewhen_6 ? pivotLow : na
+valuewhen_7 = valuewhen(pivotLow, low[Period], 1)
+valuewhen_8 = valuewhen(pivotLow, low[Period ], 0)
+lowerlow = na(pivotLow) ? na : valuewhen_7 > valuewhen_8 ? pivotLow : na
+// Higher Highs, Lower Highs, Higher Lows, Lower Lows  //
+/////////////////////////////////
+plotshape(showPP ? higherhigh  : na, title='HH', style=shape.triangledown, location=location.abovebar, color=color.new(color.green,50), text="HH",textcolor=color.new(color.green,50),offset = -Period)
+plotshape(showPP ? higherlow  : na, title='HL', style=shape.triangleup, location=location.belowbar, color=color.new(color.green,50), text="HL",textcolor=color.new(color.green,50),offset = -Period)
+plotshape(showPP ? lowerhigh  : na, title='LH', style=shape.triangledown, location=location.abovebar, color=color.new(color.red,50), text="LH",textcolor=color.new(color.red,50),offset = -Period)
+plotshape(showPP ? lowerlow  : na, title='LL', style=shape.triangleup, location=location.belowbar, color=color.new(color.red,50), text="LL",textcolor=color.new(color.red,50),offset = -Period)
+/////////////////////////////////
+
+
+/////////////////////////////////
+float center = na
+center := center[1]
+float lastpp = pivotHigh ? pivotHigh : pivotLow ? pivotLow : na
+if lastpp
+    if na(center)
+        center := lastpp
+    else
+        center := (center + center + lastpp) / 3
+
+
+plot(showCL ? center : na, color = showCL ? center < hl2 ? color.new(color.teal,25) : color.new(color.red,25) : na,title="Center Line",style=plot.style_stepline,linewidth=2)
+/////////////////////////////////
+
+float resistance = na
+float support = na
+support := pivotLow ? pivotLow : support[1]
+resistance := pivotHigh ? pivotHigh : resistance[1]
+
+plot(showSR and support ? support : na, color = showSR and support ? color.new(color.teal,50) : na, style = plot.style_circles, offset = -Period)
+plot(showSR and resistance ? resistance : na, color = showSR and resistance ? color.new(color.red,50) : na, style = plot.style_circles, offset = -Period)
+
+
+/////////////////////////////////
+bsignal = close>center[1] and close[1]<center[2]
+ssignal = close<center[1] and close[1]>center[2]
+plotshape(bsignal and showLabels ? center[1] : na, title="Bull", text="Bull", location = location.belowbar, style = shape.labelup, size = size.tiny, color = color.teal, textcolor = color.white, transp = 50)
+plotshape(ssignal and showLabels ? center[1] : na, title="Bear", text="Bear", location = location.abovebar, style = shape.labeldown, size = size.tiny, color = color.red, textcolor = color.white, transp = 50)
+/////////////////////////////////
+
+//  Fractal Break Alerts
+pvthis = 0.0
+pvtlos = 0.0
+pvthis := na(pivotHigh) ? pvthis[1] : high[Period]
+pvtlos := na(pivotLow) ? pvtlos[1] : low[Period]
+
+bull = false
+bear = false
+bull  := close>pvthis and open<=pvthis 
+bear := close<pvtlos and open>=pvtlos 
+
+plotshape(ShowFB and bull?1:na, title="BUY Arrow", color=color.green, style=shape.triangleup,location =location.belowbar)
+plotshape(ShowFB and bear?-1:na, title="SELL Arrow", color=color.red, style=shape.triangledown,location =location.abovebar)
+/////////////////////////////////
+
+// Alerts//
+alertcondition(bull or bear,title="Fractal Break Arrow",message="Alert")
+alertcondition(bull,title="Fractal Break BULL",message="BULL")
+alertcondition(bear,title="Fractal Break BEAR",message="BEAR")

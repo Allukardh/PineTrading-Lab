@@ -1,0 +1,37 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © dandrideng
+
+//@version=5
+indicator(title="Pinbar Indicator", shorttitle="Pinbar", overlay=true, max_bars_back=1000, max_lines_count=400, max_labels_count=400)
+
+import dandrideng/merge_pinbar/1 as mp
+
+//pinbar pattern
+draw_pinbar = input.bool(defval=true, title="Draw Pinbar Pattern Alert?", group="Pinbar Patttern") 
+pinbar_period = input.int(defval=240, title="Pinbar Statistic Period", minval=1, step=1, group="Pinbar Patttern")
+max_merged_bars = input.int(defval=2, title="Max Merged Bars", minval=1, step=1, group="Pinbar Patttern")
+min_strength = input.float(defval=1.5, title="Min Pinbar Strength", minval=0.1, step=0.1, group="Pinbar Patttern")
+    
+to_intstr(x) => 
+    str.tostring(x, "#")
+    
+to_floatstr(x) => 
+    str.tostring(x, "#.###")
+
+[pinbar_type, pinbar_bars, pinbar_strength] = mp.merge_pinbar(pinbar_period, max_merged_bars)
+
+if pinbar_type == 1 and pinbar_strength >= min_strength and draw_pinbar
+    pinbar_label = label.new(x=bar_index, y=low)
+    label.set_text(pinbar_label, "Bull Pinbar: "+ to_intstr(pinbar_bars) + "\nStrength: " + to_floatstr(pinbar_strength))
+    label.set_color(pinbar_label, color.new(color.blue, 40))
+    label.set_textcolor(pinbar_label, color.white)
+    label.set_style(pinbar_label, label.style_label_up)
+    
+if pinbar_type == -1 and pinbar_strength >= min_strength and draw_pinbar
+    pinbar_label = label.new(x=bar_index, y=high)
+    label.set_text(pinbar_label, "Bear Pinbar: "+ to_intstr(pinbar_bars) + "\nStrength: " + to_floatstr(pinbar_strength))
+    label.set_color(pinbar_label, color.new(color.purple, 40))
+    label.set_textcolor(pinbar_label, color.white)
+    label.set_style(pinbar_label, label.style_label_down)
+
+//end of file

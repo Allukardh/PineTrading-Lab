@@ -1,0 +1,30 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © mmoiwgg
+
+//@version=4
+study(title="EMA+RSI Pump & Drop Swing Sniper (With Alerts)", shorttitle="EMA+RSI Swing", overlay=true)
+emaLength = input(title="EMA Length", type=input.integer, defval=50, minval=0)
+emarsiSource = input(close, title="EMA+RSI Source")
+condSource = input(high, title="Long+Short Condition Source")
+emaVal = ema(emarsiSource, emaLength)
+rsiLength = input(title="RSI Length", type=input.integer, defval=25, minval=0)
+rsiVal = rsi(emarsiSource, rsiLength)
+
+// Conditions
+shortCond = crossover(emaVal, condSource)
+longCond = crossunder(emaVal, condSource)
+
+// Plots Colors
+colors = emarsiSource > emaVal and rsiVal > 14 ? color.green : color.red
+emaColorSource = input(close, title="Line Color Source")
+emaBSource = input(close, title="Line Color B Source")
+
+// Plots
+plot(emaVal, color=emaColorSource[1] > emaVal and emaBSource > emaVal ? color.green : color.red, linewidth=3)
+plotcandle(open, high, low, close, color=colors)
+plotshape(series=shortCond, location=location.abovebar, style=shape.labeldown, color=color.red, size=size.tiny, text="S", textcolor=color.white, transp=0)
+plotshape(series=longCond, location=location.belowbar, style=shape.labelup, color=color.green, size=size.tiny, text="L", textcolor=color.white, transp=0)
+
+// Alert Conditions
+alertcondition(longCond, title='Long', message='Go Long')
+alertcondition(shortCond, title='Short', message='Go Short')

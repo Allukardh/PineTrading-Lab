@@ -1,0 +1,15 @@
+.env
+.env.*
+*.key
+*.pem
+secrets/
+private/
+exports/
+tmp/
+*.log
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

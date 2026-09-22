@@ -1,0 +1,21 @@
+//@version=6
+indicator("200 MA Pack (SMA / EMA / SMMA / WMA) + VWAP", overlay=true)
+
+// Length
+length = 200
+
+// Moving Averages
+sma_200  = ta.sma(close, length)
+ema_200  = ta.ema(close, length)
+smma_200 = ta.rma(close, length)   // SMMA = RMA
+wma_200  = ta.wma(close, length)
+
+// VWAP
+vwap_val = ta.vwap(hlc3)
+
+// Plotting with custom colors
+plot(wma_200,  title="WMA 200",  color=#388e3c, linewidth=2)
+plot(smma_200, title="SMMA 200", color=#673AB7, linewidth=2)
+plot(ema_200,  title="EMA 200",  color=color.white, linewidth=2)
+plot(sma_200,  title="SMA 200",  color=#2962ff, linewidth=2)
+plot(vwap_val, title="VWAP",     color=#ffeb3b, linewidth=2)

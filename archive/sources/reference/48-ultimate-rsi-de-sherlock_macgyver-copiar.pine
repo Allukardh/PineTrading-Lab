@@ -1,0 +1,284 @@
+//@version=6
+indicator(title = 'Ultimate RSI', format = format.percent, precision = 2, timeframe = '', timeframe_gaps = true)
+
+// Toggles
+showFills = input(true, title = 'Show RSI Zone fill colors', group = 'Toggles')
+showBollingerBands = input(true, title = 'Show Bollinger Bands', group = 'Toggles')
+showRsiBasis = input(true, title = 'Show RSI Bands MA', group = 'Toggles')
+showRsiMa1 = input(true, title = 'Show RSI MA1', group = 'Toggles')
+showRsiMa2 = input(false, title = 'Show RSI MA2', group = 'Toggles')
+showBackgrounds = input(false, title = 'Show Background Colors', group = 'Toggles')
+
+// RSI Settings
+src = input(close, title = 'RSI Source', group = 'RSI Settings')
+rsiMaType = input.string('RMA', title = 'MA Type to calculate RSI', options = ['SMA', 'EMA', 'WMA', 'RMA'], group = 'RSI Settings')
+rsiLength = input.int(30, minval = 1, title = 'Length', group = 'RSI Settings', inline = 'RSI')
+rsiLineColor = input.color(color.white, title = '', group = 'RSI Settings', inline = 'RSI')
+rsiLineWidth = input.int(1, title = 'Width', group = 'RSI Settings', inline = 'RSI')
+useRsiSmoothing = input(true, title = 'Enable Smoothing', inline = 'Smooth', group = 'RSI Settings')
+useHaSmoothing = input(true, title = 'Heiken Ashi Smoothing', inline = 'Smooth', group = 'RSI Settings')
+smoothingLength = input.int(2, title = 'Smoothing Length', minval = 2, maxval = 10, group = 'RSI Settings')
+smoothingMaType = input.string('RMA', title = 'Smoothing MA Type', options = ['SMA', 'EMA', 'WMA', 'RMA'], group = 'RSI Settings')
+
+// RSI Bollinger Bands and Basis
+rsiBbMaType = input.string('SMA', 'RSI Moving Average Type', options = ['SMA', 'EMA', 'WMA', 'RMA'], group = 'RSI Bollinger Bands and Basis')
+rsiBasisLength = input.int(30, title = 'Length', minval = 1, group = 'RSI Bollinger Bands and Basis', inline = 'RsiBasis')
+rsiBasisColor = input.color(color.yellow, title = '', group = 'RSI Bollinger Bands and Basis', inline = 'RsiBasis')
+rsiBasisLineWidth = input.int(1, title = 'Width', group = 'RSI Bollinger Bands and Basis', inline = 'RsiBasis')
+bbMultiplier = input.float(1.8, step = 0.1, title = 'RSI Bollinger Band Multiplier', group = 'RSI Bollinger Bands and Basis')
+bbLinewidth = input.int(1, title = 'BB Linewidth', group = 'RSI Bollinger Bands and Basis')
+
+
+// Additional Moving Averages
+rsiMa1Type = input.string('WMA', title = 'Additional MA1 Type', group = 'Additional Moving Averages', options = ['SMA', 'EMA', 'WMA', 'RMA'])
+rsiMa2Type = input.string('WMA', title = 'Additional MA2 Type', group = 'Additional Moving Averages', options = ['SMA', 'EMA', 'WMA', 'RMA'])
+rsiMa1Length = input.int(15, title = 'Length 1', minval = 1, group = 'Additional Moving Averages', inline = 'MA1')
+rsiMa2Length = input.int(90, title = 'Length 2', minval = 1, group = 'Additional Moving Averages', inline = 'MA2')
+rsiMa1Color = input.color(color.rgb(255, 0, 247), title = '', group = 'Additional Moving Averages', inline = 'MA1')
+rsiMa2Color = input.color(color.rgb(0, 221, 255), title = '', group = 'Additional Moving Averages', inline = 'MA2')
+rsiMa1LineWidth = input.int(1, title="Width", group = 'Additional Moving Averages', inline = 'MA1')
+rsiMa2LineWidth = input.int(1, title="Width", group = 'Additional Moving Averages', inline = 'MA2')
+
+// Moving Average Crossover Cycle
+dynamicTransparency = input(true, title = 'RSI Cycle Line Transparency On/Off', group = 'Moving Average Crossover Cycle')
+barsSinceCross = input.int(30, minval = 1, maxval = 200, title = '# of bars for cycle fade out', group = 'Moving Average Crossover Cycle')
+transparencyFactor = input.int(4, minval = 1, maxval = 200, title = 'Fading increment/speed', group = 'Moving Average Crossover Cycle')
+rsiBasisColorExt = input.color(color.orange, title = 'RSI/MA Cross Overdue Color', group = 'Moving Average Crossover Cycle')
+
+// RSI/Price Divergence
+showDivergence = input(true, title = 'Show Divergence', group = 'RSI/Price Divergence')
+lookbackRight = input.int(5, title = 'Lookback Right', minval = 1, group = 'RSI/Price Divergence')
+lookbackLeft = input.int(5, title = 'Lookback Left', minval = 1, group = 'RSI/Price Divergence')
+rangeUpper = input.int(60, title = 'Range Upper', minval = 1, group = 'RSI/Price Divergence')
+rangeLower = input.int(5, title = 'Range Lower', minval = 1, group = 'RSI/Price Divergence')
+bearColor = input.color(color.fuchsia, title = 'Bearish Price/Rsi Divergence', group = 'RSI/Price Divergence')
+bullColor = input.color(color.orange, title = 'Bullish Price/Rsi Divergence', group = 'RSI/Price Divergence')
+
+// First calculate Heikin Ashi if needed
+ha_close = (open + high + low + close) / 4
+ha_open = float(na)
+ha_open := na(ha_open[1]) ? (open + close) / 2 : (nz(ha_open[1]) + nz(ha_close[1])) / 2
+ha_high = math.max(high, math.max(ha_open, ha_close))
+ha_low = math.min(low, math.min(ha_open, ha_close))
+
+// Source selection based on HA toggle
+initialSrc = useHaSmoothing ? ha_close : src
+
+// Calculate RSI with selected source
+up = switch rsiMaType
+    'SMA' => ta.sma(math.max(ta.change(initialSrc), 0), rsiLength)
+    'EMA' => ta.ema(math.max(ta.change(initialSrc), 0), rsiLength)
+    'WMA' => ta.wma(math.max(ta.change(initialSrc), 0), rsiLength)
+    'RMA' => ta.rma(math.max(ta.change(initialSrc), 0), rsiLength)
+down = switch rsiMaType
+    'SMA' => ta.sma(-math.min(ta.change(initialSrc), 0), rsiLength)
+    'EMA' => ta.ema(-math.min(ta.change(initialSrc), 0), rsiLength)
+    'WMA' => ta.wma(-math.min(ta.change(initialSrc), 0), rsiLength)
+    'RMA' => ta.rma(-math.min(ta.change(initialSrc), 0), rsiLength)
+rsi = down == 0 ? 100 : up == 0 ? 0 : 100 - 100 / (1 + up / down)
+
+// Function for custom Moving Averages
+MA(source, length, type) =>
+    switch type
+        'SMA' => ta.sma(source, length)
+        'EMA' => ta.ema(source, length)
+        'WMA' => ta.wma(source, length)
+        'RMA' => ta.rma(source, length)
+
+// Bollinger Bands Calculation 
+rsiBasis = MA(rsi, rsiBasisLength, rsiBbMaType)
+rsiDeviation = ta.stdev(rsi, rsiBasisLength)
+
+// Upper and Lower Bands
+upperRsi = rsiBasis + bbMultiplier * rsiDeviation
+lowerRsi = rsiBasis - bbMultiplier * rsiDeviation
+
+
+// Calculate the WMA of RSI if smoothing is enabled
+smoothedRsi = useRsiSmoothing ? MA(rsi, smoothingLength, smoothingMaType) : rsi
+
+rsiMa1 = MA(rsi, rsiMa1Length, rsiMa1Type)
+rsiMa2 = MA(rsi, rsiMa2Length, rsiMa2Type)
+
+// Detect RSI crosses
+cross1 = ta.cross(smoothedRsi, rsiBasis)
+cross2 = ta.cross(smoothedRsi, rsiMa1)
+cross3 = ta.cross(smoothedRsi, rsiMa2)
+
+rsiOverUpper = showBackgrounds ? rsi > upperRsi : false
+rsiUnderLower = showBackgrounds ? rsi < lowerRsi : false
+
+// Variables for transparency and color control
+var int barsSinceCross1 = 0
+var int barsSinceCross2 = 0
+var int barsSinceCross3 = 0
+var int transparency1 = 0
+var int transparency2 = 0
+var int transparency3 = 0
+var color lineColor1 = rsiBasisColor
+var color lineColor2 = rsiMa1Color
+var color lineColor3 = rsiMa2Color
+var bool increaseTransparency1 = true
+var bool increaseTransparency2 = true
+var bool increaseTransparency3 = true
+
+// Update on each bar
+if cross1
+    barsSinceCross1 := 0
+    transparency1 := 0
+    lineColor1 := rsiBasisColor
+    increaseTransparency1 := true
+    increaseTransparency1
+if cross2
+    barsSinceCross2 := 0
+    transparency2 := 0
+    lineColor2 := rsiMa1Color
+    increaseTransparency2 := true
+    increaseTransparency2
+if cross3
+    barsSinceCross3 := 0
+    transparency3 := 0
+    lineColor3 := rsiMa2Color
+    increaseTransparency3 := true
+    increaseTransparency3
+else
+    barsSinceCross1 := barsSinceCross1 + 1
+    barsSinceCross2 := barsSinceCross2 + 1
+    barsSinceCross3 := barsSinceCross3 + 1
+
+    if increaseTransparency1
+        transparency1 := math.min(transparency1 + transparencyFactor, 90)
+        transparency1
+    else
+        transparency1 := math.max(transparency1 - transparencyFactor, 0)
+        transparency1
+    if increaseTransparency2
+        transparency2 := math.min(transparency2 + transparencyFactor, 90)
+        transparency2
+    else
+        transparency2 := math.max(transparency2 - transparencyFactor, 0)
+        transparency2
+    if increaseTransparency3
+        transparency3 := math.min(transparency3 + transparencyFactor, 90)
+        transparency3
+    else
+        transparency3 := math.max(transparency3 - transparencyFactor, 0)
+        transparency3
+
+    if barsSinceCross1 >= barsSinceCross
+        increaseTransparency1 := not increaseTransparency1
+        barsSinceCross1 := 0
+        barsSinceCross1
+    if barsSinceCross2 >= barsSinceCross
+        increaseTransparency2 := not increaseTransparency2
+        barsSinceCross2 := 0
+        barsSinceCross2
+    if barsSinceCross3 >= barsSinceCross
+        increaseTransparency3 := not increaseTransparency3
+        barsSinceCross3 := 0
+        barsSinceCross3
+
+    if transparency1 == 0 and lineColor1 == rsiBasisColor
+        lineColor1 := rsiBasisColorExt
+        barsSinceCross1 := 0
+        increaseTransparency1 := true
+        increaseTransparency1
+    if transparency2 == 0 and lineColor2 == rsiMa1Color
+        lineColor2 := rsiBasisColorExt
+        barsSinceCross2 := 0
+        increaseTransparency2 := true
+        increaseTransparency2
+    if transparency3 == 0 and lineColor3 == rsiMa2Color
+        lineColor3 := rsiBasisColorExt
+        barsSinceCross3 := 0
+        increaseTransparency3 := true
+        increaseTransparency3
+
+// Apply the calculated transparency and color to the basis line
+basisLineColor = dynamicTransparency ? color.new(lineColor1, transparency1) : color.new(lineColor1, 0)
+ma1LineColor = dynamicTransparency ? color.new(lineColor2, transparency2) : color.new(lineColor2, 0)
+ma2LineColor = dynamicTransparency ? color.new(lineColor3, transparency3) : color.new(lineColor3, 0)
+
+// Plot RSI with selected color mode
+plot(smoothedRsi, 'RSI', color = color.new(rsiLineColor, 0), linewidth = rsiLineWidth)
+
+// Plot RSI basis
+plot(showRsiBasis ? rsiBasis : na, title = 'RSI Basis', color = basisLineColor, linewidth = rsiBasisLineWidth)
+
+// Plot additional RSI moving averages 
+plot(showRsiMa1 ? rsiMa1 : na, title = 'RSI Moving Average 1', color = ma1LineColor, linewidth = rsiMa1LineWidth)
+plot(showRsiMa2 ? rsiMa2 : na, title = 'RSI Moving Average 2', color = ma2LineColor, linewidth = rsiMa2LineWidth)
+
+// Plot Bollinger Bands
+plot(showBollingerBands ? upperRsi : na, 'Upper Band', color = color.new(color.red, 0), linewidth =  bbLinewidth)
+plot(showBollingerBands ? lowerRsi : na, 'Lower Band', color = color.new(color.green, 0), linewidth =  bbLinewidth)
+
+bgcolor(rsiOverUpper ? color.new(color.red, 80) : na)
+bgcolor(rsiUnderLower ? color.new(color.green, 80) : na)
+
+// RSI Color Levels
+greenRsiHighest = hline(80, 'Green Highest', color = color.new(color.green, na))
+greenRsiHigh = hline(75, 'Green High', color = color.new(color.green, na))
+greenRsiMid = hline(70, 'Green Mid/70', color = color.new(color.red, 20), linewidth = 2, linestyle = hline.style_solid)
+greenRsiLow = hline(65, 'Green Low', color = color.new(color.green, na))
+greenRsiLowest = hline(60, 'Green Lowest', color = color.new(color.green, na))
+yellowRsiHigh = hline(55, 'Rsi Yellow High', color = color.new(color.yellow, na))
+Rsi50 = hline(50, 'Rsi 50', color = color.new(color.yellow, 0))
+yellowRsiLow = hline(45, 'Rsi Yellow Low', color = color.new(color.yellow, na))
+redRsiHighest = hline(40, 'Red Highest', color = color.new(color.red, na))
+redRsiHigh = hline(35, 'Red High', color = color.new(color.red, na))
+redRsiMid = hline(30, 'Red Mid/30', color = color.new(color.green, 20), linewidth = 2, linestyle = hline.style_solid)
+redRsiLow = hline(25, 'Red Low', color = color.new(color.red, na))
+redRsiLowest = hline(20, 'Red Lowest', color = color.new(color.red, na))
+
+// Define color constants with transparency levels
+greenColor40 = color.new(color.green, 40)
+greenColor50 = color.new(color.green, 50)
+greenColor60 = color.new(color.green, 60)
+greenColor70 = color.new(color.green, 70)
+greenColor80 = color.new(color.green, 80)
+yellowColor60 = color.new(color.yellow, 60)
+redColor40 = color.new(color.red, 40)
+redColor50 = color.new(color.red, 50)
+redColor60 = color.new(color.red, 60)
+redColor70 = color.new(color.red, 70)
+redColor80 = color.new(color.red, 80)
+
+// Add fills between each RSI level
+fill(greenRsiHighest, greenRsiHigh, color = showFills ? greenColor40 : color.new(color.green, 100), title = 'Green Highest to Green High Fill')
+fill(greenRsiHigh, greenRsiMid, color = showFills ? greenColor50 : color.new(color.green, 100), title = 'Green High to Green Mid Fill')
+fill(greenRsiMid, greenRsiLow, color = showFills ? greenColor60 : color.new(color.green, 100), title = 'Green Mid to Green Low Fill')
+fill(greenRsiLow, greenRsiLowest, color = showFills ? greenColor70 : color.new(color.green, 100), title = 'Green Low to Green Lowest Fill')
+fill(greenRsiLowest, yellowRsiHigh, color = showFills ? greenColor80 : color.new(color.green, 100), title = 'Green Lowest to Yellow High Fill')
+fill(yellowRsiHigh, yellowRsiLow, color = showFills ? yellowColor60 : color.new(color.yellow, 100), title = 'Yellow High to Yellow Low Fill')
+fill(yellowRsiLow, redRsiHighest, color = showFills ? redColor80 : color.new(color.red, 100), title = 'Yellow Low to Red Highest Fill')
+fill(redRsiHighest, redRsiHigh, color = showFills ? redColor70 : color.new(color.red, 100), title = 'Red Highest to Red High Fill')
+fill(redRsiHigh, redRsiMid, color = showFills ? redColor60 : color.new(color.red, 100), title = 'Red High to Red Mid Fill')
+fill(redRsiMid, redRsiLow, color = showFills ? redColor50 : color.new(color.red, 100), title = 'Red Mid to Red Low Fill')
+fill(redRsiLow, redRsiLowest, color = showFills ? redColor40 : color.new(color.red, 100), title = 'Red Low to Red Lowest Fill')
+
+// Divergence section
+noneColor = color.new(color.white, 100)
+plFound = na(ta.pivotlow(smoothedRsi, lookbackLeft, lookbackRight)) ? false : true
+phFound = na(ta.pivothigh(smoothedRsi, lookbackLeft, lookbackRight)) ? false : true
+_inRange(cond) =>
+    bars = ta.barssince(cond == true)
+    rangeLower <= bars and bars <= rangeUpper
+
+// Bullish
+// rsi: Higher Low
+rsiHL = smoothedRsi[lookbackRight] > ta.valuewhen(plFound, smoothedRsi[lookbackRight], 1) and _inRange(plFound[1])
+// Price: Lower Low
+priceLL = low[lookbackRight] < ta.valuewhen(plFound, low[lookbackRight], 1)
+bullCondAlert = priceLL and rsiHL and plFound
+bullCond = showDivergence and bullCondAlert
+plot(plFound ? rsi[lookbackRight] : na, offset = -lookbackRight, title = 'Bullish', linewidth = 4, color = bullCond ? bullColor : noneColor)
+
+// Bearish
+// rsi: Lower High
+rsiLH = smoothedRsi[lookbackRight] < ta.valuewhen(phFound, smoothedRsi[lookbackRight], 1) and _inRange(phFound[1])
+// Price: Higher High
+priceHH = high[lookbackRight] > ta.valuewhen(phFound, high[lookbackRight], 1)
+bearCondAlert = priceHH and rsiLH and phFound
+bearCond = showDivergence and bearCondAlert
+plot(phFound ? rsi[lookbackRight] : na, offset = -lookbackRight, title = 'Bearish', linewidth = 4, color = bearCond ? bearColor : noneColor)

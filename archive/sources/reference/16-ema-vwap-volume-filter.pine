@@ -1,0 +1,197 @@
+//@version=6
+indicator("EMA/VWAP Volume Filter", shorttitle="EVV Filter", overlay=true, max_labels_count=500)
+
+// ======================================================
+// Inputs
+// ======================================================
+groupTrend = "Trend Filters"
+emaLen = input.int(200, "EMA Length", minval=1, group=groupTrend)
+showEMA = input.bool(true, "Show EMA", group=groupTrend)
+showVWAP = input.bool(true, "Show VWAP", group=groupTrend)
+
+groupVol = "Volume Filters"
+volMaLen = input.int(20, "Volume MA Length", minval=1, group=groupVol)
+volSpikeMult = input.float(1.5, "Volume Spike Multiplier", minval=0.1, step=0.1, group=groupVol)
+showVolMarkers = input.bool(true, "Show Volume Spike Markers", group=groupVol)
+
+groupSignals = "Signals / Visual"
+showTrendSignals = input.bool(true, "Show EMA+VWAP Signals (EV/VE)", group=groupSignals)
+compactText = input.bool(true, "Compact Text", group=groupSignals)
+showPanel = input.bool(true, "Show Summary Panel", group=groupSignals)
+showBgBias = input.bool(false, "Background Bias Tint", group=groupSignals)
+
+// ======================================================
+// Core Calculations
+// ======================================================
+ema200 = ta.ema(close, emaLen)
+vwapVal = ta.vwap(hlc3)
+
+volMa = ta.sma(volume, volMaLen)
+volRatio = volMa > 0 ? (volume / volMa) : na
+isVolSpike = not na(volRatio) and volRatio >= volSpikeMult
+
+// Trend states
+aboveEMA = close > ema200
+aboveVWAP = close > vwapVal
+belowEMA = close < ema200
+belowVWAP = close < vwapVal
+
+bullBias = aboveEMA and aboveVWAP
+bearBias = belowEMA and belowVWAP
+neutralBias = not bullBias and not bearBias
+
+// Cross/trigger events
+bullEV = ta.crossover(close, ema200) and close > vwapVal
+bearEV = ta.crossunder(close, ema200) and close < vwapVal
+
+bullVW = ta.crossover(close, vwapVal) and close > ema200
+bearVW = ta.crossunder(close, vwapVal) and close < ema200
+
+bullEvent = bullEV or bullVW
+bearEvent = bearEV or bearVW
+
+// ATR only for visual spacing (marker offsets)
+compAtr = ta.atr(14)
+bullY_ev  = low  - compAtr * 0.90
+bullY_vol = low  - compAtr * 0.55
+bearY_ev  = high + compAtr * 0.90
+bearY_vol = high + compAtr * 0.55
+
+// ======================================================
+// Plots
+// ======================================================
+plot(showEMA ? ema200 : na, "EMA 200", color=color.orange, linewidth=2)
+plot(showVWAP ? vwapVal : na, "VWAP", color=color.aqua, linewidth=2)
+
+// Optional background bias tint (subtle)
+bgColor = bullBias ? color.new(color.green, 92) : bearBias ? color.new(color.red, 92) : na
+bgcolor(showBgBias ? bgColor : na)
+
+// ======================================================
+// Markers (clean + offseted to avoid overlap)
+// ======================================================
+
+// === COMPACT TEXT ===
+plotshape(showTrendSignals and compactText and bullEvent ? bullY_ev : na, title="Bull EV Compact", style=shape.triangleup, location=location.absolute,
+     color=color.green, text="EV", textcolor=color.white, size=size.tiny,
+     display=display.all - display.status_line)
+
+plotshape(showTrendSignals and compactText and bearEvent ? bearY_ev : na, title="Bear EV Compact", style=shape.triangledown, location=location.absolute,
+     color=color.red, text="VE", textcolor=color.white, size=size.tiny,
+     display=display.all - display.status_line)
+
+// === FULL TEXT ===
+plotshape(showTrendSignals and not compactText and bullEvent ? bullY_ev : na, title="Bull EV Full", style=shape.triangleup, location=location.absolute,
+     color=color.green, text="EMA/VWAP Buy", textcolor=color.white, size=size.tiny,
+     display=display.all - display.status_line)
+
+plotshape(showTrendSignals and not compactText and bearEvent ? bearY_ev : na, title="Bear EV Full", style=shape.triangledown, location=location.absolute,
+     color=color.red, text="EMA/VWAP Sell", textcolor=color.white, size=size.tiny,
+     display=display.all - display.status_line)
+
+// Volume spike markers (small circles, closer than EV/VE)
+
+// COMPACT
+plotshape(showVolMarkers and compactText and isVolSpike and close >= open ? bullY_vol : na, title="Vol Spike Bull Compact", style=shape.circle, location=location.absolute,
+     color=color.new(color.green, 0), text="V+", textcolor=color.white, size=size.tiny,
+     display=display.all - display.status_line)
+
+plotshape(showVolMarkers and compactText and isVolSpike and close < open ? bearY_vol : na, title="Vol Spike Bear Compact", style=shape.circle, location=location.absolute,
+     color=color.new(color.red, 0), text="V+", textcolor=color.white, size=size.tiny,
+     display=display.all - display.status_line)
+
+// FULL
+plotshape(showVolMarkers and not compactText and isVolSpike and close >= open ? bullY_vol : na, title="Vol Spike Bull Full", style=shape.circle, location=location.absolute,
+     color=color.new(color.green, 0), text="Vol+", textcolor=color.white, size=size.tiny,
+     display=display.all - display.status_line)
+
+plotshape(showVolMarkers and not compactText and isVolSpike and close < open ? bearY_vol : na, title="Vol Spike Bear Full", style=shape.circle, location=location.absolute,
+     color=color.new(color.red, 0), text="Vol+", textcolor=color.white, size=size.tiny,
+     display=display.all - display.status_line)
+
+// ======================================================
+// Summary Panel (Compact Label) - floating near chart top
+// ======================================================
+
+// Compact status texts
+biasText = bullBias ? "BUY" : bearBias ? "SELL" : "NEUTRAL"
+
+evText = bullEvent ? "EV+" : bearEvent ? "VE-" : "—"
+
+volText = na(volRatio) ? "n/a" : str.tostring(volRatio, "#.##") + "x"
+volState = isVolSpike ? "SPIKE" : "NORMAL"
+
+// Safe distances
+emaDistPct  = ema200 != 0 ? ((close / ema200) - 1) * 100 : na
+vwapDistPct = vwapVal != 0 ? ((close / vwapVal) - 1) * 100 : na
+
+// Track last event (compact / non-growing)
+var string lastEvent = "None"
+if bullEvent and isVolSpike
+    lastEvent := "EV+ | V+"
+else if bearEvent and isVolSpike
+    lastEvent := "VE- | V+"
+else if bullEvent
+    lastEvent := "EV+"
+else if bearEvent
+    lastEvent := "VE-"
+else if isVolSpike
+    lastEvent := "V+"
+
+// Label colors
+panelBg =
+     bullBias ? color.new(color.green, 80) :
+     bearBias ? color.new(color.red, 82) :
+     color.new(color.gray, 82)
+
+panelTextColor = color.white
+
+// Build compact text (VERTICAL / clearer)
+line1 = "EMA/VWAP Vol"
+line2 = "Bias: " + biasText
+line3 = "EV : " + evText + " | " + (aboveEMA ? "E+" : "E-") + " " + (aboveVWAP ? "V+" : "V-")
+line4 = "Vol: " + volText + " " + volState
+
+distE = na(emaDistPct) ? "n/a" : str.tostring(emaDistPct, "#.#") + "%"
+distV = na(vwapDistPct) ? "n/a" : str.tostring(vwapDistPct, "#.#") + "%"
+
+line5 = "E% : " + distE
+line6 = "V% : " + distV
+line7 = "Last: " + lastEvent
+
+panelText = line1 + "\n" + line2 + "\n" + line3 + "\n" + line4 + "\n" + line5 + "\n" + line6 + "\n" + line7
+
+// Floating position (above current price using ATR)
+// Ajuste fino: aumente/diminua 2.6 se quiser subir/descer o painel
+panelY = high + compAtr * 2.4
+
+var label infoPanel = na
+
+if showPanel and barstate.islast
+    if na(infoPanel)
+        infoPanel := label.new(
+             bar_index, panelY, panelText,
+             xloc=xloc.bar_index, yloc=yloc.price,
+             style=label.style_label_left,
+             textcolor=panelTextColor,
+             color=panelBg,
+             size=size.small
+         )
+    else
+        label.set_x(infoPanel, bar_index)
+        label.set_y(infoPanel, panelY)
+        label.set_text(infoPanel, panelText)
+        label.set_textcolor(infoPanel, panelTextColor)
+        label.set_color(infoPanel, panelBg)
+        label.set_style(infoPanel, label.style_label_left)
+else
+    if not na(infoPanel)
+        label.delete(infoPanel)
+        infoPanel := na
+
+// ==============================
+// EVV (substituir bloco de alerts)
+// ==============================
+alertcondition(bullEvent, title="CTX EVV Bull",  message="CTX | EVV BUY | Event EV+ | Bias BUY")
+alertcondition(bearEvent, title="CTX EVV Bear",  message="CTX | EVV SELL | Event VE- | Bias SELL")
+alertcondition(isVolSpike, title="CTX Volume Spike", message="CTX | VOL | V+")
