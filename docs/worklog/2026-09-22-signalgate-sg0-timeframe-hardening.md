@@ -51,7 +51,9 @@ Auto mappings now behave as follows:
 - Trigger: use 1H while chart <= 1H; above 1H, use the chart timeframe.
 - Structure: use 4H while chart <= 4H; above 4H, use the chart timeframe.
 
-Manual Bias/Structure/Trigger selections below the chart timeframe raise `runtime.error()`.
+Bias timeframes below the chart are **safe-clamped to the chart timeframe**. This keeps the dashboard usable when the operator switches to a higher chart timeframe without falling back to invalid LTF sampling. The full panel reports the effective Bias TFs and appends `Bias clamp: SIM` when a clamp occurs.
+
+Manual Structure/Trigger selections below the chart timeframe still raise `runtime.error()`, because silently changing those event-producing contexts would alter trigger/structure semantics.
 
 A true intrabar/LTF engine based on `request.security_lower_tf()` is a separate future milestone because it requires deterministic intrabar state processing, not a one-line substitution.
 
@@ -121,6 +123,27 @@ Result:
 
 The fakeout path was tightened during this review so its optional alert/log uses a one-shot `fakeoutEvt` transition rather than the persistent state.
 
+## Interactive evidence received
+
+### BTCUSDT 15m
+- candidate loaded successfully
+- compact panel rendered
+- current chart bar correctly displayed as `PREVIEW`
+- effective Trigger TF displayed as `60`
+
+### BTCUSDT 4H
+- candidate loaded successfully
+- full panel rendered, making all gates visible
+- effective TF line displayed `Trigger 240 | Bias 240/D | Structure 240 | HTF: CONF`
+- G1–G5, scores, conflict and mini-summary rendered without runtime error
+
+These observations validate rendering/timeframe selection, but **do not** close reload-parity or alert gates.
+
+### BTCUSDT 1D — pre-clamp guard evidence
+The original SG-0 guard correctly rejected the default 4H Bias #1 on a 1D chart instead of silently sampling LTF data. That protection is considered proven.
+
+The UX policy was then refined: Bias TFs now safe-clamp upward to the chart TF. On 1D with defaults the expected effective bias becomes `D/D`, with `Bias clamp: SIM` shown in the full panel. This revised behavior requires one interactive retest.
+
 ## Validation gates still required
 
 ### Gate 2 — TradingView compile — PASS
@@ -158,8 +181,14 @@ For each:
 4. confirm closed-bar state/events remain identical
 5. verify K/R, GO/EARLY and IN_PLAY alerts do not fire from transient intrabar states
 
-### Guard test
-On a 1D chart with default Bias TF #1 = 4H, the script should raise an explicit timeframe error rather than silently sample 4H intrabars.
+### Safe-clamp test
+On a 1D chart with default Bias TF #1 = 4H:
+- script must load without a bias-timeframe runtime error
+- effective Bias TFs must be `D/D`
+- full panel must show `Bias clamp: SIM`
+- no lower-timeframe `request.security()` path may be used
+
+Manual Structure/Trigger selections below the chart TF must continue to raise an explicit runtime error.
 
 ## Promotion rule
 
