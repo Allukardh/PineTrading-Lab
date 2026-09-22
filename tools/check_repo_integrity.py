@@ -60,6 +60,11 @@ def main() -> None:
             'if logOn and barstate.isconfirmed',
             'fakeoutEvt = fakeout and not fakeout[1]',
             'alFake and fakeoutEvt',
+            'string tf_bias1_eff = bias1CfgSec < chartTfSec ? timeframe.period : tf_bias1',
+            'string tf_bias2_eff = bias2CfgSec < chartTfSec ? timeframe.period : tf_bias2',
+            'ema200_bias1 = f_sec(tf_bias1_eff',
+            'ema200_bias2 = f_sec(tf_bias2_eff',
+            'Bias clamp: SIM',
         ]
         for token in required:
             if token not in sg:
@@ -69,6 +74,8 @@ def main() -> None:
             'request.security(syminfo.tickerid, _tf, _expr, barmerge.gaps_off, barmerge.lookahead_off)',
             'SignalGate Dashboard v4.9.1',
             'alFake and fakeout,',
+            'Bias TF #1 must be equal to or higher than the chart TF',
+            'Bias TF #2 must be equal to or higher than the chart TF',
         ]
         for token in forbidden:
             if token in sg:
