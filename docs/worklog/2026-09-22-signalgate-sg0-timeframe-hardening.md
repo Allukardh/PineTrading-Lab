@@ -139,10 +139,19 @@ The fakeout path was tightened during this review so its optional alert/log uses
 
 These observations validate rendering/timeframe selection, but **do not** close reload-parity or alert gates.
 
-### BTCUSDT 1D — pre-clamp guard evidence
+### BTCUSDT 1D — safe-clamp PASS
 The original SG-0 guard correctly rejected the default 4H Bias #1 on a 1D chart instead of silently sampling LTF data. That protection is considered proven.
 
-The UX policy was then refined: Bias TFs now safe-clamp upward to the chart TF. On 1D with defaults the expected effective bias becomes `D/D`, with `Bias clamp: SIM` shown in the full panel. This revised behavior requires one interactive retest.
+After the UX refinement, the revised candidate was retested interactively:
+- script loaded without runtime error
+- full panel rendered
+- Trigger TF displayed `1D`
+- Bias TF displayed `1D/D` (both are daily contexts; the difference is TradingView string formatting)
+- Structure TF displayed `1D`
+- `HTF: CONF` displayed
+- `Bias clamp: SIM` displayed
+
+Therefore the Bias safe-clamp behavior is **PASS** for the 1D default case.
 
 ## Validation gates still required
 
@@ -184,14 +193,16 @@ For each:
 4. confirm closed-bar state/events remain identical
 5. verify K/R, GO/EARLY and IN_PLAY alerts do not fire from transient intrabar states
 
-### Safe-clamp test
+### Safe-clamp test — 1D default PASS
 On a 1D chart with default Bias TF #1 = 4H:
-- script must load without a bias-timeframe runtime error
-- effective Bias TFs must be `D/D`
-- full panel must show `Bias clamp: SIM`
-- no lower-timeframe `request.security()` path may be used
+- [x] loads without a bias-timeframe runtime error
+- [x] effective Bias contexts are daily (`1D/D`)
+- [x] full panel shows `Bias clamp: SIM`
+- [x] no lower-timeframe `request.security()` path is used (static/CI)
 
-Manual Structure/Trigger selections below the chart TF must continue to raise an explicit runtime error.
+Still pending:
+- manual Structure TF below chart must raise explicit runtime error
+- manual Trigger TF below chart must raise explicit runtime error
 
 ## Promotion rule
 
