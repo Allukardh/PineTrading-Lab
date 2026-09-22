@@ -212,7 +212,50 @@ Expected live differences on the still-open 15m candle:
 - BTC price moved from about 86,244 to 86,256
 - G5 space moved slightly from about `4.61 / 4.52` to `4.55 / 4.56`
 
-Conclusion: **15m reload visual/state parity PASS for closed-history/rendered state**. This completes the 15m/1H/4H reload matrix; actual bar-close alert/event parity remains pending.
+Conclusion: **15m reload visual/state parity PASS for closed-history/rendered state**. This completes the 15m/1H/4H reload matrix; event-specific alert transitions remain pending.
+
+### BTCUSDT 15m — HEARTBEAT bar-close evidence
+
+A TradingView alert was created with `Any alert() function call` and temporary `Log HEARTBEAT (debug)` enabled.
+
+Observed registry evidence:
+- alert created: 17:11:26
+- last fired: 17:15:01
+- chart timeframe: 15m
+- telemetry `T=1790107200000`, corresponding to the 17:00 local chart bar
+- therefore the alert fired ~1 second after the 17:00–17:15 bar closed
+- exactly one HEARTBEAT entry was visible for the observed close
+
+Telemetry payload fields visible in the alert:
+- `SRC=DASH`
+- `VER=0.1.0`
+- `ALFREQ=BARCLOSE`
+- `DATAPOLICY=CONFIRMED_HTF`
+- `EVT=HEARTBEAT`
+- `SYM=BTCUSDT`
+- `EX=BINANCE`
+- `TF=15`
+- `PROFILE=Aggressive`
+- `STATE=GO`
+- `VERDICT=LONG`
+- `QUAL=REGULAR`
+- `MODE=B (BREAKOUT)`
+- `SCL=6`
+- `SCS=3`
+- `GOTH=7`
+- `WTH=5`
+- `BIASL=1`
+- `BIASS=0`
+- `ST=1`
+- `TRIGTF=60`
+- `STRUCTTF=240`
+- `INDIR=0`
+
+The payload matches the visible 15m dashboard state from the preceding interactive test (Aggressive / GO / LONG / REGULAR / Mode B / score 6-3 / trigger 60 / structure 240 / execution OFF).
+
+`INV=1` with `INDIR=0` is consistent with the current implementation: invalidation is computed for the bar and then clears the IN_PLAY state on that same bar. It is not treated as a contradiction.
+
+Conclusion: **dynamic bar-close telemetry PASS for the observed 15m close**. Event-specific GO/EARLY/K-R/IN_PLAY alert transitions remain to be validated separately.
 
 These observations validate rendering/timeframe selection, but **do not** close reload-parity or alert gates.
 
