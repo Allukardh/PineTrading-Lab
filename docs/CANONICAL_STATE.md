@@ -51,9 +51,9 @@ The scoring model, thresholds and market-logic weights have **not** been redesig
 - Bias safe-clamp 1D default case: **PASS (interactive)**
 - Repository integrity automation: **PASS** (latest push + PR runs)
 - Pine v6 TradingView server compile: **PASS** — errors 0, warnings 0 (GitHub Actions)
-- Realtime vs reload parity: **PARTIAL PASS** — 4H and 1H closed-history/rendered state stable across reload; 15m and alert-close parity pending
+- Realtime vs reload parity: **PARTIAL PASS** — 15m/1H/4H closed-history/rendered state stable across reload; actual bar-close alert/event parity pending
 - Alert regression: **PENDING**
-- Visual/state regression: **PARTIAL PASS** — 15m compact, 4H full panel, and 1D safe-clamp full panel rendered successfully
+- Visual/state regression: **PARTIAL PASS** — 15m/1H/4H reload matrix stable; 1D safe-clamp full panel rendered successfully; alert-close/remaining guard tests pending
 - Market efficacy validation: **NOT STARTED**
 
 ## Merge rule
