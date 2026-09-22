@@ -35,7 +35,8 @@ Scope is intentionally narrow:
 - confirmed HTF request policy
 - no implicit lower-timeframe `request.security()`
 - safe Auto Trigger / Auto Structure mappings
-- runtime guards for invalid manual timeframe combinations
+- Bias TF safe-clamp to chart TF when configured below chart
+- runtime guards for invalid manual Structure/Trigger timeframe combinations
 - confirmed structure/trigger state commits
 - chart-close alert and telemetry gates
 - explicit PREVIEW/FECHADA bar state in panel
@@ -51,7 +52,7 @@ The scoring model, thresholds and market-logic weights have **not** been redesig
 - Pine v6 TradingView server compile: **PASS** — errors 0, warnings 0 (GitHub Actions)
 - Realtime vs reload parity: **PENDING — interactive chart gate**
 - Alert regression: **PENDING**
-- Visual/state regression: **PENDING**
+- Visual/state regression: **PARTIAL PASS** — 15m compact + 4H full panel rendered; 1D safe-clamp retest pending
 - Market efficacy validation: **NOT STARTED**
 
 ## Merge rule
