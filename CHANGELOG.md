@@ -22,6 +22,8 @@ All notable project changes are documented here.
 - SignalGate auto Trigger/Structure mappings no longer silently select timeframes below the chart.
 - SignalGate state-changing trigger/structure events commit on confirmed context boundaries.
 - SignalGate `alertcondition()` and telemetry paths are explicitly chart-close gated.
+- Bias timeframes now safe-clamp to the chart timeframe when their configured TF is lower, avoiding LTF misuse while keeping higher-chart-timeframe operation usable.
+- Full panel reports effective Bias TFs and discloses when a bias clamp is active.
 
 ### Fixed
 - SignalGate no longer uses `request.security()` as an implicit lower-timeframe sampler when Auto Trigger is enabled on charts above 1H.
