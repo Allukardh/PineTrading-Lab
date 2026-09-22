@@ -137,6 +137,33 @@ The fakeout path was tightened during this review so its optional alert/log uses
 - effective TF line displayed `Trigger 240 | Bias 240/D | Structure 240 | HTF: CONF`
 - G1–G5, scores, conflict and mini-summary rendered without runtime error
 
+### BTCUSDT 4H — reload parity evidence
+Two screenshots were captured around a browser reload, approximately 22 seconds apart on the same open 4H bar.
+
+Observed invariant state across reload:
+- Profile: Agressivo
+- Mode: B (BREAKOUT)
+- Operação: Compra
+- state: GO
+- quality: BOM
+- G1 Tendência: Alta
+- G2 Estrutura: Alta
+- G3 execution: LONG(1)
+- G4 momentum state unchanged
+- Força C/V: 8 / 1
+- Pronto C/V: 100% / 14%
+- Conflito: Não
+- Trigger/Bias/Structure TF line unchanged: `240 | 240/D | 240 | HTF: CONF`
+- visible historical BOS/CHoCH/retest markers and structure/range levels remained visually aligned
+
+Expected live differences were observed because the current 4H candle continued trading between screenshots:
+- BTC price changed from about 86,350 to 86,369
+- G5 space changed slightly (about `1.02 / 5.45` to `1.00 / 5.47`)
+
+Those small live-value changes are consistent with the still-open chart bar and are not, by themselves, evidence of repainting.
+
+Conclusion: **4H reload visual/state parity PASS for closed-history/rendered state**. Alert-delivery parity at an actual bar close remains pending.
+
 These observations validate rendering/timeframe selection, but **do not** close reload-parity or alert gates.
 
 ### BTCUSDT 1D — safe-clamp PASS
