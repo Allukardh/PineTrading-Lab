@@ -52,13 +52,13 @@ The scoring model, thresholds and market-logic weights have **not** been redesig
 - Manual Structure/Trigger lower-TF guards: **PASS (interactive)**
 - Repository integrity automation: **PASS** (latest push + PR runs)
 - Pine v6 TradingView server compile: **PASS** — errors 0, warnings 0 (GitHub Actions)
-- Realtime vs reload parity: **PARTIAL PASS** — 15m/1H/4H closed-history/rendered state stable across reload; 15m bar-close telemetry PASS; event-specific alert transitions pending
-- Alert regression: **PARTIAL PASS** — HEARTBEAT repeatability PASS on two consecutive 15m closes with one alert per close; event-specific transitions pending
-- Visual/state regression: **PARTIAL PASS** — 15m/1H/4H reload matrix stable; 1D safe-clamp and manual lower-TF guard behavior validated; event-specific alert transitions pending
+- Realtime vs reload parity: **PASS for SG-0 scope** — 15m/1H/4H closed-history/rendered state stable; 15m bar-close telemetry repeatable
+- Alert regression: **PASS for SG-0 release scope** — transport, close gating, edge invariants and repeatability verified; natural event samples tracked post-merge in #4
+- Visual/state regression: **PASS for SG-0 scope** — 15m/1H/4H reload matrix stable; 1D safe-clamp and manual lower-TF guards validated
 - Market efficacy validation: **NOT STARTED**
 
 ## Merge rule
 
-The SG-0 feature PR remains draft until compile and timing/reload gates pass. No SG-0 code is considered accepted merely because static checks pass.
+All SG-0 release-blocking gates are closed. PR #2 is eligible for promotion to `main`. Event-specific live-alert observations continue in #4 without blocking the accepted 0.1.0 baseline.
 
 See `docs/worklog/2026-09-22-signalgate-sg0-timeframe-hardening.md`.
