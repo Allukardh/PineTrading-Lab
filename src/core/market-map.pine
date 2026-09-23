@@ -151,12 +151,14 @@ float ctxClose = f_sec(contextTf, close)
 float ctxMid = f_sec(contextTf, ta.ema(close, MID_LEN))
 float ctxSlow = f_sec(contextTf, ta.ema(close, SLOW_LEN))
 
-bool localBull = close > emaMid and emaMid > emaSlow and emaMid > emaMid[2]
-bool localBear = close < emaMid and emaMid < emaSlow and emaMid < emaMid[2]
-bool ctxBull = ctxClose > ctxMid and ctxMid > ctxSlow
-bool ctxBear = ctxClose < ctxMid and ctxMid < ctxSlow
+// Regime is deliberately slower than execution. A normal pullback below the
+// fast/mid layer should not erase a higher-timeframe bullish/bearish regime.
+bool localBullRegime = emaMid > emaSlow and emaSlow >= emaSlow[3]
+bool localBearRegime = emaMid < emaSlow and emaSlow <= emaSlow[3]
+bool ctxBullRegime = ctxMid > ctxSlow and ctxClose > ctxSlow
+bool ctxBearRegime = ctxMid < ctxSlow and ctxClose < ctxSlow
 
-int regimeDir = localBull and ctxBull ? 1 : localBear and ctxBear ? -1 : 0
+int regimeDir = localBullRegime and ctxBullRegime ? 1 : localBearRegime and ctxBearRegime ? -1 : 0
 string regimeTxt = regimeDir == 1 ? "ALTA" : regimeDir == -1 ? "BAIXA" : "NEUTRO / TRANSIÇÃO"
 
 // ---------------------------------------------------------------------------
