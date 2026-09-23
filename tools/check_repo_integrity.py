@@ -140,6 +140,7 @@ def main() -> None:
             'float liqBelow2 = na',
             'float destination1 = mapDir == 1 ? liqAbove : mapDir == -1 ? liqBelow : na',
             'bool destinationNear = not na(destinationDistanceAtr) and destinationDistanceAtr <= TARGET_NEAR_ATR',
+            'string activeDestinationTxt = thesisInvalidated ? "—" : destinationTxt',
             'table.cell(panel, 0, 5, "DESTINO"',
             'phaseTxt := "FALSO ROMPIMENTO"',
             'bool bullSwingSequence = lastHighType == "HH" and lastLowType == "HL"',
