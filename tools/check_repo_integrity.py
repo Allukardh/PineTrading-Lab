@@ -128,6 +128,12 @@ def main() -> None:
             'table.cell(panel, 0, 4, "T2"',
             'table.cell(panel, 0, 5, "LIQ ↑"',
             'table.cell(panel, 0, 7, "INVALIDA"',
+            'liqAboveSource := "PDH"',
+            'liqAboveSource := "PWH"',
+            'liqBelowSource := "PDL"',
+            'liqBelowSource := "PWL"',
+            'phaseTxt := "FALSO ROMPIMENTO"',
+            '// Single semantic panel — no Compact/Full variants',
         ]
         for token in required_mm:
             if token not in mm:
@@ -138,6 +144,10 @@ def main() -> None:
             'Liquidation Map',
             'probability',
             'probabilidade',
+            'compactPanel',
+            'fullPanel',
+            'Painel compacto',
+            'Painel completo',
         ]
         for token in forbidden_mm:
             if token in mm:
