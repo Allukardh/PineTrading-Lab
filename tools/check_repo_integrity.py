@@ -136,10 +136,15 @@ def main() -> None:
             'liqBelowSource := "PDL"',
             'liqBelowSource := "PWL"',
             'phaseTxt := "FALSO ROMPIMENTO"',
-            'lastStructureEvent + " • " + swingStructureTxt',
+            'bool bullSwingSequence = lastHighType == "HH" and lastLowType == "HL"',
+            '"ALTA • REVERSÃO"',
+            '"BAIXA • REVERSÃO"',
             'bool regimeStructureConflict = regimeDir != 0 and structureDir != 0 and regimeDir != structureDir',
             'phaseTxt := regimeStructureConflict ? "TRANSIÇÃO ESTRUTURAL" : "TRANSIÇÃO"',
-            'string contextTxt = contextTf + " • HTF CONF" + (correctionReady ? " • " + correctionModel : "")',
+            'var int invalidatedImpulseKey = na',
+            'phaseTxt := "TESTE DE INVALIDAÇÃO"',
+            'phaseTxt := "TESE INVALIDADA"',
+            'string contextTxt = contextTf + " • HTF CONF" + (correctionActive ? " • " + correctionModel : "")',
             '// Single semantic panel — no Compact/Full variants',
         ]
         for token in required_mm:
@@ -155,6 +160,7 @@ def main() -> None:
             'fullPanel',
             'Painel compacto',
             'Painel completo',
+            'lastStructureEvent',
         ]
         for token in forbidden_mm:
             if token in mm:
