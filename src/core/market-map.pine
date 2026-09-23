@@ -95,8 +95,8 @@ f_impulse_acceptance(_startBar, _endBar, _low, _high) =>
     float vwapValue = na
     float volumeNode = na
     int matchedBars = 0
-    float range = _high - _low
-    if not na(_startBar) and not na(_endBar) and range > syminfo.mintick
+    float impulseSpan = _high - _low
+    if not na(_startBar) and not na(_endBar) and impulseSpan > syminfo.mintick
         float totalPV = 0.0
         float totalV = 0.0
         float[] bins = array.new_float(ACCEPTANCE_BINS, 0.0)
@@ -109,14 +109,14 @@ f_impulse_acceptance(_startBar, _endBar, _low, _high) =>
                     totalPV += p * v
                     totalV += v
                     matchedBars += 1
-                    float rel = math.max(0.0, math.min(0.999999, (p - _low) / range))
+                    float rel = math.max(0.0, math.min(0.999999, (p - _low) / impulseSpan))
                     int bin = int(math.floor(rel * ACCEPTANCE_BINS))
                     array.set(bins, bin, array.get(bins, bin) + v)
         if totalV > 0
             vwapValue := totalPV / totalV
             float maxBinV = array.max(bins)
             int nodeBin = array.indexof(bins, maxBinV)
-            volumeNode := _low + (nodeBin + 0.5) * (range / ACCEPTANCE_BINS)
+            volumeNode := _low + (nodeBin + 0.5) * (impulseSpan / ACCEPTANCE_BINS)
     [vwapValue, volumeNode, matchedBars]
 
 // ---------------------------------------------------------------------------
