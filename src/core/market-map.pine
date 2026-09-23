@@ -12,9 +12,11 @@ indicator("Market Map v0.1.0", shorttitle="Market Map", overlay=true, max_bars_b
 // Minimal operator controls
 // ---------------------------------------------------------------------------
 groupView = "Visual"
-visualMode = input.string("Standard", "Modo visual", options=["Clean", "Standard", "Detailed"], group=groupView)
 showMAs = input.bool(true, "Mostrar médias", group=groupView)
 showPanel = input.bool(true, "Mostrar painel", group=groupView)
+
+groupAdvanced = "Avançado / Diagnóstico"
+showStructureDetails = input.bool(false, "Mostrar BOS/CHoCH e zonas secundárias", group=groupAdvanced)
 
 // Engineering defaults are intentionally internal. They are product defaults,
 // not operator tuning requirements.
@@ -37,7 +39,7 @@ float INVALID_TOL_ATR = 0.12
 float PULLBACK_MIN_DEPTH = 0.12
 float PULLBACK_MAX_DEPTH = 0.90
 
-bool detailed = visualMode == "Detailed"
+bool detailed = showStructureDetails
 
 // ---------------------------------------------------------------------------
 // Helpers
