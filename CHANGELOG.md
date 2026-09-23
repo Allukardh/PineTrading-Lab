@@ -9,6 +9,7 @@ All notable project changes are documented here.
 - Market Map 0.1.0 / MM-0 prototype with integrated regime, structure, structural liquidity and Correction Engine.
 - Market Map liquidity ranking now includes confirmed PDH/PDL/PWH/PWL candidates and source labels.
 - Market Map failed-breakout state restores pre-break structure when a CHoCH fails.
+- Market Map adds a directional destination ladder using the nearest and next distinct intact liquidity pools, with proximity disclosure.
 - Market Map Correction Engine now adapts its primary zone from recent completed pullback depths, with Fibonacci fallback when sample history is insufficient.
 - Market Map adds clean-room current-impulse volume acceptance via VWAP + approximate VNode; no false POC labeling.
 - Single semantic panel policy; Compact/Full variants are retired.
