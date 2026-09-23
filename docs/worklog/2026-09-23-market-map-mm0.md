@@ -14,9 +14,11 @@ MM-0 therefore does **not** attempt to reproduce MA 6x visually.
 ## Minimal settings
 
 MM-0 exposes only:
-- Visual mode: Clean / Standard / Detailed
+- Visual mode: Clean / Standard / Detailed — controls chart overlays only
 - Show moving averages
 - Show panel
+
+There is deliberately **one panel only**. Compact/Full panel variants are prohibited; diagnostic detail must not compete with the decision-facing panel.
 
 No trading profile exists in MM-0 because the map itself does not yet need competing operating personalities.
 
