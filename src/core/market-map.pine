@@ -682,6 +682,7 @@ var int diagDestinationHits = 0
 var int diagInvalidations = 0
 var int diagZoneToDestination = 0
 var int diagZoneToInvalidation = 0
+var int diagAmbiguousOutcomes = 0
 
 bool diagNewThesis = barstate.isconfirmed and correctionReady and not na(impulseKey) and impulseKey != diagTrackedKey
 if diagNewThesis
@@ -695,21 +696,33 @@ if diagNewThesis
     diagTheses += 1
 
 bool diagZoneTouchNow = barstate.isconfirmed and correctionActive and not diagZoneTouched and high >= primaryBottom and low <= primaryTop
+bool diagDestinationCondition = barstate.isconfirmed and not diagDestinationHit and not na(diagTrackedDestination) and
+     ((diagTrackedDir == 1 and high >= diagTrackedDestination) or (diagTrackedDir == -1 and low <= diagTrackedDestination))
+bool diagInvalidationCondition = barstate.isconfirmed and thesisInvalidated and not diagInvalidated
+
+// OHLC does not reveal intrabar ordering. If the first zone touch and an
+// outcome happen on the same candle, or both outcome boundaries are crossed
+// on one candle, exclude that case from directional zone-outcome statistics.
+bool diagAmbiguousNow = not diagOutcomeResolved and
+     ((diagZoneTouchNow and (diagDestinationCondition or diagInvalidationCondition)) or
+      (diagZoneTouched and diagDestinationCondition and diagInvalidationCondition))
+
 if diagZoneTouchNow
     diagZoneTouched := true
     diagZoneTouches += 1
 
-bool diagDestinationHitNow = barstate.isconfirmed and not diagDestinationHit and not na(diagTrackedDestination) and
-     ((diagTrackedDir == 1 and high >= diagTrackedDestination) or (diagTrackedDir == -1 and low <= diagTrackedDestination))
-if diagDestinationHitNow
+if diagAmbiguousNow
+    diagAmbiguousOutcomes += 1
+    diagOutcomeResolved := true
+
+if diagDestinationCondition
     diagDestinationHit := true
     diagDestinationHits += 1
     if diagZoneTouched and not diagOutcomeResolved
         diagZoneToDestination += 1
         diagOutcomeResolved := true
 
-bool diagInvalidationNow = barstate.isconfirmed and thesisInvalidated and not diagInvalidated
-if diagInvalidationNow
+if diagInvalidationCondition
     diagInvalidated := true
     diagInvalidations += 1
     if diagZoneTouched and not diagOutcomeResolved
@@ -717,6 +730,7 @@ if diagInvalidationNow
         diagOutcomeResolved := true
 
 float diagResolvedAfterZone = diagZoneToDestination + diagZoneToInvalidation
+float diagOpenAfterZone = math.max(0, diagZoneTouches - diagResolvedAfterZone - diagAmbiguousOutcomes)
 float diagZoneReactionPct = diagResolvedAfterZone > 0 ? 100.0 * diagZoneToDestination / diagResolvedAfterZone : na
 
 bool inT1 = correctionActive and close <= t1Top and close >= t1Bottom
@@ -874,6 +888,8 @@ plot(diagDestinationHits, "MM Hist • Destinos atingidos", color=color.new(colo
 plot(diagInvalidations, "MM Hist • Invalidações", color=color.new(color.white, 100), display=display.data_window)
 plot(diagZoneToDestination, "MM Hist • Zona→Destino", color=color.new(color.white, 100), display=display.data_window)
 plot(diagZoneToInvalidation, "MM Hist • Zona→Invalidação", color=color.new(color.white, 100), display=display.data_window)
+plot(diagAmbiguousOutcomes, "MM Hist • Resultados ambíguos", color=color.new(color.white, 100), display=display.data_window)
+plot(diagOpenAfterZone, "MM Hist • Zona sem desfecho", color=color.new(color.white, 100), display=display.data_window)
 plot(diagZoneReactionPct, "MM Hist • Zona→Destino % (engenharia)", color=color.new(color.white, 100), display=display.data_window)
 
 // ---------------------------------------------------------------------------
