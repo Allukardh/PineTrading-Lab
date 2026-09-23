@@ -108,3 +108,15 @@ Any change to a default/profile must document:
 - market-behavior evidence when applicable
 
 Do not tune defaults only to make a single historical screenshot look better.
+
+
+## Panel policy
+
+The suite has **one semantic panel contract per product**.
+
+Do not implement:
+- Compact vs Full panel modes
+- a “simple” panel that withholds decision-critical context
+- a “complete” panel that exposes engineering diagnostics and internal scores
+
+Normal controls may include **Show/Hide panel** and presentation preferences such as location/text size. Diagnostic data belongs in Advanced/Diagnostics or the Pine Data Window, not in a second panel mode.
