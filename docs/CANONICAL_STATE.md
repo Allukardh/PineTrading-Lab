@@ -131,6 +131,8 @@ Current prototype:
 - automatic confirmed HTF context
 - HH/HL/LH/LL + BOS/CHoCH
 - structural-liquidity pools + PDH/PDL/PWH/PWL ranking
+- directional destination ladder: nearest + next distinct intact liquidity
+- target proximity disclosure without automatic trade instruction
 - failed-breakout/fakeout state
 - adaptive Correction Engine: empirical pullback depth with Fib fallback
 - impulse volume-acceptance confluence (VWAP + VNode, not labeled POC)
