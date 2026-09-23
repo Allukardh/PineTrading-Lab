@@ -3,7 +3,8 @@
 **Date:** 2026-09-23  
 **Phase:** Trading Suite Architecture v1 — Market Map foundation  
 **Main baseline:** SignalGate Dashboard 0.1.0 accepted on `main`  
-**Active architecture:** Market Map + Execution + Decision Panel
+**Active architecture:** Market Map + Execution + Decision Panel  
+**Active development branch:** `feat/market-map-0.1.0-mm0`
 
 ## Evidence baseline
 
@@ -116,6 +117,22 @@ Accepted timing-safe baseline.
 
 ### Moving Average Shift MAS-0
 Existing draft work is preserved but **paused as a standalone-product reboot**. Its useful logic will be integrated under Execution after Market Map foundations are established.
+
+### Market Map MM-0
+
+Path: `src/core/market-map.pine`
+
+Status: **COMPILE/STATIC PASS; visual validation pending**
+
+Current prototype:
+- minimal 3-control UI
+- EMA 21/50/200 trend layer
+- automatic confirmed HTF context
+- HH/HL/LH/LL + BOS/CHoCH
+- structural-liquidity pools
+- T1/T2/T3 Correction Engine
+- current-map-only zones
+- semantic panel
 
 ### Next implementation target
 **Market Map foundation**
