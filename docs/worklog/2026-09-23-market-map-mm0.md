@@ -186,3 +186,22 @@ Correction confluence can now include:
 - impulse volume acceptance
 
 The panel now says `CORREÇÃO`, not `T2`, and the context indicates `ADAPT n` or `FIB`.
+
+
+## Volume-profile donor decision
+
+The donor library contains full histogram/profile implementations, including ChartPrime POC logic and LuxAlgo clustered volume profiles. MM-0 intentionally does **not** transplant those implementations.
+
+Reasons:
+- they add substantial chart/object complexity
+- clustered/K-means profile output is not necessary to answer the current Market Map questions
+- third-party provenance/licensing remains separate
+- a cleaner current-impulse acceptance model can supply useful confluence without pretending to be exchange volume-at-price
+
+MM-0 therefore uses:
+- exact bar-volume weighted mean price across the bounded structural impulse (`impulseVwap`)
+- a clean-room 20-bin hlc3-volume node (`impulseVNode`)
+
+`impulseVNode` is documented as an approximation and is never labeled `POC`.
+
+An exact profile-style POC will only be added later if visual/market validation shows meaningful incremental information.
