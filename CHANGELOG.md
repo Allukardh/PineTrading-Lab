@@ -6,6 +6,7 @@ All notable project changes are documented here.
 
 ### Added
 - Approved three-product suite architecture: **Market Map**, **Execution**, and **Decision Panel**.
+- Market Map 0.1.0 / MM-0 prototype with integrated regime, structure, structural liquidity and Correction Engine.
 - Dedicated Correction Engine design for pullback/retest zones, confluence targets and invalidation.
 - Minimal-settings / profile-driven defaults policy.
 
