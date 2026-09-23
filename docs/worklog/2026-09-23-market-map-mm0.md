@@ -393,3 +393,16 @@ DESTINO  ATINGIDO 86.717 • PDH → 87.279 • EQH
 ```
 
 After that, the normal destination ladder continues from the next intact liquidity pool.
+
+
+### OHLC ambiguity policy
+
+Historical candles do not reveal intrabar ordering.
+
+The diagnostics therefore **exclude ambiguous outcome ordering** when:
+- the first correction-zone touch and destination/invalidation occur on the same candle, or
+- destination and invalidation boundaries are both crossed on the same candle after a prior zone touch
+
+Those cases are counted separately as `Resultados ambíguos` and do not enter `Zona→Destino % (engenharia)`.
+
+`Zona sem desfecho` also exposes censored/open historical cases instead of silently treating them as wins or losses.
