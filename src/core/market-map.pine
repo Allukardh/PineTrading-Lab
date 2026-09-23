@@ -280,20 +280,50 @@ var float lastBreakLevel = na
 var int lastBreakDir = 0
 var int lastBreakBar = na
 var int preBreakStructureDir = 0
+var string lastStructureEvent = "—"
+
+// A breakout starts a developing impulse immediately. This lets Market Map
+// project pullback zones before the terminal pivot is confirmed. The LIVE
+// label explicitly tells the operator that the extreme can still expand.
+var int liveImpulseDir = 0
+var float liveImpulseLow = na
+var float liveImpulseHigh = na
+var int liveImpulseStartBar = na
+var int liveImpulseBreakBar = na
 
 if breakUp
     preBreakStructureDir := structureDir
+    lastStructureEvent := structureDir < 0 ? "CH↑" : "B↑"
     structureDir := 1
     lastBreakLevel := lastSwingHigh
     lastBreakDir := 1
     lastBreakBar := bar_index
 
+    liveImpulseDir := 1
+    liveImpulseLow := lastSwingLow
+    liveImpulseHigh := high
+    liveImpulseStartBar := lastSwingLowBar
+    liveImpulseBreakBar := bar_index
+
 if breakDown
     preBreakStructureDir := structureDir
+    lastStructureEvent := structureDir > 0 ? "CH↓" : "B↓"
     structureDir := -1
     lastBreakLevel := lastSwingLow
     lastBreakDir := -1
     lastBreakBar := bar_index
+
+    liveImpulseDir := -1
+    liveImpulseHigh := lastSwingHigh
+    liveImpulseLow := low
+    liveImpulseStartBar := lastSwingHighBar
+    liveImpulseBreakBar := bar_index
+
+if liveImpulseDir == 1 and not na(liveImpulseHigh)
+    liveImpulseHigh := math.max(liveImpulseHigh, high)
+
+if liveImpulseDir == -1 and not na(liveImpulseLow)
+    liveImpulseLow := math.min(liveImpulseLow, low)
 
 bool retestUp = barstate.isconfirmed and lastBreakDir == 1 and not na(lastBreakBar) and bar_index > lastBreakBar and bar_index - lastBreakBar <= RETEST_MAX_BARS and low <= lastBreakLevel + atr * RETEST_TOL_ATR and close >= lastBreakLevel
 bool retestDown = barstate.isconfirmed and lastBreakDir == -1 and not na(lastBreakBar) and bar_index > lastBreakBar and bar_index - lastBreakBar <= RETEST_MAX_BARS and high >= lastBreakLevel - atr * RETEST_TOL_ATR and close <= lastBreakLevel
@@ -306,9 +336,10 @@ bool fakeoutDownEvt = failedBreakDown
 if fakeoutUpEvt or fakeoutDownEvt
     structureDir := preBreakStructureDir
     lastBreakDir := 0
+    liveImpulseDir := 0
 
 string swingStructureTxt = lastHighType + "/" + lastLowType
-string structureTxt = structureDir == 1 ? swingStructureTxt + " ↑" : structureDir == -1 ? swingStructureTxt + " ↓" : swingStructureTxt
+string structureTxt = lastStructureEvent == "—" ? swingStructureTxt : lastStructureEvent + " • " + swingStructureTxt
 
 // ---------------------------------------------------------------------------
 // Confirmed external liquidity references
@@ -440,6 +471,25 @@ if mapDir == -1 and not na(lastSwingLow)
     impulseLow := lastSwingLow
     impulseEndBar := lastSwingLowBar
 
+bool useLiveImpulse = false
+bool liveBullUsable = mapDir == 1 and liveImpulseDir == 1 and not na(liveImpulseStartBar) and not na(liveImpulseLow) and not na(liveImpulseHigh)
+bool liveBearUsable = mapDir == -1 and liveImpulseDir == -1 and not na(liveImpulseStartBar) and not na(liveImpulseLow) and not na(liveImpulseHigh)
+bool liveIsNewer = na(impulseEndBar) or (not na(liveImpulseBreakBar) and liveImpulseBreakBar > impulseEndBar)
+
+if liveBullUsable and liveIsNewer
+    impulseLow := liveImpulseLow
+    impulseHigh := liveImpulseHigh
+    impulseStartBar := liveImpulseStartBar
+    impulseEndBar := bar_index
+    useLiveImpulse := true
+
+if liveBearUsable and liveIsNewer
+    impulseLow := liveImpulseLow
+    impulseHigh := liveImpulseHigh
+    impulseStartBar := liveImpulseStartBar
+    impulseEndBar := bar_index
+    useLiveImpulse := true
+
 float impulseRange = not na(impulseHigh) and not na(impulseLow) ? impulseHigh - impulseLow : na
 bool correctionReady = not na(impulseRange) and impulseRange > syminfo.mintick * 20 and not na(impulseEndBar)
 
@@ -498,7 +548,8 @@ if correctionReady and mapDir == -1
 
 float primaryTop = correctionReady ? math.max(primaryA, primaryB) : na
 float primaryBottom = correctionReady ? math.min(primaryA, primaryB) : na
-string correctionModel = empiricalReady ? "ADAPT " + str.tostring(pullbackSamples) : "FIB"
+string correctionBaseModel = empiricalReady ? "ADAPT " + str.tostring(pullbackSamples) : "FIB"
+string correctionModel = correctionReady ? (useLiveImpulse ? "LIVE/" : "") + correctionBaseModel : "—"
 
 // Current-impulse volume acceptance. This is a bar-volume approximation:
 // VWAP is exact for the selected bars; VNode bins each bar's hlc3 volume into
@@ -565,14 +616,14 @@ plot(showMAs ? emaFast : na, "EMA 21", color=fastColor, linewidth=1)
 plot(showMAs ? emaMid : na, "EMA 50", color=midColor, linewidth=2)
 plot(showMAs ? emaSlow : na, "EMA 200", color=slowColor, linewidth=3)
 
-plotshape(detailed and bosUp, title="BOS Up", style=shape.labelup, location=location.belowbar, color=color.new(color.green, 0), text="B↑", textcolor=color.white, size=size.tiny)
-plotshape(detailed and chochUp, title="CHoCH Up", style=shape.labelup, location=location.belowbar, color=color.new(color.teal, 0), text="CH↑", textcolor=color.white, size=size.tiny)
-plotshape(detailed and bosDown, title="BOS Down", style=shape.labeldown, location=location.abovebar, color=color.new(color.red, 0), text="B↓", textcolor=color.white, size=size.tiny)
-plotshape(detailed and chochDown, title="CHoCH Down", style=shape.labeldown, location=location.abovebar, color=color.new(color.orange, 0), text="CH↓", textcolor=color.white, size=size.tiny)
-plotshape(detailed and retestUp, title="Retest Up", style=shape.circle, location=location.belowbar, color=color.new(color.green, 0), size=size.tiny)
-plotshape(detailed and retestDown, title="Retest Down", style=shape.circle, location=location.abovebar, color=color.new(color.red, 0), size=size.tiny)
-plotshape(detailed and fakeoutUpEvt, title="Failed Break Up", style=shape.labeldown, location=location.abovebar, color=color.new(color.orange, 0), text="FX↑", textcolor=color.white, size=size.tiny)
-plotshape(detailed and fakeoutDownEvt, title="Failed Break Down", style=shape.labelup, location=location.belowbar, color=color.new(color.orange, 0), text="FX↓", textcolor=color.white, size=size.tiny)
+plotshape(detailed and bosUp, title="BOS Up", style=shape.labelup, location=location.belowbar, color=color.new(color.green, 0), text="B↑", textcolor=color.white, size=size.tiny, display=display.pane)
+plotshape(detailed and chochUp, title="CHoCH Up", style=shape.labelup, location=location.belowbar, color=color.new(color.teal, 0), text="CH↑", textcolor=color.white, size=size.tiny, display=display.pane)
+plotshape(detailed and bosDown, title="BOS Down", style=shape.labeldown, location=location.abovebar, color=color.new(color.red, 0), text="B↓", textcolor=color.white, size=size.tiny, display=display.pane)
+plotshape(detailed and chochDown, title="CHoCH Down", style=shape.labeldown, location=location.abovebar, color=color.new(color.orange, 0), text="CH↓", textcolor=color.white, size=size.tiny, display=display.pane)
+plotshape(detailed and retestUp, title="Retest Up", style=shape.circle, location=location.belowbar, color=color.new(color.green, 0), size=size.tiny, display=display.pane)
+plotshape(detailed and retestDown, title="Retest Down", style=shape.circle, location=location.abovebar, color=color.new(color.red, 0), size=size.tiny, display=display.pane)
+plotshape(detailed and fakeoutUpEvt, title="Failed Break Up", style=shape.labeldown, location=location.abovebar, color=color.new(color.orange, 0), text="FX↑", textcolor=color.white, size=size.tiny, display=display.pane)
+plotshape(detailed and fakeoutDownEvt, title="Failed Break Down", style=shape.labelup, location=location.belowbar, color=color.new(color.orange, 0), text="FX↓", textcolor=color.white, size=size.tiny, display=display.pane)
 
 // Current-map objects only: no historical box clutter.
 var box t1Box = na
@@ -691,6 +742,7 @@ if barstate.islast
         table.cell(panel, 1, 7, f_price(invalidation), text_color=color.red, text_size=size.small)
 
         table.cell(panel, 0, 8, "CONTEXTO", text_color=color.silver, text_size=size.tiny)
-        table.cell(panel, 1, 8, contextTf + " • HTF CONF • " + correctionModel, text_color=color.silver, text_size=size.tiny)
+        string contextTxt = contextTf + " • HTF CONF" + (correctionReady ? " • " + correctionModel : "")
+        table.cell(panel, 1, 8, contextTxt, text_color=color.silver, text_size=size.tiny)
     else
         table.clear(panel, 0, 0, 1, 8)
