@@ -7,6 +7,9 @@ All notable project changes are documented here.
 ### Added
 - Approved three-product suite architecture: **Market Map**, **Execution**, and **Decision Panel**.
 - Market Map 0.1.0 / MM-0 prototype with integrated regime, structure, structural liquidity and Correction Engine.
+- Market Map liquidity ranking now includes confirmed PDH/PDL/PWH/PWL candidates and source labels.
+- Market Map failed-breakout state restores pre-break structure when a CHoCH fails.
+- Single semantic panel policy; Compact/Full variants are retired.
 - Dedicated Correction Engine design for pullback/retest zones, confluence targets and invalidation.
 - Minimal-settings / profile-driven defaults policy.
 
