@@ -644,6 +644,8 @@ if barstate.isconfirmed and invalidationBrokenNow and not na(impulseKey)
 
 bool thesisInvalidated = correctionReady and not na(impulseKey) and invalidatedImpulseKey == impulseKey
 bool correctionActive = correctionReady and not thesisInvalidated
+string activeDestinationTxt = thesisInvalidated ? "—" : destinationTxt
+bool activeDestinationNear = not thesisInvalidated and destinationNear
 
 float invalidationDistance = correctionActive ? (mapDir == 1 ? close - invalidation : mapDir == -1 ? invalidation - close : na) : na
 bool nearInvalidation = correctionActive and not invalidationBrokenNow and not na(invalidationDistance) and invalidationDistance >= 0 and invalidationDistance <= atr * INVALID_WARN_ATR
@@ -823,7 +825,7 @@ if barstate.islast
         table.cell(panel, 1, 4, correctionTxt, text_color=color.yellow, text_size=size.small)
 
         table.cell(panel, 0, 5, "DESTINO", text_color=color.silver, text_size=size.tiny)
-        table.cell(panel, 1, 5, destinationTxt, text_color=destinationNear ? color.orange : color.aqua, text_size=size.small)
+        table.cell(panel, 1, 5, activeDestinationTxt, text_color=activeDestinationNear ? color.orange : color.aqua, text_size=size.small)
 
         table.cell(panel, 0, 6, "LIQ ↑", text_color=color.silver, text_size=size.tiny)
         table.cell(panel, 1, 6, f_price(liqAbove) + " • " + liqAboveSource, text_color=color.fuchsia, text_size=size.small)
