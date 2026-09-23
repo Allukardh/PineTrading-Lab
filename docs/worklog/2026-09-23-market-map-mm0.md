@@ -345,3 +345,20 @@ This keeps the responsibility split clean:
 ### Stale-destination rule
 
 A confirmed thesis invalidation now suppresses `DESTINO` for that impulse. Raw `LIQ ↑ / LIQ ↓` remain visible as market context, but the panel no longer presents a directional destination as if the invalidated thesis were still active.
+
+
+## MM-0 POC scope decision
+
+An exact profile-style POC is **not** being added to MM-0.
+
+The current combination of:
+- structural liquidity
+- adaptive correction depth
+- impulse VWAP
+- approximate VNode
+- BOS/retest level
+- EMA context
+
+already provides enough independent confluence for the foundation.
+
+Adding a full volume-profile engine now would increase object/algorithm complexity and risk chart clutter without demonstrated incremental decision value. It remains available as a future research option, but is not a missing requirement for Market Map 0.1.0.
