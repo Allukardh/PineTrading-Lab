@@ -72,10 +72,13 @@ The most relied-upon legacy workflow was:
 - **MA 6x** for moving-average/trend reading
 - **Fibonacci retracement** for pullback/correction context
 
+This is treated as evidence of useful concepts, **not a constraint on the new product**.
+
 Therefore:
-- MA 6x is the first Market Map trend/regime donor
-- the familiar MA overlay must be preserved in a cleaner architecture
-- Fibonacci becomes a first-class Correction Engine input
+- MA 6x is a Market Map donor, not a mandatory six-line UI
+- the new Market Map may change MA count/periods/type when a cleaner or stronger design is preferable
+- Fibonacci is available to the Correction Engine, but its implementation may differ from the prior manual workflow
+- final defaults are selected by engineering judgment and validation
 - low-level configuration is not delegated back to the operator
 
 ## Liquidity decision
@@ -93,19 +96,16 @@ Actual leveraged liquidation clusters require external derivatives/order-book/op
 
 ## Defaults policy
 
-Normal operation is profile-driven and Auto-first.
+Normal operation is **Auto-first with engineered defaults**.
 
-Default:
-- Profile: **Balanced**
-- Visual: **Standard**
-- Timeframe behavior: **Auto** where safe
+A profile selector is used only where it adds genuine value; it is not mandatory across the suite.
 
 Normal user-facing settings should be limited primarily to:
-- Profile
 - visual density
 - colors/styles
 - alert families
 - rare true operator preferences
+- profile only when materially justified
 
 Engineering thresholds belong under profiles or Advanced/Diagnostics, not in the normal workflow.
 
