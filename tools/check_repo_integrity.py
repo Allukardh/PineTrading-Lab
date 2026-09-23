@@ -108,6 +108,48 @@ def main() -> None:
             if token not in sg:
                 fail(f"SignalGate event-edge invariant missing: {token}")
 
+    mm_path = ROOT / "src/core/market-map.pine"
+    if mm_path.exists():
+        mm = norm(mm_path.read_text(encoding="utf-8"))
+        required_mm = [
+            'indicator("Market Map v0.1.0"',
+            '_expr[1], barmerge.gaps_off, barmerge.lookahead_on',
+            'int FAST_LEN = 21',
+            'int MID_LEN = 50',
+            'int SLOW_LEN = 200',
+            'string contextTf = chartSec <= tf15Sec ? "60"',
+            'bool alreadySwept = postPivotHigh > ph + syminfo.mintick',
+            'bool alreadySwept = postPivotLow < pl - syminfo.mintick',
+            'float t2Top = correctionReady ? math.max(fib500, fib618) : na',
+            'float t2Bottom = correctionReady ? math.min(fib500, fib618) : na',
+            't2Confluence += f_in_zone(emaMid, t2Top, t2Bottom, zoneTol) ? 1 : 0',
+            'phaseTxt := close > impulseHigh ? "ROMPIMENTO / IMPULSO"',
+            'table.cell(panel, 0, 1, "REGIME"',
+            'table.cell(panel, 0, 4, "T2"',
+            'table.cell(panel, 0, 5, "LIQ ↑"',
+            'table.cell(panel, 0, 7, "INVALIDA"',
+        ]
+        for token in required_mm:
+            if token not in mm:
+                fail(f"Market Map MM-0 invariant missing: {token}")
+
+        forbidden_mm = [
+            'lookahead_off)',
+            'Liquidation Map',
+            'probability',
+            'probabilidade',
+        ]
+        for token in forbidden_mm:
+            if token in mm:
+                fail(f"Market Map MM-0 forbidden pattern present: {token}")
+
+        normal_inputs = [
+            line.strip() for line in mm.splitlines()
+            if line.strip().startswith(("visualMode = input.", "showMAs = input.", "showPanel = input."))
+        ]
+        if len(normal_inputs) != 3:
+            fail(f"Market Map should expose exactly 3 normal controls in MM-0, found {len(normal_inputs)}")
+
     print("PASS: archive integrity + reboot invariants")
 
 
