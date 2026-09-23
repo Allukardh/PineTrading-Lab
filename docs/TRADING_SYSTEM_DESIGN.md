@@ -121,18 +121,19 @@ The six extracted core scripts remain valuable source material, but they are no 
 | Buying Selling Volume 2-in-1 | Participation/pressure evidence; historical proxy + possible realtime mode | Execution |
 | SignalGate Dashboard | Timing-safe synthesis baseline; semantics to be simplified | Decision Panel |
 
-## 5. MA 6x is the operator anchor
+## 5. MA 6x + Fibonacci are operator evidence, not product constraints
 
-The operator's historical workflow relied primarily on **MA 6x plus Fibonacci retracement**. This is important product evidence.
+The operator's historical workflow relied primarily on **MA 6x plus Fibonacci retracement**. This tells us that moving-average structure and retracement context are genuinely useful to the operator, but it does **not** require the new suite to preserve the old layout, number of averages, periods, algorithms, or Fibonacci presentation.
 
 Therefore:
 
-- the MA visual layer must not be discarded
-- Market Map should preserve the ability to display the familiar MA structure clearly
-- current MA 6x periods (7/20/50/100/200/350 EMA defaults) are treated as a compatibility baseline, not automatically as statistically optimal
-- final defaults are product decisions to be validated, not tuning work delegated to the operator
+- Market Map should retain a useful moving-average layer because it materially helps visual trend reading
+- MA 6x is a donor/research baseline, not a UI contract
+- the new engine may reduce, replace, or change the old 7/20/50/100/200/350 set when a cleaner design is better
+- Fibonacci is a useful Correction Engine input, not a mandatory standalone drawing model
+- final defaults are engineering/product decisions and may differ materially from the legacy scripts
+- no legacy habit should block a demonstrably clearer or more robust design
 - MA 6x “probability”/quality concepts must not be presented as calibrated probabilities unless backed by empirical calibration
-- Fibonacci becomes a first-class input to the Correction Engine instead of a manual afterthought
 
 ## 6. Correction Engine
 
@@ -269,7 +270,7 @@ Defaults are part of the product.
 
 Normal settings should be limited to:
 
-- **Profile:** Sniper / Balanced / Aggressive
+- **Profile only when it materially improves a product.** A product may intentionally have no profile selector.
 - optional trading horizon only if Auto cannot reliably infer it
 - visual mode: Clean / Standard / Detailed
 - color/theme controls
@@ -281,14 +282,16 @@ Everything else should be:
 - controlled internally by the selected profile, or
 - hidden under an explicit Advanced/Diagnostics section.
 
-### 10.2 Default profile
+### 10.2 Profiles are optional product tools
 
-**Balanced** is the default unless evidence later supports a better universal default.
+Do not add Sniper/Balanced/Aggressive merely for consistency across the suite.
 
-Profiles control coherent bundles, not isolated magic numbers:
+Use profiles only when one product genuinely needs distinct coherent operating styles. If one robust automatic/default behavior is preferable, expose no profile at all.
+
+When profiles are justified, they must control coherent bundles rather than isolated magic numbers. A likely contract is:
 
 - **Sniper:** fewer, later, stronger confirmations
-- **Balanced:** general-purpose default
+- **Balanced:** general-purpose behavior
 - **Aggressive:** earlier/more frequent signals with lower confirmation burden
 
 ### 10.3 No configuration dumping
