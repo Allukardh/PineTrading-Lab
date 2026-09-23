@@ -132,8 +132,9 @@ Current prototype:
 - HH/HL/LH/LL + BOS/CHoCH
 - structural-liquidity pools + PDH/PDL/PWH/PWL ranking
 - failed-breakout/fakeout state
-- T1/T2/T3 Correction Engine
-- current-map-only zones
+- adaptive Correction Engine: empirical pullback depth with Fib fallback
+- impulse volume-acceptance confluence (VWAP + VNode, not labeled POC)
+- current-map-only primary correction zone; T1/T3 are Advanced detail
 
 ### Next implementation target
 **Market Map foundation**
