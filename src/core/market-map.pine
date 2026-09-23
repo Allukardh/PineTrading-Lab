@@ -1,5 +1,5 @@
 //@version=6
-indicator("Market Map v0.1.0", shorttitle="Market Map", overlay=true, max_boxes_count=50, max_lines_count=100, max_labels_count=100)
+indicator("Market Map v0.1.0", shorttitle="Market Map", overlay=true, max_bars_back=5000, max_boxes_count=50, max_lines_count=100, max_labels_count=100)
 
 // ============================================================================
 // Market Map MM-0
@@ -26,10 +26,16 @@ int PIVOT_LEN = 3
 int POOL_MAX = 24
 int RETEST_MAX_BARS = 24
 int FAIL_MAX_BARS = 6
+int PULLBACK_SAMPLE_MAX = 24
+int PULLBACK_MIN_SAMPLES = 5
+int ACCEPTANCE_BINS = 20
+int ACCEPTANCE_MAX_BARS = 240
 float EQ_TOL_ATR = 0.12
 float RETEST_TOL_ATR = 0.18
 float FAIL_TOL_ATR = 0.08
 float INVALID_TOL_ATR = 0.12
+float PULLBACK_MIN_DEPTH = 0.12
+float PULLBACK_MAX_DEPTH = 0.90
 
 bool detailed = visualMode == "Detailed"
 bool standardOrMore = visualMode != "Clean"
@@ -64,6 +70,54 @@ f_trim_pool(_levels, _swept, _strength, _bars) =>
         array.shift(_swept)
         array.shift(_strength)
         array.shift(_bars)
+
+f_push_pullback(_arr, _depth) =>
+    if not na(_depth) and _depth >= PULLBACK_MIN_DEPTH and _depth <= PULLBACK_MAX_DEPTH
+        array.push(_arr, _depth)
+        if array.size(_arr) > PULLBACK_SAMPLE_MAX
+            array.shift(_arr)
+
+f_quantile(_arr, _q) =>
+    float result = na
+    int n = array.size(_arr)
+    if n > 0
+        float[] copy = array.copy(_arr)
+        array.sort(copy, order.ascending)
+        float pos = (n - 1) * _q
+        int lo = int(math.floor(pos))
+        int hi = int(math.ceil(pos))
+        float loV = array.get(copy, lo)
+        float hiV = array.get(copy, hi)
+        result := lo == hi ? loV : loV + (hiV - loV) * (pos - lo)
+    result
+
+f_impulse_acceptance(_startBar, _endBar, _low, _high) =>
+    float vwapValue = na
+    float volumeNode = na
+    int matchedBars = 0
+    float range = _high - _low
+    if not na(_startBar) and not na(_endBar) and range > syminfo.mintick
+        float totalPV = 0.0
+        float totalV = 0.0
+        float[] bins = array.new_float(ACCEPTANCE_BINS, 0.0)
+        for ago = 0 to ACCEPTANCE_MAX_BARS - 1
+            int sourceBar = bar_index - ago
+            if sourceBar >= _startBar and sourceBar <= _endBar
+                float v = nz(volume[ago], 0.0)
+                float p = hlc3[ago]
+                if v > 0 and not na(p)
+                    totalPV += p * v
+                    totalV += v
+                    matchedBars += 1
+                    float rel = math.max(0.0, math.min(0.999999, (p - _low) / range))
+                    int bin = int(math.floor(rel * ACCEPTANCE_BINS))
+                    array.set(bins, bin, array.get(bins, bin) + v)
+        if totalV > 0
+            vwapValue := totalPV / totalV
+            float maxBinV = array.max(bins)
+            int nodeBin = array.indexof(bins, maxBinV)
+            volumeNode := _low + (nodeBin + 0.5) * (range / ACCEPTANCE_BINS)
+    [vwapValue, volumeNode, matchedBars]
 
 // ---------------------------------------------------------------------------
 // Timeframe context — automatic, deterministic, confirmed HTF
@@ -142,6 +196,26 @@ var float[] lowPools = array.new_float()
 var bool[] lowSwept = array.new_bool()
 var int[] lowStrength = array.new_int()
 var int[] lowBars = array.new_int()
+
+// Completed structural pullbacks become empirical depth samples.
+// Samples are recorded before the current pivot replaces the previous swing state.
+var float[] bullPullbacks = array.new_float()
+var float[] bearPullbacks = array.new_float()
+
+int candidatePivotBar = bar_index - PIVOT_LEN
+float bullPullbackDepth = na
+float bearPullbackDepth = na
+
+if newPL and lastHighType == "HH" and not na(lastSwingLowBar) and not na(lastSwingHighBar) and lastSwingLowBar < lastSwingHighBar and lastSwingHighBar < candidatePivotBar
+    float priorBullRange = lastSwingHigh - lastSwingLow
+    bullPullbackDepth := priorBullRange > syminfo.mintick ? (lastSwingHigh - pl) / priorBullRange : na
+
+if newPH and lastLowType == "LL" and not na(lastSwingHighBar) and not na(lastSwingLowBar) and lastSwingHighBar < lastSwingLowBar and lastSwingLowBar < candidatePivotBar
+    float priorBearRange = lastSwingHigh - lastSwingLow
+    bearPullbackDepth := priorBearRange > syminfo.mintick ? (ph - lastSwingLow) / priorBearRange : na
+
+f_push_pullback(bullPullbacks, bullPullbackDepth)
+f_push_pullback(bearPullbacks, bearPullbackDepth)
 
 if newPH
     prevSwingHigh := lastSwingHigh
@@ -381,23 +455,68 @@ if correctionReady and mapDir == -1
 
 float t1Top = correctionReady ? math.max(fib382, fib500) : na
 float t1Bottom = correctionReady ? math.min(fib382, fib500) : na
-float t2Top = correctionReady ? math.max(fib500, fib618) : na
-float t2Bottom = correctionReady ? math.min(fib500, fib618) : na
+float fibT2Top = correctionReady ? math.max(fib500, fib618) : na
+float fibT2Bottom = correctionReady ? math.min(fib500, fib618) : na
 float t3Top = correctionReady ? math.max(fib618, fib786) : na
 float t3Bottom = correctionReady ? math.min(fib618, fib786) : na
+
+// Empirical correction depth: recent completed HH→HL or LL→LH pullbacks.
+// With insufficient history, fall back to the classic 0.500–0.618 zone.
+float bullQ25 = f_quantile(bullPullbacks, 0.25)
+float bullMedian = f_quantile(bullPullbacks, 0.50)
+float bullQ75 = f_quantile(bullPullbacks, 0.75)
+float bearQ25 = f_quantile(bearPullbacks, 0.25)
+float bearMedian = f_quantile(bearPullbacks, 0.50)
+float bearQ75 = f_quantile(bearPullbacks, 0.75)
+
+int pullbackSamples = mapDir == 1 ? array.size(bullPullbacks) : mapDir == -1 ? array.size(bearPullbacks) : 0
+float pullbackQ25 = mapDir == 1 ? bullQ25 : mapDir == -1 ? bearQ25 : na
+float pullbackMedian = mapDir == 1 ? bullMedian : mapDir == -1 ? bearMedian : na
+float pullbackQ75 = mapDir == 1 ? bullQ75 : mapDir == -1 ? bearQ75 : na
+bool empiricalReady = pullbackSamples >= PULLBACK_MIN_SAMPLES and not na(pullbackMedian)
+
+float empiricalSpread = empiricalReady ? math.max(0.0, pullbackQ75 - pullbackQ25) : na
+float empiricalHalfBand = empiricalReady ? math.max(0.045, math.min(0.11, empiricalSpread * 0.45)) : na
+float primaryRatioShallow = empiricalReady ? math.max(0.236, math.min(0.786, pullbackMedian - empiricalHalfBand)) : 0.500
+float primaryRatioDeep = empiricalReady ? math.max(primaryRatioShallow + 0.04, math.min(0.886, pullbackMedian + empiricalHalfBand)) : 0.618
+
+float primaryA = na
+float primaryB = na
+if correctionReady and mapDir == 1
+    primaryA := impulseHigh - impulseRange * primaryRatioShallow
+    primaryB := impulseHigh - impulseRange * primaryRatioDeep
+if correctionReady and mapDir == -1
+    primaryA := impulseLow + impulseRange * primaryRatioShallow
+    primaryB := impulseLow + impulseRange * primaryRatioDeep
+
+float primaryTop = correctionReady ? math.max(primaryA, primaryB) : na
+float primaryBottom = correctionReady ? math.min(primaryA, primaryB) : na
+string correctionModel = empiricalReady ? "ADAPT " + str.tostring(pullbackSamples) : "FIB"
+
+// Current-impulse volume acceptance. This is a bar-volume approximation:
+// VWAP is exact for the selected bars; VNode bins each bar's hlc3 volume into
+// the impulse range and is intentionally NOT labeled as exchange POC.
+float impulseVwap = na
+float impulseVNode = na
+int acceptanceBars = 0
+if barstate.islast and correctionReady
+    [calcVwap, calcVNode, calcBars] = f_impulse_acceptance(impulseStartBar, impulseEndBar, impulseLow, impulseHigh)
+    impulseVwap := calcVwap
+    impulseVNode := calcVNode
+    acceptanceBars := calcBars
 
 float invalidation = correctionReady ? (mapDir == 1 ? impulseLow - atr * INVALID_TOL_ATR : impulseHigh + atr * INVALID_TOL_ATR) : na
 
 bool inT1 = correctionReady and close <= t1Top and close >= t1Bottom
-bool inT2 = correctionReady and close <= t2Top and close >= t2Bottom
+bool inPrimary = correctionReady and close <= primaryTop and close >= primaryBottom
 bool inT3 = correctionReady and close <= t3Top and close >= t3Bottom
 
 float zoneTol = atr * 0.15
-int t2Confluence = correctionReady ? 1 : 0
-t2Confluence += f_in_zone(emaMid, t2Top, t2Bottom, zoneTol) ? 1 : 0
-t2Confluence += f_in_zone(lastBreakLevel, t2Top, t2Bottom, zoneTol) ? 1 : 0
-t2Confluence += f_in_zone(mapDir == 1 ? liqBelow : liqAbove, t2Top, t2Bottom, zoneTol) ? 1 : 0
-t2Confluence += f_in_zone(mapDir == 1 ? lastSwingLow : lastSwingHigh, t2Top, t2Bottom, zoneTol) ? 1 : 0
+int correctionConfluence = correctionReady ? 1 : 0
+correctionConfluence += f_in_zone(emaMid, primaryTop, primaryBottom, zoneTol) ? 1 : 0
+correctionConfluence += f_in_zone(lastBreakLevel, primaryTop, primaryBottom, zoneTol) ? 1 : 0
+correctionConfluence += f_in_zone(mapDir == 1 ? liqBelow : liqAbove, primaryTop, primaryBottom, zoneTol) ? 1 : 0
+correctionConfluence += f_in_zone(impulseVwap, primaryTop, primaryBottom, zoneTol) or f_in_zone(impulseVNode, primaryTop, primaryBottom, zoneTol) ? 1 : 0
 
 // ---------------------------------------------------------------------------
 // Phase classifier
@@ -407,14 +526,14 @@ string phaseTxt = "MAPEANDO"
 if mapDir == 1 and correctionReady
     phaseTxt := close > impulseHigh ? "ROMPIMENTO / IMPULSO" :
          retestUp ? "RETESTE" :
-         inT1 or inT2 or inT3 ? "CORREÇÃO" :
+         inT1 or inPrimary or inT3 ? "CORREÇÃO" :
          close < t3Bottom and close > invalidation ? "CORREÇÃO PROFUNDA" :
          close < impulseHigh ? "PULLBACK" : "IMPULSO"
 
 if mapDir == -1 and correctionReady
     phaseTxt := close < impulseLow ? "ROMPIMENTO / IMPULSO" :
          retestDown ? "RETESTE" :
-         inT1 or inT2 or inT3 ? "CORREÇÃO" :
+         inT1 or inPrimary or inT3 ? "CORREÇÃO" :
          close > t3Top and close < invalidation ? "CORREÇÃO PROFUNDA" :
          close > impulseLow ? "PULLBACK" : "IMPULSO"
 
@@ -453,8 +572,8 @@ var line liqAboveLine = na
 var line liqBelowLine = na
 
 if barstate.islast
-    bool showT1T3 = standardOrMore and correctionReady
-    bool showT2 = correctionReady
+    bool showT1T3 = detailed and correctionReady
+    bool showPrimary = correctionReady
 
     if showT1T3
         if na(t1Box)
@@ -480,14 +599,14 @@ if barstate.islast
             box.delete(t3Box)
             t3Box := na
 
-    if showT2
+    if showPrimary
         if na(t2Box)
-            t2Box := box.new(impulseEndBar, t2Top, bar_index + 20, t2Bottom, xloc=xloc.bar_index, extend=extend.right, border_color=color.new(color.yellow, 30), bgcolor=color.new(color.yellow, 88))
+            t2Box := box.new(impulseEndBar, primaryTop, bar_index + 20, primaryBottom, xloc=xloc.bar_index, extend=extend.right, border_color=color.new(color.yellow, 30), bgcolor=color.new(color.yellow, 88))
         else
             box.set_left(t2Box, impulseEndBar)
             box.set_right(t2Box, bar_index + 20)
-            box.set_top(t2Box, t2Top)
-            box.set_bottom(t2Box, t2Bottom)
+            box.set_top(t2Box, primaryTop)
+            box.set_bottom(t2Box, primaryBottom)
     else
         if not na(t2Box)
             box.delete(t2Box)
@@ -548,8 +667,8 @@ if barstate.islast
         table.cell(panel, 0, 3, "ESTRUTURA", text_color=color.silver, text_size=size.tiny)
         table.cell(panel, 1, 3, structureTxt, text_color=color.white, text_size=size.small)
 
-        table.cell(panel, 0, 4, "T2", text_color=color.silver, text_size=size.tiny)
-        table.cell(panel, 1, 4, f_zone(t2Top, t2Bottom) + "  " + f_stars(t2Confluence), text_color=color.yellow, text_size=size.small)
+        table.cell(panel, 0, 4, "CORREÇÃO", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 4, f_zone(primaryTop, primaryBottom) + "  " + f_stars(correctionConfluence), text_color=color.yellow, text_size=size.small)
 
         table.cell(panel, 0, 5, "LIQ ↑", text_color=color.silver, text_size=size.tiny)
         table.cell(panel, 1, 5, f_price(liqAbove) + " • " + liqAboveSource, text_color=color.fuchsia, text_size=size.small)
@@ -561,6 +680,6 @@ if barstate.islast
         table.cell(panel, 1, 7, f_price(invalidation), text_color=color.red, text_size=size.small)
 
         table.cell(panel, 0, 8, "CONTEXTO", text_color=color.silver, text_size=size.tiny)
-        table.cell(panel, 1, 8, contextTf + " • HTF CONF", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 8, contextTf + " • HTF CONF • " + correctionModel, text_color=color.silver, text_size=size.tiny)
     else
         table.clear(panel, 0, 0, 1, 8)
