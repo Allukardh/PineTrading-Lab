@@ -131,3 +131,31 @@ MM-0 does not yet include:
 - static integrity run `35903976738`: **PASS**
 
 The first compiler attempt correctly rejected dynamic `plotshape()` text. MM-0 was changed to separate constant-text BOS/CHoCH markers and then recompiled cleanly.
+
+
+## MM-0.2 refinement — 2026-09-23
+
+### Single-panel UX locked
+The legacy Compact/Full split is explicitly retired. Market Map has one curated semantic panel. Visual mode changes chart-overlay density only.
+
+### External structural liquidity
+The Liquidity Engine now ranks the nearest unswept candidate from:
+- confirmed swing pool
+- equal-high/equal-low pool
+- Previous Day High / Low
+- Previous Week High / Low
+
+The panel identifies the winning source as `SWING`, `EQH/EQL`, `PDH/PDL`, or `PWH/PWL`.
+
+Daily/weekly candidates maintain session-scoped sweep state so a previously consumed level is not presented as untouched liquidity.
+
+### Failed breakout
+A confirmed breakout that closes back through its break level within the bounded failure window is classified as `FALSO ROMPIMENTO`.
+
+If a CHoCH fails, structural direction is restored to the pre-break state instead of leaving a false reversal committed.
+
+### Automated gates after refinement
+- Pine compile PR run `35926083757`: **PASS**
+- compiler errors: **0**
+- compiler warnings: **0**
+- static integrity run `35926099371`: **PASS**
