@@ -136,6 +136,7 @@ Current prototype:
 - failed-breakout/fakeout state
 - adaptive Correction Engine: empirical pullback depth with Fib fallback
 - impulse volume-acceptance confluence (VWAP + VNode, not labeled POC)
+- full profile-style POC is deferred from MM-0 unless later evidence shows incremental value
 - current-map-only primary correction zone; T1/T3 are Advanced detail
 
 ### Next implementation target
