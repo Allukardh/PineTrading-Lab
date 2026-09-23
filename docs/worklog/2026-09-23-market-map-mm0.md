@@ -205,3 +205,18 @@ MM-0 therefore uses:
 `impulseVNode` is documented as an approximation and is never labeled `POC`.
 
 An exact profile-style POC will only be added later if visual/market validation shows meaningful incremental information.
+
+
+## Regime vs structure conflict policy
+
+Regime is intentionally slower than phase: a routine pullback should not erase a higher-timeframe trend.
+
+However, when the slow regime and confirmed local structure point in opposite directions, MM-0 no longer forces a correction map in the old regime direction.
+
+Policy:
+- keep the slow `REGIME` label
+- keep the confirmed `ESTRUTURA` label
+- set `FASE = TRANSIÇÃO ESTRUTURAL`
+- suppress directional correction-zone mapping until the conflict resolves
+
+This prevents a local confirmed reversal from being mislabeled as an ordinary pullback merely because the slow MA/HTF regime has not flipped yet.
