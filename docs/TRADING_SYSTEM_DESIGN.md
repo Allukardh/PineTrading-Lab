@@ -69,7 +69,9 @@ Execution must not create its own independent market map. It answers:
 
 ### 3.3 Decision Panel
 
-**Role:** small, human-readable synthesis layer.
+**Role:** one small, human-readable synthesis layer.
+
+There are **no Compact/Full panel variants**. That legacy split created two bad outcomes: one panel omitted useful context and the other exposed internal clutter. The suite uses one semantic panel whose contents are curated by the engine. The operator may show or hide it, but does not choose between competing information architectures.
 
 The accepted SignalGate Dashboard 0.1.0 is a timing-safe engineering baseline, **not** the final UX contract.
 
@@ -380,7 +382,7 @@ Architecture replaces the previous “repair six independent scripts in sequence
 1. consume semantic outputs from Market Map + Execution
 2. retire opaque G1/G2/G3/G4/G5 presentation
 3. show regime/phase/zones/execution/invalidation
-4. optional compact/full modes
+4. one curated semantic panel; no Compact/Full variants
 5. alerts tied to semantic state transitions
 
 ## 15. Current development consequences
