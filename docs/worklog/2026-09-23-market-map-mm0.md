@@ -362,3 +362,34 @@ The current combination of:
 already provides enough independent confluence for the foundation.
 
 Adding a full volume-profile engine now would increase object/algorithm complexity and risk chart clutter without demonstrated incremental decision value. It remains available as a future research option, but is not a missing requirement for Market Map 0.1.0.
+
+
+## Historical sanity instrumentation
+
+MM-0 now contains chart-native engineering telemetry in the TradingView **Data Window only**. It does not add chart labels, a second panel, or normal operator settings.
+
+Tracked counters:
+- historical thesis instances
+- first touch of the primary correction zone
+- original directional destination hit
+- confirmed invalidation
+- zone → destination resolved outcomes
+- zone → invalidation resolved outcomes
+- engineering-only zone → destination percentage over resolved post-zone outcomes
+
+Important interpretation:
+- this percentage is **not** displayed in the trading panel
+- it is **not** a predictive probability
+- it exists only to test whether the Correction Engine behaves sensibly on the chart's loaded history
+
+The thesis identity is based on **impulse origin + direction**, so the same thesis is not double-counted when a LIVE impulse later receives a confirmed terminal pivot.
+
+## Destination-hit lifecycle
+
+The panel now preserves one bar of event context when the previous directional target is reached:
+
+```text
+DESTINO  ATINGIDO 86.717 • PDH → 87.279 • EQH
+```
+
+After that, the normal destination ladder continues from the next intact liquidity pool.
