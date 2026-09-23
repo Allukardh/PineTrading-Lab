@@ -3,7 +3,7 @@
 **Date:** 2026-09-23  
 **Candidate:** `src/core/market-map.pine`  
 **Version:** 0.1.0  
-**Status:** first compile candidate
+**Status:** compile/static PASS; interactive visual validation pending
 
 ## Design freedom
 
@@ -119,3 +119,13 @@ MM-0 does not yet include:
 4. confirmed structure/liquidity reload parity
 5. correction-zone sanity against historical impulses
 6. default UX: useful without engineering-parameter tuning
+
+
+## Automated validation evidence
+
+- Pine compile run `35903976581`: **PASS**
+- compiler errors: **0**
+- compiler warnings: **0**
+- static integrity run `35903976738`: **PASS**
+
+The first compiler attempt correctly rejected dynamic `plotshape()` text. MM-0 was changed to separate constant-text BOS/CHoCH markers and then recompiled cleanly.
