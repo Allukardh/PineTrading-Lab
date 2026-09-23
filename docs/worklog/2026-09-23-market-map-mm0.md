@@ -14,9 +14,11 @@ MM-0 therefore does **not** attempt to reproduce MA 6x visually.
 ## Minimal settings
 
 MM-0 exposes only:
-- Visual mode: Clean / Standard / Detailed — controls chart overlays only
 - Show moving averages
 - Show panel
+- Advanced: show BOS/CHoCH + secondary correction zones
+
+The Clean/Standard/Detailed dropdown was removed. One well-designed default view is preferable to making the operator choose another presentation mode.
 
 There is deliberately **one panel only**. Compact/Full panel variants are prohibited; diagnostic detail must not compete with the decision-facing panel.
 
@@ -159,3 +161,28 @@ If a CHoCH fails, structural direction is restored to the pre-break state instea
 - compiler errors: **0**
 - compiler warnings: **0**
 - static integrity run `35926099371`: **PASS**
+
+
+## Adaptive correction + volume acceptance refinement
+
+The Correction Engine now keeps up to 24 completed structural pullbacks separately for bullish HH→HL and bearish LL→LH sequences.
+
+With at least 5 valid samples:
+- the primary correction zone becomes adaptive around the recent median retracement depth
+- IQR-derived spread controls zone width within bounded engineering limits
+- the fallback remains 0.500–0.618 when sample history is insufficient
+
+The current structural impulse is also scanned for volume acceptance:
+- impulse VWAP: exact bar-volume weighted mean across the bounded impulse sample
+- VNode: highest-volume hlc3 price bin inside the impulse
+- VNode is **not** labeled POC because it is a bar-level approximation, not exchange volume-at-price
+
+Correction confluence can now include:
+- structural impulse
+- overlap with the classic 0.500–0.618 core
+- EMA 50
+- BOS/retest level
+- nearest structural liquidity
+- impulse volume acceptance
+
+The panel now says `CORREÇÃO`, not `T2`, and the context indicates `ADAPT n` or `FIB`.
