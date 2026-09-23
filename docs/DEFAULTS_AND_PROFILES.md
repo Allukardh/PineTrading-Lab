@@ -26,10 +26,9 @@ Target normal configuration surface:
    - do not create profiles by default
    - if profiles add real value, keep the set small and coherent
 
-2. **Visual mode**
-   - Clean
-   - Standard — default
-   - Detailed
+2. **Visual presentation**
+   - one curated default view
+   - optional Advanced/Diagnostics detail toggle only when useful
 
 3. **Appearance**
    - colors
