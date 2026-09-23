@@ -646,7 +646,9 @@ float invalidation = correctionReady ? (mapDir == 1 ? impulseLow - atr * INVALID
 // Invalidation is a thesis lifecycle, not just another line.
 // Intrabar crossing is shown as a test; only a confirmed close permanently
 // invalidates the current impulse thesis. A new structural impulse resets it.
-int impulseKey = useLiveImpulse ? liveImpulseBreakBar : impulseEndBar
+// Stable identity across LIVE -> confirmed-terminal-pivot transition.
+// The thesis is anchored by impulse origin + direction, not by the evolving end bar.
+int impulseKey = correctionReady and not na(impulseStartBar) ? impulseStartBar * 3 + (mapDir + 1) : na
 bool invalidationBrokenNow = correctionReady and (mapDir == 1 ? close < invalidation : mapDir == -1 ? close > invalidation : false)
 
 var int invalidatedImpulseKey = na
