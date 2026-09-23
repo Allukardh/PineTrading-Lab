@@ -220,3 +220,46 @@ Policy:
 - suppress directional correction-zone mapping until the conflict resolves
 
 This prevents a local confirmed reversal from being mislabeled as an ordinary pullback merely because the slow MA/HTF regime has not flipped yet.
+
+
+## First BTCUSDT visual matrix — operator screenshots
+
+Received the first real TradingView screenshots at:
+- BTCUSDT 15m
+- BTCUSDT 1H
+- BTCUSDT 4H
+- BTCUSDT 1D
+
+### What worked
+- chart remained substantially cleaner than the legacy suite
+- EMA 21/50/200 remained readable
+- 4H and 1H correctly exposed regime/structure disagreement instead of inventing a clean continuation thesis
+- 15m produced an adaptive correction zone and nearby liquidity without filling the chart with historical boxes
+- liquidity-source labels were immediately interpretable
+
+### Problems exposed
+1. **Structure row ambiguity**
+   - examples such as `HH/HL ↓` and `LH/LL ↑` mixed the last swing taxonomy with the last break direction
+   - technically explainable, visually confusing
+
+2. **Daily confirmation lag**
+   - 1D showed `MAPEANDO` after an obvious developing breakout/impulse because the terminal pivot high was not yet confirmed
+   - confirmed-only structure is correct for historical semantics, but too slow for a live correction map
+
+3. **Status-line telemetry clutter**
+   - structural plotshapes leaked repeated 0.00 values into the TradingView indicator status line
+
+4. **Inactive correction model text**
+   - context could show `FIB` / `ADAPT 24` even when no correction zone was active
+
+### Changes from this visual gate
+- added semantic last-event structure text, e.g. `CH↓ • HH/HL`, rather than an unexplained directional arrow after the swing pair
+- added a **LIVE developing impulse** started by a confirmed breakout; its extreme expands until superseded/invalidated
+- Correction Engine prefers the newer LIVE impulse when a terminal pivot is not yet confirmed
+- LIVE zones are explicitly labeled `LIVE/FIB` or `LIVE/ADAPT n`
+- fakeout invalidates the LIVE impulse
+- structural plotshape telemetry is removed from the TradingView status line
+- context only shows the correction model when an active correction map exists
+
+### Gate status
+The first matrix is **informative but not PASS** because it found real semantic/latency issues. A focused retest is required after the above fixes.
