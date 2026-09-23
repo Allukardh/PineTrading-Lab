@@ -409,7 +409,11 @@ if weekLevelsAllowed and not pwlSwept and not na(prevWeekLow) and prevWeekLow < 
 // ---------------------------------------------------------------------------
 // Correction Engine — latest confirmed structural impulse
 // ---------------------------------------------------------------------------
-int mapDir = regimeDir != 0 ? regimeDir : structureDir
+// If slow regime and confirmed local structure disagree, do not pretend a
+// correction thesis is still clean. Freeze directional correction mapping
+// until the conflict resolves.
+bool regimeStructureConflict = regimeDir != 0 and structureDir != 0 and regimeDir != structureDir
+int mapDir = regimeStructureConflict ? 0 : regimeDir != 0 ? regimeDir : structureDir
 
 float impulseLow = na
 float impulseHigh = na
@@ -545,7 +549,7 @@ if mapDir == -1 and correctionReady
          close > impulseLow ? "PULLBACK" : "IMPULSO"
 
 if mapDir == 0
-    phaseTxt := "TRANSIÇÃO"
+    phaseTxt := regimeStructureConflict ? "TRANSIÇÃO ESTRUTURAL" : "TRANSIÇÃO"
 
 if fakeoutUpEvt or fakeoutDownEvt
     phaseTxt := "FALSO ROMPIMENTO"
