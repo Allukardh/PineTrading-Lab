@@ -122,7 +122,8 @@ def main() -> None:
             'bool alreadySwept = postPivotLow < pl - syminfo.mintick',
             'float fibT2Top = correctionReady ? math.max(fib500, fib618) : na',
             'float fibT2Bottom = correctionReady ? math.min(fib500, fib618) : na',
-            'string correctionModel = empiricalReady ? "ADAPT "',
+            'string correctionBaseModel = empiricalReady ? "ADAPT "',
+            'string correctionModel = correctionReady ? (useLiveImpulse ? "LIVE/" : "")',
             'f_impulse_acceptance(_startBar, _endBar, _low, _high)',
             'correctionConfluence += f_in_zone(emaMid, primaryTop, primaryBottom, zoneTol) ? 1 : 0',
             'phaseTxt := close > impulseHigh ? "ROMPIMENTO / IMPULSO"',
@@ -135,8 +136,10 @@ def main() -> None:
             'liqBelowSource := "PDL"',
             'liqBelowSource := "PWL"',
             'phaseTxt := "FALSO ROMPIMENTO"',
+            'lastStructureEvent + " • " + swingStructureTxt',
             'bool regimeStructureConflict = regimeDir != 0 and structureDir != 0 and regimeDir != structureDir',
             'phaseTxt := regimeStructureConflict ? "TRANSIÇÃO ESTRUTURAL" : "TRANSIÇÃO"',
+            'string contextTxt = contextTf + " • HTF CONF" + (correctionReady ? " • " + correctionModel : "")',
             '// Single semantic panel — no Compact/Full variants',
         ]
         for token in required_mm:
