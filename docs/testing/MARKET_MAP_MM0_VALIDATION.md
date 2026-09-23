@@ -16,7 +16,9 @@ MM-0 therefore computes hidden historical engineering counters inside Pine itsel
 - `MM Hist • Invalidações` — confirmed thesis invalidations
 - `MM Hist • Zona→Destino` — after zone touch, destination occurred before invalidation
 - `MM Hist • Zona→Invalidação` — after zone touch, invalidation occurred before destination
-- `MM Hist • Zona→Destino % (engenharia)` — resolved post-zone destination share
+- `MM Hist • Resultados ambíguos` — same-candle OHLC cases where event ordering cannot be known
+- `MM Hist • Zona sem desfecho` — touched zones with no resolved destination/invalidation outcome yet
+- `MM Hist • Zona→Destino % (engenharia)` — resolved, non-ambiguous post-zone destination share
 
 ## Interpretation rules
 
@@ -49,3 +51,14 @@ A healthy foundation should instead show:
 - no dependence on one hand-picked period
 
 Any later parameter change must improve semantic robustness, not merely historical curve fit.
+
+
+## Intrabar-ordering rule
+
+OHLC bars do not expose the event sequence inside the candle.
+
+MM-0 therefore refuses to guess when:
+- first zone touch and an outcome boundary happen in the same bar
+- both destination and invalidation are crossed in the same bar
+
+These cases are removed from the directional outcome denominator and reported separately.
