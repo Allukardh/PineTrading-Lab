@@ -38,7 +38,6 @@ float PULLBACK_MIN_DEPTH = 0.12
 float PULLBACK_MAX_DEPTH = 0.90
 
 bool detailed = visualMode == "Detailed"
-bool standardOrMore = visualMode != "Clean"
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -512,11 +511,15 @@ bool inPrimary = correctionReady and close <= primaryTop and close >= primaryBot
 bool inT3 = correctionReady and close <= t3Top and close >= t3Bottom
 
 float zoneTol = atr * 0.15
+bool fibCoreOverlap = correctionReady and primaryTop >= fibT2Bottom and primaryBottom <= fibT2Top
+bool acceptanceReady = acceptanceBars >= 8 and not na(impulseVwap)
+
 int correctionConfluence = correctionReady ? 1 : 0
+correctionConfluence += fibCoreOverlap ? 1 : 0
 correctionConfluence += f_in_zone(emaMid, primaryTop, primaryBottom, zoneTol) ? 1 : 0
 correctionConfluence += f_in_zone(lastBreakLevel, primaryTop, primaryBottom, zoneTol) ? 1 : 0
 correctionConfluence += f_in_zone(mapDir == 1 ? liqBelow : liqAbove, primaryTop, primaryBottom, zoneTol) ? 1 : 0
-correctionConfluence += f_in_zone(impulseVwap, primaryTop, primaryBottom, zoneTol) or f_in_zone(impulseVNode, primaryTop, primaryBottom, zoneTol) ? 1 : 0
+correctionConfluence += acceptanceReady and (f_in_zone(impulseVwap, primaryTop, primaryBottom, zoneTol) or f_in_zone(impulseVNode, primaryTop, primaryBottom, zoneTol)) ? 1 : 0
 
 // ---------------------------------------------------------------------------
 // Phase classifier
