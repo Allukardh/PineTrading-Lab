@@ -311,3 +311,32 @@ The screenshot also showed a more important UX opportunity: when price is extrem
 - updated static-integrity run `35931316729`: **PASS**
 
 The 1D LIVE correction map is now considered a strong visual result. The 15m screenshot was valuable because it exposed the last-event/active-structure ambiguity and the need for a real invalidation lifecycle.
+
+
+## Destination Engine
+
+Market Map now separates **where a correction can react** from **where the active directional thesis is trying to go**.
+
+### Semantics
+- `CORREÇÃO` = projected pullback/retest reaction zone
+- `DESTINO` = intact structural liquidity in the active map direction
+- `LIQ ↑ / LIQ ↓` = raw nearest liquidity on each side for context
+- `INVALIDA` = level that breaks the current thesis
+
+### Target ladder
+`DESTINO` contains:
+1. nearest intact directional liquidity
+2. next distinct directional liquidity when available
+
+Levels closer than `0.10 ATR` are treated as the same destination cluster rather than two fake independent targets.
+
+Example:
+```text
+DESTINO  86.717 • PDH → 87.279 • EQH
+```
+
+When the first destination is within `0.30 ATR`, the panel marks it `PRÓX.`. This is deliberately a **reaction-risk / destination-proximity signal**, not an automatic sell/buy instruction.
+
+This keeps the responsibility split clean:
+- Market Map says where structurally relevant destinations are
+- Execution will later decide whether momentum/participation supports entry, continuation or exit timing
