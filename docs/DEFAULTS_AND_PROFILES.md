@@ -22,10 +22,9 @@ It does **not** mean a universal statistically optimal parameter for every asset
 
 Target normal configuration surface:
 
-1. **Profile**
-   - Sniper
-   - Balanced — default
-   - Aggressive
+1. **Profile — only if that product genuinely needs one**
+   - do not create profiles by default
+   - if profiles add real value, keep the set small and coherent
 
 2. **Visual mode**
    - Clean
@@ -65,6 +64,12 @@ These are engineering parameters and should travel together through profile pres
 
 ## Profile contract
 
+Profiles are **optional**, not mandatory.
+
+A product should expose a profile selector only when materially different operating styles cannot be handled well by one robust automatic/default engine.
+
+If used, a likely contract is:
+
 ### Sniper
 - strongest confirmation requirement
 - fewer signals
@@ -72,7 +77,6 @@ These are engineering parameters and should travel together through profile pres
 - tighter noise rejection
 
 ### Balanced
-- default
 - general discretionary trading use
 - compromise between timing and confirmation
 
