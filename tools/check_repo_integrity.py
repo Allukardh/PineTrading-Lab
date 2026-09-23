@@ -155,12 +155,14 @@ def main() -> None:
             if token in mm:
                 fail(f"Market Map MM-0 forbidden pattern present: {token}")
 
-        normal_inputs = [
+        operator_inputs = [
             line.strip() for line in mm.splitlines()
-            if line.strip().startswith(("visualMode = input.", "showMAs = input.", "showPanel = input."))
+            if line.strip().startswith(("showMAs = input.", "showPanel = input.", "showStructureDetails = input."))
         ]
-        if len(normal_inputs) != 3:
-            fail(f"Market Map should expose exactly 3 normal controls in MM-0, found {len(normal_inputs)}")
+        if len(operator_inputs) != 3:
+            fail(f"Market Map should expose exactly 3 operator controls in MM-0, found {len(operator_inputs)}")
+        if 'visualMode = input.' in mm:
+            fail("Market Map visual-mode dropdown should not exist in MM-0")
 
     print("PASS: archive integrity + reboot invariants")
 
