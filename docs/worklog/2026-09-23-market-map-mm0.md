@@ -1,0 +1,121 @@
+# Market Map MM-0 — first integrated map prototype
+
+**Date:** 2026-09-23  
+**Candidate:** `src/core/market-map.pine`  
+**Version:** 0.1.0  
+**Status:** first compile candidate
+
+## Design freedom
+
+The operator explicitly authorized the project to depart from legacy MA 6x/Fibonacci behavior and to use profiles only where they genuinely improve the product.
+
+MM-0 therefore does **not** attempt to reproduce MA 6x visually.
+
+## Minimal settings
+
+MM-0 exposes only:
+- Visual mode: Clean / Standard / Detailed
+- Show moving averages
+- Show panel
+
+No trading profile exists in MM-0 because the map itself does not yet need competing operating personalities.
+
+Engineering thresholds are internal constants.
+
+## Trend/regime model
+
+MM-0 uses three visible EMA layers:
+- EMA 21 — short response
+- EMA 50 — intermediate structure
+- EMA 200 — long regime
+
+This is a deliberate simplification from the legacy six-MA overlay.
+
+A confirmed higher-timeframe context is selected automatically:
+- chart <= 15m → 1H
+- chart <= 1H → 4H
+- chart <= 4H → 1D
+- chart <= 1D → 1W
+
+HTF data uses the confirmed `[1] + lookahead_on` policy already validated in SignalGate.
+
+## Structure engine
+
+- confirmed pivots
+- HH/LH and HL/LL classification
+- BOS / CHoCH state
+- breakout level memory
+- confirmed retest state
+
+## Liquidity engine
+
+Clean-room structural-liquidity implementation:
+- confirmed pivot highs/lows become candidate pools
+- equal highs/lows receive stronger relevance
+- pools are marked swept only on confirmed chart bars
+- pivot confirmation delay is reconstructed: a newly confirmed pivot is immediately marked swept if price already crossed it during the right-side confirmation bars
+- only the nearest unswept pool above and below price is shown by default
+- no claim is made that these are actual leveraged-liquidation clusters
+
+## Correction Engine
+
+Uses the latest confirmed structural impulse and produces:
+- T1: 0.382–0.500
+- T2: 0.500–0.618
+- T3: 0.618–0.786
+- structural invalidation beyond the impulse origin with a small ATR buffer
+
+T2 receives a **confluence count**, not a probability, from:
+- Fibonacci zone itself
+- EMA 50 proximity
+- previous breakout/retest level
+- nearest structural liquidity
+- latest structural swing
+
+## Phase classifier
+
+Current semantic states:
+- MAPEANDO
+- TRANSIÇÃO
+- IMPULSO
+- ROMPIMENTO / IMPULSO
+- PULLBACK
+- CORREÇÃO
+- CORREÇÃO PROFUNDA
+- RETESTE
+
+## Visual contract
+
+Default Standard:
+- EMA 21 / 50 / 200
+- T1/T2/T3 current correction zones
+- nearest structural liquidity above/below
+- invalidation
+- compact semantic panel
+
+Clean:
+- keeps T2 only for correction focus
+
+Detailed:
+- adds BOS / CHoCH / retest event markers
+
+Only the **current map** is boxed. Historical box clutter is intentionally avoided.
+
+## Deferred
+
+MM-0 does not yet include:
+- volume profile / POC confluence
+- previous day/week highs/lows
+- advanced multi-zone ranking
+- Execution confirmation
+- real derivatives liquidation data
+- alerts
+
+## Validation gates
+
+1. Pine v6 server compile: 0 errors / 0 warnings
+2. repository integrity
+3. BTCUSDT 15m / 1H / 4H / 1D visual sanity
+4. confirmed structure/liquidity reload parity
+5. correction-zone sanity against historical impulses
+6. default UX: useful without engineering-parameter tuning
