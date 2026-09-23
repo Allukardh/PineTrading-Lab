@@ -1,0 +1,479 @@
+//@version=6
+indicator("Market Map v0.1.0", shorttitle="Market Map", overlay=true, max_boxes_count=50, max_lines_count=100, max_labels_count=100)
+
+// ============================================================================
+// Market Map MM-0
+// Clean-room implementation for PineTrading-Lab.
+// Purpose: trend/regime + confirmed structure + structural liquidity +
+//          correction zones + concise map.
+// ============================================================================
+
+// ---------------------------------------------------------------------------
+// Minimal operator controls
+// ---------------------------------------------------------------------------
+groupView = "Visual"
+visualMode = input.string("Standard", "Modo visual", options=["Clean", "Standard", "Detailed"], group=groupView)
+showMAs = input.bool(true, "Mostrar médias", group=groupView)
+showPanel = input.bool(true, "Mostrar painel", group=groupView)
+
+// Engineering defaults are intentionally internal. They are product defaults,
+// not operator tuning requirements.
+int FAST_LEN = 21
+int MID_LEN = 50
+int SLOW_LEN = 200
+int ATR_LEN = 14
+int PIVOT_LEN = 3
+int POOL_MAX = 24
+int RETEST_MAX_BARS = 24
+float EQ_TOL_ATR = 0.12
+float RETEST_TOL_ATR = 0.18
+float INVALID_TOL_ATR = 0.12
+
+bool detailed = visualMode == "Detailed"
+bool standardOrMore = visualMode != "Clean"
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+f_sec(_tf, _expr) =>
+    _reqSec = timeframe.in_seconds(_tf)
+    _chartSec = timeframe.in_seconds()
+    _reqSec > _chartSec ? request.security(syminfo.tickerid, _tf, _expr[1], barmerge.gaps_off, barmerge.lookahead_on) : _expr
+
+f_price(_v) =>
+    na(_v) ? "—" : str.tostring(_v, format.mintick)
+
+f_zone(_top, _bottom) =>
+    na(_top) or na(_bottom) ? "—" : str.tostring(_bottom, format.mintick) + " – " + str.tostring(_top, format.mintick)
+
+f_stars(_n) =>
+    _n >= 5 ? "★★★★★" :
+     _n == 4 ? "★★★★" :
+     _n == 3 ? "★★★" :
+     _n == 2 ? "★★" :
+     _n == 1 ? "★" : "—"
+
+f_in_zone(_v, _top, _bottom, _tol) =>
+    not na(_v) and not na(_top) and not na(_bottom) and _v <= _top + _tol and _v >= _bottom - _tol
+
+f_trim_pool(_levels, _swept, _strength, _bars) =>
+    if array.size(_levels) > POOL_MAX
+        array.shift(_levels)
+        array.shift(_swept)
+        array.shift(_strength)
+        array.shift(_bars)
+
+// ---------------------------------------------------------------------------
+// Timeframe context — automatic, deterministic, confirmed HTF
+// ---------------------------------------------------------------------------
+float chartSec = timeframe.in_seconds()
+float tf15Sec = timeframe.in_seconds("15")
+float tf60Sec = timeframe.in_seconds("60")
+float tf240Sec = timeframe.in_seconds("240")
+float tfDSec = timeframe.in_seconds("D")
+
+if na(chartSec)
+    runtime.error("Market Map requires a time-based chart timeframe.")
+
+string contextTf = chartSec <= tf15Sec ? "60" :
+     chartSec <= tf60Sec ? "240" :
+     chartSec <= tf240Sec ? "D" :
+     chartSec <= tfDSec ? "W" :
+     timeframe.period
+
+// ---------------------------------------------------------------------------
+// Trend / regime layer
+// ---------------------------------------------------------------------------
+float emaFast = ta.ema(close, FAST_LEN)
+float emaMid = ta.ema(close, MID_LEN)
+float emaSlow = ta.ema(close, SLOW_LEN)
+float atr = ta.atr(ATR_LEN)
+
+float ctxClose = f_sec(contextTf, close)
+float ctxMid = f_sec(contextTf, ta.ema(close, MID_LEN))
+float ctxSlow = f_sec(contextTf, ta.ema(close, SLOW_LEN))
+
+bool localBull = close > emaMid and emaMid > emaSlow and emaMid > emaMid[2]
+bool localBear = close < emaMid and emaMid < emaSlow and emaMid < emaMid[2]
+bool ctxBull = ctxClose > ctxMid and ctxMid > ctxSlow
+bool ctxBear = ctxClose < ctxMid and ctxMid < ctxSlow
+
+int regimeDir = localBull and ctxBull ? 1 : localBear and ctxBear ? -1 : 0
+string regimeTxt = regimeDir == 1 ? "ALTA" : regimeDir == -1 ? "BAIXA" : "NEUTRO / TRANSIÇÃO"
+
+// ---------------------------------------------------------------------------
+// Confirmed swing structure
+// ---------------------------------------------------------------------------
+float ph = ta.pivothigh(high, PIVOT_LEN, PIVOT_LEN)
+float pl = ta.pivotlow(low, PIVOT_LEN, PIVOT_LEN)
+bool newPH = not na(ph)
+bool newPL = not na(pl)
+
+// Evaluate rolling post-pivot windows every bar; used to reconstruct whether a
+// newly confirmed pivot was already swept during its confirmation delay.
+float postPivotHigh = ta.highest(high, PIVOT_LEN)
+float postPivotLow = ta.lowest(low, PIVOT_LEN)
+
+var float lastSwingHigh = na
+var float prevSwingHigh = na
+var int lastSwingHighBar = na
+var int prevSwingHighBar = na
+var string lastHighType = "—"
+
+var float lastSwingLow = na
+var float prevSwingLow = na
+var int lastSwingLowBar = na
+var int prevSwingLowBar = na
+var string lastLowType = "—"
+
+bool eqHighNow = newPH and not na(lastSwingHigh) and math.abs(ph - lastSwingHigh) <= atr * EQ_TOL_ATR
+bool eqLowNow = newPL and not na(lastSwingLow) and math.abs(pl - lastSwingLow) <= atr * EQ_TOL_ATR
+
+// Structural-liquidity pool store.
+var float[] highPools = array.new_float()
+var bool[] highSwept = array.new_bool()
+var int[] highStrength = array.new_int()
+var int[] highBars = array.new_int()
+
+var float[] lowPools = array.new_float()
+var bool[] lowSwept = array.new_bool()
+var int[] lowStrength = array.new_int()
+var int[] lowBars = array.new_int()
+
+if newPH
+    prevSwingHigh := lastSwingHigh
+    prevSwingHighBar := lastSwingHighBar
+    lastSwingHigh := ph
+    lastSwingHighBar := bar_index - PIVOT_LEN
+    lastHighType := na(prevSwingHigh) ? "H" : ph > prevSwingHigh ? "HH" : "LH"
+
+    bool alreadySwept = postPivotHigh > ph + syminfo.mintick
+    int strength = eqHighNow ? 2 : 1
+    array.push(highPools, ph)
+    array.push(highSwept, alreadySwept)
+    array.push(highStrength, strength)
+    array.push(highBars, lastSwingHighBar)
+    f_trim_pool(highPools, highSwept, highStrength, highBars)
+
+if newPL
+    prevSwingLow := lastSwingLow
+    prevSwingLowBar := lastSwingLowBar
+    lastSwingLow := pl
+    lastSwingLowBar := bar_index - PIVOT_LEN
+    lastLowType := na(prevSwingLow) ? "L" : pl > prevSwingLow ? "HL" : "LL"
+
+    bool alreadySwept = postPivotLow < pl - syminfo.mintick
+    int strength = eqLowNow ? 2 : 1
+    array.push(lowPools, pl)
+    array.push(lowSwept, alreadySwept)
+    array.push(lowStrength, strength)
+    array.push(lowBars, lastSwingLowBar)
+    f_trim_pool(lowPools, lowSwept, lowStrength, lowBars)
+
+// Mark confirmed sweeps.
+if barstate.isconfirmed
+    int highCount = array.size(highPools)
+    if highCount > 0
+        for i = 0 to highCount - 1
+            if not array.get(highSwept, i) and high > array.get(highPools, i) + syminfo.mintick
+                array.set(highSwept, i, true)
+
+    int lowCount = array.size(lowPools)
+    if lowCount > 0
+        for i = 0 to lowCount - 1
+            if not array.get(lowSwept, i) and low < array.get(lowPools, i) - syminfo.mintick
+                array.set(lowSwept, i, true)
+
+// Structure break calculations are evaluated every bar and committed on close.
+bool crossSwingHigh = ta.crossover(close, lastSwingHigh)
+bool crossSwingLow = ta.crossunder(close, lastSwingLow)
+bool breakUp = barstate.isconfirmed and not na(lastSwingHigh) and crossSwingHigh
+bool breakDown = barstate.isconfirmed and not na(lastSwingLow) and crossSwingLow
+
+var int structureDir = 0
+bool chochUp = breakUp and structureDir < 0
+bool chochDown = breakDown and structureDir > 0
+bool bosUp = breakUp and not chochUp
+bool bosDown = breakDown and not chochDown
+
+var float lastBreakLevel = na
+var int lastBreakDir = 0
+var int lastBreakBar = na
+
+if breakUp
+    structureDir := 1
+    lastBreakLevel := lastSwingHigh
+    lastBreakDir := 1
+    lastBreakBar := bar_index
+
+if breakDown
+    structureDir := -1
+    lastBreakLevel := lastSwingLow
+    lastBreakDir := -1
+    lastBreakBar := bar_index
+
+string swingStructureTxt = lastHighType + "/" + lastLowType
+string structureTxt = structureDir == 1 ? swingStructureTxt + " ↑" : structureDir == -1 ? swingStructureTxt + " ↓" : swingStructureTxt
+
+bool retestUp = barstate.isconfirmed and lastBreakDir == 1 and not na(lastBreakBar) and bar_index > lastBreakBar and bar_index - lastBreakBar <= RETEST_MAX_BARS and low <= lastBreakLevel + atr * RETEST_TOL_ATR and close >= lastBreakLevel
+bool retestDown = barstate.isconfirmed and lastBreakDir == -1 and not na(lastBreakBar) and bar_index > lastBreakBar and bar_index - lastBreakBar <= RETEST_MAX_BARS and high >= lastBreakLevel - atr * RETEST_TOL_ATR and close <= lastBreakLevel
+
+// ---------------------------------------------------------------------------
+// Nearest unswept structural liquidity
+// ---------------------------------------------------------------------------
+float liqAbove = na
+int liqAboveStrength = 0
+int liqAboveBar = na
+int hc = array.size(highPools)
+if hc > 0
+    for i = 0 to hc - 1
+        float level = array.get(highPools, i)
+        bool swept = array.get(highSwept, i)
+        if not swept and level > close
+            if na(liqAbove) or level < liqAbove
+                liqAbove := level
+                liqAboveStrength := array.get(highStrength, i)
+                liqAboveBar := array.get(highBars, i)
+
+float liqBelow = na
+int liqBelowStrength = 0
+int liqBelowBar = na
+int lc = array.size(lowPools)
+if lc > 0
+    for i = 0 to lc - 1
+        float level = array.get(lowPools, i)
+        bool swept = array.get(lowSwept, i)
+        if not swept and level < close
+            if na(liqBelow) or level > liqBelow
+                liqBelow := level
+                liqBelowStrength := array.get(lowStrength, i)
+                liqBelowBar := array.get(lowBars, i)
+
+// ---------------------------------------------------------------------------
+// Correction Engine — latest confirmed structural impulse
+// ---------------------------------------------------------------------------
+int mapDir = regimeDir != 0 ? regimeDir : structureDir
+
+float impulseLow = na
+float impulseHigh = na
+int impulseStartBar = na
+int impulseEndBar = na
+
+if mapDir == 1 and not na(lastSwingHigh)
+    if not na(lastSwingLowBar) and lastSwingLowBar < lastSwingHighBar
+        impulseLow := lastSwingLow
+        impulseStartBar := lastSwingLowBar
+    else if not na(prevSwingLowBar) and prevSwingLowBar < lastSwingHighBar
+        impulseLow := prevSwingLow
+        impulseStartBar := prevSwingLowBar
+    impulseHigh := lastSwingHigh
+    impulseEndBar := lastSwingHighBar
+
+if mapDir == -1 and not na(lastSwingLow)
+    if not na(lastSwingHighBar) and lastSwingHighBar < lastSwingLowBar
+        impulseHigh := lastSwingHigh
+        impulseStartBar := lastSwingHighBar
+    else if not na(prevSwingHighBar) and prevSwingHighBar < lastSwingLowBar
+        impulseHigh := prevSwingHigh
+        impulseStartBar := prevSwingHighBar
+    impulseLow := lastSwingLow
+    impulseEndBar := lastSwingLowBar
+
+float impulseRange = not na(impulseHigh) and not na(impulseLow) ? impulseHigh - impulseLow : na
+bool correctionReady = not na(impulseRange) and impulseRange > syminfo.mintick * 20 and not na(impulseEndBar)
+
+float fib382 = na
+float fib500 = na
+float fib618 = na
+float fib786 = na
+
+if correctionReady and mapDir == 1
+    fib382 := impulseHigh - impulseRange * 0.382
+    fib500 := impulseHigh - impulseRange * 0.500
+    fib618 := impulseHigh - impulseRange * 0.618
+    fib786 := impulseHigh - impulseRange * 0.786
+
+if correctionReady and mapDir == -1
+    fib382 := impulseLow + impulseRange * 0.382
+    fib500 := impulseLow + impulseRange * 0.500
+    fib618 := impulseLow + impulseRange * 0.618
+    fib786 := impulseLow + impulseRange * 0.786
+
+float t1Top = correctionReady ? math.max(fib382, fib500) : na
+float t1Bottom = correctionReady ? math.min(fib382, fib500) : na
+float t2Top = correctionReady ? math.max(fib500, fib618) : na
+float t2Bottom = correctionReady ? math.min(fib500, fib618) : na
+float t3Top = correctionReady ? math.max(fib618, fib786) : na
+float t3Bottom = correctionReady ? math.min(fib618, fib786) : na
+
+float invalidation = correctionReady ? (mapDir == 1 ? impulseLow - atr * INVALID_TOL_ATR : impulseHigh + atr * INVALID_TOL_ATR) : na
+
+bool inT1 = correctionReady and close <= t1Top and close >= t1Bottom
+bool inT2 = correctionReady and close <= t2Top and close >= t2Bottom
+bool inT3 = correctionReady and close <= t3Top and close >= t3Bottom
+
+float zoneTol = atr * 0.15
+int t2Confluence = correctionReady ? 1 : 0
+t2Confluence += f_in_zone(emaMid, t2Top, t2Bottom, zoneTol) ? 1 : 0
+t2Confluence += f_in_zone(lastBreakLevel, t2Top, t2Bottom, zoneTol) ? 1 : 0
+t2Confluence += f_in_zone(mapDir == 1 ? liqBelow : liqAbove, t2Top, t2Bottom, zoneTol) ? 1 : 0
+t2Confluence += f_in_zone(mapDir == 1 ? lastSwingLow : lastSwingHigh, t2Top, t2Bottom, zoneTol) ? 1 : 0
+
+// ---------------------------------------------------------------------------
+// Phase classifier
+// ---------------------------------------------------------------------------
+string phaseTxt = "MAPEANDO"
+
+if mapDir == 1 and correctionReady
+    phaseTxt := close > impulseHigh ? "ROMPIMENTO / IMPULSO" :
+         retestUp ? "RETESTE" :
+         inT1 or inT2 or inT3 ? "CORREÇÃO" :
+         close < t3Bottom and close > invalidation ? "CORREÇÃO PROFUNDA" :
+         close < impulseHigh ? "PULLBACK" : "IMPULSO"
+
+if mapDir == -1 and correctionReady
+    phaseTxt := close < impulseLow ? "ROMPIMENTO / IMPULSO" :
+         retestDown ? "RETESTE" :
+         inT1 or inT2 or inT3 ? "CORREÇÃO" :
+         close > t3Top and close < invalidation ? "CORREÇÃO PROFUNDA" :
+         close > impulseLow ? "PULLBACK" : "IMPULSO"
+
+if mapDir == 0
+    phaseTxt := "TRANSIÇÃO"
+
+// ---------------------------------------------------------------------------
+// Visual layer
+// ---------------------------------------------------------------------------
+color fastColor = color.rgb(0, 188, 212)
+color midColor = color.rgb(255, 167, 38)
+color slowColor = color.rgb(239, 83, 80)
+
+plot(showMAs ? emaFast : na, "EMA 21", color=fastColor, linewidth=1)
+plot(showMAs ? emaMid : na, "EMA 50", color=midColor, linewidth=2)
+plot(showMAs ? emaSlow : na, "EMA 200", color=slowColor, linewidth=3)
+
+plotshape(detailed and (bosUp or chochUp), title="BOS/CHoCH Up", style=shape.labelup, location=location.belowbar, color=chochUp ? color.new(color.teal, 0) : color.new(color.green, 0), text=chochUp ? "CH↑" : "B↑", textcolor=color.white, size=size.tiny)
+plotshape(detailed and (bosDown or chochDown), title="BOS/CHoCH Down", style=shape.labeldown, location=location.abovebar, color=chochDown ? color.new(color.orange, 0) : color.new(color.red, 0), text=chochDown ? "CH↓" : "B↓", textcolor=color.white, size=size.tiny)
+plotshape(detailed and retestUp, title="Retest Up", style=shape.circle, location=location.belowbar, color=color.new(color.green, 0), size=size.tiny)
+plotshape(detailed and retestDown, title="Retest Down", style=shape.circle, location=location.abovebar, color=color.new(color.red, 0), size=size.tiny)
+
+// Current-map objects only: no historical box clutter.
+var box t1Box = na
+var box t2Box = na
+var box t3Box = na
+var line invalidLine = na
+var line liqAboveLine = na
+var line liqBelowLine = na
+
+if barstate.islast
+    bool showT1T3 = standardOrMore and correctionReady
+    bool showT2 = correctionReady
+
+    if showT1T3
+        if na(t1Box)
+            t1Box := box.new(impulseEndBar, t1Top, bar_index + 20, t1Bottom, xloc=xloc.bar_index, extend=extend.right, border_color=color.new(color.aqua, 55), bgcolor=color.new(color.aqua, 92))
+        else
+            box.set_left(t1Box, impulseEndBar)
+            box.set_right(t1Box, bar_index + 20)
+            box.set_top(t1Box, t1Top)
+            box.set_bottom(t1Box, t1Bottom)
+
+        if na(t3Box)
+            t3Box := box.new(impulseEndBar, t3Top, bar_index + 20, t3Bottom, xloc=xloc.bar_index, extend=extend.right, border_color=color.new(color.red, 58), bgcolor=color.new(color.red, 93))
+        else
+            box.set_left(t3Box, impulseEndBar)
+            box.set_right(t3Box, bar_index + 20)
+            box.set_top(t3Box, t3Top)
+            box.set_bottom(t3Box, t3Bottom)
+    else
+        if not na(t1Box)
+            box.delete(t1Box)
+            t1Box := na
+        if not na(t3Box)
+            box.delete(t3Box)
+            t3Box := na
+
+    if showT2
+        if na(t2Box)
+            t2Box := box.new(impulseEndBar, t2Top, bar_index + 20, t2Bottom, xloc=xloc.bar_index, extend=extend.right, border_color=color.new(color.yellow, 30), bgcolor=color.new(color.yellow, 88))
+        else
+            box.set_left(t2Box, impulseEndBar)
+            box.set_right(t2Box, bar_index + 20)
+            box.set_top(t2Box, t2Top)
+            box.set_bottom(t2Box, t2Bottom)
+    else
+        if not na(t2Box)
+            box.delete(t2Box)
+            t2Box := na
+
+    if correctionReady
+        if na(invalidLine)
+            invalidLine := line.new(impulseEndBar, invalidation, bar_index + 20, invalidation, xloc=xloc.bar_index, extend=extend.right, color=color.new(color.red, 15), style=line.style_dashed, width=1)
+        else
+            line.set_xy1(invalidLine, impulseEndBar, invalidation)
+            line.set_xy2(invalidLine, bar_index + 20, invalidation)
+    else
+        if not na(invalidLine)
+            line.delete(invalidLine)
+            invalidLine := na
+
+    if not na(liqAbove)
+        if na(liqAboveLine)
+            liqAboveLine := line.new(math.max(liqAboveBar, bar_index - 5000), liqAbove, bar_index + 20, liqAbove, xloc=xloc.bar_index, extend=extend.right, color=color.new(color.fuchsia, 25), style=line.style_dotted, width=1)
+        else
+            line.set_xy1(liqAboveLine, math.max(liqAboveBar, bar_index - 5000), liqAbove)
+            line.set_xy2(liqAboveLine, bar_index + 20, liqAbove)
+    else
+        if not na(liqAboveLine)
+            line.delete(liqAboveLine)
+            liqAboveLine := na
+
+    if not na(liqBelow)
+        if na(liqBelowLine)
+            liqBelowLine := line.new(math.max(liqBelowBar, bar_index - 5000), liqBelow, bar_index + 20, liqBelow, xloc=xloc.bar_index, extend=extend.right, color=color.new(color.fuchsia, 25), style=line.style_dotted, width=1)
+        else
+            line.set_xy1(liqBelowLine, math.max(liqBelowBar, bar_index - 5000), liqBelow)
+            line.set_xy2(liqBelowLine, bar_index + 20, liqBelow)
+    else
+        if not na(liqBelowLine)
+            line.delete(liqBelowLine)
+            liqBelowLine := na
+
+// ---------------------------------------------------------------------------
+// Compact semantic panel
+// ---------------------------------------------------------------------------
+var table panel = table.new(position.bottom_right, 2, 9, bgcolor=color.new(color.black, 82), frame_color=color.new(color.gray, 55), frame_width=1, border_color=color.new(color.gray, 75))
+
+if barstate.islast
+    if showPanel
+        color regimeColor = regimeDir == 1 ? color.lime : regimeDir == -1 ? color.red : color.silver
+        color phaseColor = phaseTxt == "CORREÇÃO" or phaseTxt == "CORREÇÃO PROFUNDA" ? color.orange : phaseTxt == "RETESTE" ? color.aqua : color.white
+
+        table.cell(panel, 0, 0, "MARKET MAP", text_color=color.white, text_size=size.small, bgcolor=color.new(color.blue, 72))
+        table.cell(panel, 1, 0, "v0.1.0", text_color=color.silver, text_size=size.tiny, bgcolor=color.new(color.blue, 72))
+
+        table.cell(panel, 0, 1, "REGIME", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 1, regimeTxt, text_color=regimeColor, text_size=size.small)
+
+        table.cell(panel, 0, 2, "FASE", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 2, phaseTxt, text_color=phaseColor, text_size=size.small)
+
+        table.cell(panel, 0, 3, "ESTRUTURA", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 3, structureTxt, text_color=color.white, text_size=size.small)
+
+        table.cell(panel, 0, 4, "T2", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 4, f_zone(t2Top, t2Bottom) + "  " + f_stars(t2Confluence), text_color=color.yellow, text_size=size.small)
+
+        table.cell(panel, 0, 5, "LIQ ↑", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 5, f_price(liqAbove) + (liqAboveStrength >= 2 ? "  EQ" : ""), text_color=color.fuchsia, text_size=size.small)
+
+        table.cell(panel, 0, 6, "LIQ ↓", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 6, f_price(liqBelow) + (liqBelowStrength >= 2 ? "  EQ" : ""), text_color=color.fuchsia, text_size=size.small)
+
+        table.cell(panel, 0, 7, "INVALIDA", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 7, f_price(invalidation), text_color=color.red, text_size=size.small)
+
+        table.cell(panel, 0, 8, "CONTEXTO", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 8, contextTf + " • HTF CONF", text_color=color.silver, text_size=size.tiny)
+    else
+        table.clear(panel, 0, 0, 1, 8)
