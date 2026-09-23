@@ -508,10 +508,21 @@ float destination2 = mapDir == 1 ? liqAbove2 : mapDir == -1 ? liqBelow2 : na
 string destination2Source = mapDir == 1 ? liqAbove2Source : mapDir == -1 ? liqBelow2Source : "—"
 float destinationDistanceAtr = not na(destination1) and atr > 0 ? math.abs(destination1 - close) / atr : na
 bool destinationNear = not na(destinationDistanceAtr) and destinationDistanceAtr <= TARGET_NEAR_ATR
-string destinationTxt = na(destination1) ? "—" :
+
+bool destinationHitUp = barstate.isconfirmed and mapDir[1] == 1 and not na(destination1[1]) and high >= destination1[1]
+bool destinationHitDown = barstate.isconfirmed and mapDir[1] == -1 and not na(destination1[1]) and low <= destination1[1]
+bool destinationHitEvt = destinationHitUp or destinationHitDown
+float destinationHitLevel = destinationHitEvt ? destination1[1] : na
+string destinationHitSource = destinationHitEvt ? destination1Source[1] : "—"
+
+string destinationTxtBase = na(destination1) ? "—" :
      f_price(destination1) + " • " + destination1Source +
      (destinationNear ? " • PRÓX." : "") +
      (not na(destination2) ? " → " + f_price(destination2) + " • " + destination2Source : "")
+string destinationTxt = destinationHitEvt ?
+     "ATINGIDO " + f_price(destinationHitLevel) + " • " + destinationHitSource +
+     (not na(destination1) ? " → " + f_price(destination1) + " • " + destination1Source : "") :
+     destinationTxtBase
 
 float impulseLow = na
 float impulseHigh = na
@@ -649,6 +660,62 @@ bool activeDestinationNear = not thesisInvalidated and destinationNear
 
 float invalidationDistance = correctionActive ? (mapDir == 1 ? close - invalidation : mapDir == -1 ? invalidation - close : na) : na
 bool nearInvalidation = correctionActive and not invalidationBrokenNow and not na(invalidationDistance) and invalidationDistance >= 0 and invalidationDistance <= atr * INVALID_WARN_ATR
+
+// ---------------------------------------------------------------------------
+// Historical engineering telemetry — Data Window only
+// ---------------------------------------------------------------------------
+// These counters validate map behavior on the chart's loaded history. They are
+// engineering diagnostics, not predictive probabilities and not trade signals.
+var int diagTrackedKey = na
+var int diagTrackedDir = 0
+var float diagTrackedDestination = na
+var bool diagZoneTouched = false
+var bool diagDestinationHit = false
+var bool diagInvalidated = false
+var bool diagOutcomeResolved = false
+
+var int diagTheses = 0
+var int diagZoneTouches = 0
+var int diagDestinationHits = 0
+var int diagInvalidations = 0
+var int diagZoneToDestination = 0
+var int diagZoneToInvalidation = 0
+
+bool diagNewThesis = barstate.isconfirmed and correctionReady and not na(impulseKey) and impulseKey != diagTrackedKey
+if diagNewThesis
+    diagTrackedKey := impulseKey
+    diagTrackedDir := mapDir
+    diagTrackedDestination := destination1
+    diagZoneTouched := false
+    diagDestinationHit := false
+    diagInvalidated := false
+    diagOutcomeResolved := false
+    diagTheses += 1
+
+bool diagZoneTouchNow = barstate.isconfirmed and correctionActive and not diagZoneTouched and high >= primaryBottom and low <= primaryTop
+if diagZoneTouchNow
+    diagZoneTouched := true
+    diagZoneTouches += 1
+
+bool diagDestinationHitNow = barstate.isconfirmed and not diagDestinationHit and not na(diagTrackedDestination) and
+     ((diagTrackedDir == 1 and high >= diagTrackedDestination) or (diagTrackedDir == -1 and low <= diagTrackedDestination))
+if diagDestinationHitNow
+    diagDestinationHit := true
+    diagDestinationHits += 1
+    if diagZoneTouched and not diagOutcomeResolved
+        diagZoneToDestination += 1
+        diagOutcomeResolved := true
+
+bool diagInvalidationNow = barstate.isconfirmed and thesisInvalidated and not diagInvalidated
+if diagInvalidationNow
+    diagInvalidated := true
+    diagInvalidations += 1
+    if diagZoneTouched and not diagOutcomeResolved
+        diagZoneToInvalidation += 1
+        diagOutcomeResolved := true
+
+float diagResolvedAfterZone = diagZoneToDestination + diagZoneToInvalidation
+float diagZoneReactionPct = diagResolvedAfterZone > 0 ? 100.0 * diagZoneToDestination / diagResolvedAfterZone : na
 
 bool inT1 = correctionActive and close <= t1Top and close >= t1Bottom
 bool inPrimary = correctionActive and close <= primaryTop and close >= primaryBottom
@@ -797,6 +864,15 @@ if barstate.islast
         if not na(liqBelowLine)
             line.delete(liqBelowLine)
             liqBelowLine := na
+
+// Historical diagnostics are intentionally hidden from the chart/status line.
+plot(diagTheses, "MM Hist • Teses", color=color.new(color.white, 100), display=display.data_window)
+plot(diagZoneTouches, "MM Hist • Toques correção", color=color.new(color.white, 100), display=display.data_window)
+plot(diagDestinationHits, "MM Hist • Destinos atingidos", color=color.new(color.white, 100), display=display.data_window)
+plot(diagInvalidations, "MM Hist • Invalidações", color=color.new(color.white, 100), display=display.data_window)
+plot(diagZoneToDestination, "MM Hist • Zona→Destino", color=color.new(color.white, 100), display=display.data_window)
+plot(diagZoneToInvalidation, "MM Hist • Zona→Invalidação", color=color.new(color.white, 100), display=display.data_window)
+plot(diagZoneReactionPct, "MM Hist • Zona→Destino % (engenharia)", color=color.new(color.white, 100), display=display.data_window)
 
 // ---------------------------------------------------------------------------
 // Single semantic panel — no Compact/Full variants
