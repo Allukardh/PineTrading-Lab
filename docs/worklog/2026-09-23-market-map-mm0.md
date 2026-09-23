@@ -263,3 +263,51 @@ Received the first real TradingView screenshots at:
 
 ### Gate status
 The first matrix is **informative but not PASS** because it found real semantic/latency issues. A focused retest is required after the above fixes.
+
+
+## Focused visual retest — 15m + 1D
+
+Second operator screenshots received after LIVE-impulse and status-line cleanup.
+
+### 1D — major improvement
+Observed:
+- Regime: ALTA
+- Phase: PULLBACK
+- Correction: approximately 78.8k–81.5k with five confluence stars
+- Liquidity above: PDH around 86.7k
+- Liquidity below: structural swing around 75.0k
+- Invalidation: around 74.7k
+- Context: W • HTF CONF • LIVE/ADAPT 24
+
+This resolves the prior daily `MAPEANDO` failure. The developing impulse can now project a useful pullback zone before the terminal daily pivot is confirmed.
+
+### 15m — useful map, remaining semantic issue found
+Observed:
+- status-line 0.00 clutter is gone
+- adaptive correction zone rendered around 84.36k–84.44k
+- nearest liquidity above/below rendered cleanly
+- price was only a few dollars from the displayed bearish-thesis invalidation
+
+The structure row still displayed a stale prior event (`CH↑ • HH/HL`) even though the active map/invalidation was bearish. This is a presentation bug caused by retaining the last structure-event label after a failed break/reversion.
+
+The screenshot also showed a more important UX opportunity: when price is extremely close to invalidation, `CORREÇÃO PROFUNDA` is less useful than saying explicitly that the thesis is being tested.
+
+### Fixes made from the retest
+- structure row now reports **current active structural direction**:
+  - `ALTA • HH/HL`
+  - `BAIXA • LH/LL`
+  - `ALTA • REVERSÃO`
+  - `BAIXA • REVERSÃO`
+  - mixed states where appropriate
+- stale `lastStructureEvent` state removed
+- added explicit thesis lifecycle:
+  - `TESTE DE INVALIDAÇÃO` when price is within 0.20 ATR of invalidation or crosses it intrabar
+  - `TESE INVALIDADA` only after a confirmed close beyond invalidation
+- confirmed invalidation persists for the same impulse and suppresses the stale correction map until a new structural impulse is created
+- panel shows `ROMPIDA • <price>` for a confirmed invalidation
+
+### Automated validation after fixes
+- Pine compile run `35931283445`: **PASS — 0 errors / 0 warnings**
+- updated static-integrity run `35931316729`: **PASS**
+
+The 1D LIVE correction map is now considered a strong visual result. The 15m screenshot was valuable because it exposed the last-event/active-structure ambiguity and the need for a real invalidation lifecycle.
