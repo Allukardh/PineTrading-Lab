@@ -126,13 +126,14 @@ Status: **COMPILE/STATIC PASS; visual validation pending**
 
 Current prototype:
 - minimal 3-control UI
+- one semantic panel; no Compact/Full variants
 - EMA 21/50/200 trend layer
 - automatic confirmed HTF context
 - HH/HL/LH/LL + BOS/CHoCH
-- structural-liquidity pools
+- structural-liquidity pools + PDH/PDL/PWH/PWL ranking
+- failed-breakout/fakeout state
 - T1/T2/T3 Correction Engine
 - current-map-only zones
-- semantic panel
 
 ### Next implementation target
 **Market Map foundation**
