@@ -274,7 +274,8 @@ Normal settings should be limited to:
 
 - **Profile only when it materially improves a product.** A product may intentionally have no profile selector.
 - optional trading horizon only if Auto cannot reliably infer it
-- visual mode: Clean / Standard / Detailed
+- a single curated default visual
+- optional Advanced structural-detail toggle
 - color/theme controls
 - line/zone visibility where genuinely personal
 - alert enable/disable
@@ -339,7 +340,7 @@ Default Market Map should show only:
 - structural invalidation
 - only the most relevant event labels
 
-Historical/debug labels are optional.
+Historical/debug labels are optional and belong behind an Advanced/Diagnostics toggle. Do not create multiple visual-mode presets merely to hide/show the same information.
 
 ## 13. Probability terminology
 
