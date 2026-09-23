@@ -36,6 +36,7 @@ float EQ_TOL_ATR = 0.12
 float RETEST_TOL_ATR = 0.18
 float FAIL_TOL_ATR = 0.08
 float INVALID_TOL_ATR = 0.12
+float INVALID_WARN_ATR = 0.20
 float PULLBACK_MIN_DEPTH = 0.12
 float PULLBACK_MAX_DEPTH = 0.90
 
@@ -280,7 +281,6 @@ var float lastBreakLevel = na
 var int lastBreakDir = 0
 var int lastBreakBar = na
 var int preBreakStructureDir = 0
-var string lastStructureEvent = "—"
 
 // A breakout starts a developing impulse immediately. This lets Market Map
 // project pullback zones before the terminal pivot is confirmed. The LIVE
@@ -293,7 +293,6 @@ var int liveImpulseBreakBar = na
 
 if breakUp
     preBreakStructureDir := structureDir
-    lastStructureEvent := structureDir < 0 ? "CH↑" : "B↑"
     structureDir := 1
     lastBreakLevel := lastSwingHigh
     lastBreakDir := 1
@@ -307,7 +306,6 @@ if breakUp
 
 if breakDown
     preBreakStructureDir := structureDir
-    lastStructureEvent := structureDir > 0 ? "CH↓" : "B↓"
     structureDir := -1
     lastBreakLevel := lastSwingLow
     lastBreakDir := -1
@@ -339,7 +337,14 @@ if fakeoutUpEvt or fakeoutDownEvt
     liveImpulseDir := 0
 
 string swingStructureTxt = lastHighType + "/" + lastLowType
-string structureTxt = lastStructureEvent == "—" ? swingStructureTxt : lastStructureEvent + " • " + swingStructureTxt
+bool bullSwingSequence = lastHighType == "HH" and lastLowType == "HL"
+bool bearSwingSequence = lastHighType == "LH" and lastLowType == "LL"
+
+string structureTxt = structureDir == 1 ?
+     (bullSwingSequence ? "ALTA • HH/HL" : bearSwingSequence ? "ALTA • REVERSÃO" : "ALTA • MISTA") :
+     structureDir == -1 ?
+     (bearSwingSequence ? "BAIXA • LH/LL" : bullSwingSequence ? "BAIXA • REVERSÃO" : "BAIXA • MISTA") :
+     swingStructureTxt
 
 // ---------------------------------------------------------------------------
 // Confirmed external liquidity references
@@ -565,15 +570,31 @@ if barstate.islast and correctionReady
 
 float invalidation = correctionReady ? (mapDir == 1 ? impulseLow - atr * INVALID_TOL_ATR : impulseHigh + atr * INVALID_TOL_ATR) : na
 
-bool inT1 = correctionReady and close <= t1Top and close >= t1Bottom
-bool inPrimary = correctionReady and close <= primaryTop and close >= primaryBottom
-bool inT3 = correctionReady and close <= t3Top and close >= t3Bottom
+// Invalidation is a thesis lifecycle, not just another line.
+// Intrabar crossing is shown as a test; only a confirmed close permanently
+// invalidates the current impulse thesis. A new structural impulse resets it.
+int impulseKey = useLiveImpulse ? liveImpulseBreakBar : impulseEndBar
+bool invalidationBrokenNow = correctionReady and (mapDir == 1 ? close < invalidation : mapDir == -1 ? close > invalidation : false)
+
+var int invalidatedImpulseKey = na
+if barstate.isconfirmed and invalidationBrokenNow and not na(impulseKey)
+    invalidatedImpulseKey := impulseKey
+
+bool thesisInvalidated = correctionReady and not na(impulseKey) and invalidatedImpulseKey == impulseKey
+bool correctionActive = correctionReady and not thesisInvalidated
+
+float invalidationDistance = correctionActive ? (mapDir == 1 ? close - invalidation : mapDir == -1 ? invalidation - close : na) : na
+bool nearInvalidation = correctionActive and not invalidationBrokenNow and not na(invalidationDistance) and invalidationDistance >= 0 and invalidationDistance <= atr * INVALID_WARN_ATR
+
+bool inT1 = correctionActive and close <= t1Top and close >= t1Bottom
+bool inPrimary = correctionActive and close <= primaryTop and close >= primaryBottom
+bool inT3 = correctionActive and close <= t3Top and close >= t3Bottom
 
 float zoneTol = atr * 0.15
 bool fibCoreOverlap = correctionReady and primaryTop >= fibT2Bottom and primaryBottom <= fibT2Top
 bool acceptanceReady = acceptanceBars >= 8 and not na(impulseVwap)
 
-int correctionConfluence = correctionReady ? 1 : 0
+int correctionConfluence = correctionActive ? 1 : 0
 correctionConfluence += fibCoreOverlap ? 1 : 0
 correctionConfluence += f_in_zone(emaMid, primaryTop, primaryBottom, zoneTol) ? 1 : 0
 correctionConfluence += f_in_zone(lastBreakLevel, primaryTop, primaryBottom, zoneTol) ? 1 : 0
@@ -585,14 +606,14 @@ correctionConfluence += acceptanceReady and (f_in_zone(impulseVwap, primaryTop, 
 // ---------------------------------------------------------------------------
 string phaseTxt = "MAPEANDO"
 
-if mapDir == 1 and correctionReady
+if mapDir == 1 and correctionActive
     phaseTxt := close > impulseHigh ? "ROMPIMENTO / IMPULSO" :
          retestUp ? "RETESTE" :
          inT1 or inPrimary or inT3 ? "CORREÇÃO" :
          close < t3Bottom and close > invalidation ? "CORREÇÃO PROFUNDA" :
          close < impulseHigh ? "PULLBACK" : "IMPULSO"
 
-if mapDir == -1 and correctionReady
+if mapDir == -1 and correctionActive
     phaseTxt := close < impulseLow ? "ROMPIMENTO / IMPULSO" :
          retestDown ? "RETESTE" :
          inT1 or inPrimary or inT3 ? "CORREÇÃO" :
@@ -601,6 +622,12 @@ if mapDir == -1 and correctionReady
 
 if mapDir == 0
     phaseTxt := regimeStructureConflict ? "TRANSIÇÃO ESTRUTURAL" : "TRANSIÇÃO"
+
+if correctionActive and (nearInvalidation or invalidationBrokenNow)
+    phaseTxt := "TESTE DE INVALIDAÇÃO"
+
+if thesisInvalidated
+    phaseTxt := "TESE INVALIDADA"
 
 if fakeoutUpEvt or fakeoutDownEvt
     phaseTxt := "FALSO ROMPIMENTO"
@@ -634,8 +661,8 @@ var line liqAboveLine = na
 var line liqBelowLine = na
 
 if barstate.islast
-    bool showT1T3 = detailed and correctionReady
-    bool showPrimary = correctionReady
+    bool showT1T3 = detailed and correctionActive
+    bool showPrimary = correctionActive
 
     if showT1T3
         if na(t1Box)
@@ -674,7 +701,7 @@ if barstate.islast
             box.delete(t2Box)
             t2Box := na
 
-    if correctionReady
+    if correctionActive
         if na(invalidLine)
             invalidLine := line.new(impulseEndBar, invalidation, bar_index + 20, invalidation, xloc=xloc.bar_index, extend=extend.right, color=color.new(color.red, 15), style=line.style_dashed, width=1)
         else
@@ -730,7 +757,8 @@ if barstate.islast
         table.cell(panel, 1, 3, structureTxt, text_color=color.white, text_size=size.small)
 
         table.cell(panel, 0, 4, "CORREÇÃO", text_color=color.silver, text_size=size.tiny)
-        table.cell(panel, 1, 4, f_zone(primaryTop, primaryBottom) + "  " + f_stars(correctionConfluence), text_color=color.yellow, text_size=size.small)
+        string correctionTxt = correctionActive ? f_zone(primaryTop, primaryBottom) + "  " + f_stars(correctionConfluence) : "—"
+        table.cell(panel, 1, 4, correctionTxt, text_color=color.yellow, text_size=size.small)
 
         table.cell(panel, 0, 5, "LIQ ↑", text_color=color.silver, text_size=size.tiny)
         table.cell(panel, 1, 5, f_price(liqAbove) + " • " + liqAboveSource, text_color=color.fuchsia, text_size=size.small)
@@ -739,10 +767,11 @@ if barstate.islast
         table.cell(panel, 1, 6, f_price(liqBelow) + " • " + liqBelowSource, text_color=color.fuchsia, text_size=size.small)
 
         table.cell(panel, 0, 7, "INVALIDA", text_color=color.silver, text_size=size.tiny)
-        table.cell(panel, 1, 7, f_price(invalidation), text_color=color.red, text_size=size.small)
+        string invalidTxt = thesisInvalidated ? "ROMPIDA • " + f_price(invalidation) : f_price(invalidation)
+        table.cell(panel, 1, 7, invalidTxt, text_color=color.red, text_size=size.small)
 
         table.cell(panel, 0, 8, "CONTEXTO", text_color=color.silver, text_size=size.tiny)
-        string contextTxt = contextTf + " • HTF CONF" + (correctionReady ? " • " + correctionModel : "")
+        string contextTxt = contextTf + " • HTF CONF" + (correctionActive ? " • " + correctionModel : "")
         table.cell(panel, 1, 8, contextTxt, text_color=color.silver, text_size=size.tiny)
     else
         table.clear(panel, 0, 0, 1, 8)
