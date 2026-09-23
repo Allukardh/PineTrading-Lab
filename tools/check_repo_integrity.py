@@ -135,6 +135,8 @@ def main() -> None:
             'liqBelowSource := "PDL"',
             'liqBelowSource := "PWL"',
             'phaseTxt := "FALSO ROMPIMENTO"',
+            'bool regimeStructureConflict = regimeDir != 0 and structureDir != 0 and regimeDir != structureDir',
+            'phaseTxt := regimeStructureConflict ? "TRANSIÇÃO ESTRUTURAL" : "TRANSIÇÃO"',
             '// Single semantic panel — no Compact/Full variants',
         ]
         for token in required_mm:
