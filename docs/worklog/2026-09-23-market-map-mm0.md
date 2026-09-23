@@ -340,3 +340,8 @@ When the first destination is within `0.30 ATR`, the panel marks it `PRÓX.`. Th
 This keeps the responsibility split clean:
 - Market Map says where structurally relevant destinations are
 - Execution will later decide whether momentum/participation supports entry, continuation or exit timing
+
+
+### Stale-destination rule
+
+A confirmed thesis invalidation now suppresses `DESTINO` for that impulse. Raw `LIQ ↑ / LIQ ↓` remain visible as market context, but the panel no longer presents a directional destination as if the invalidated thesis were still active.
