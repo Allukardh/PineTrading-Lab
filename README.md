@@ -21,11 +21,20 @@ Private engineering lab for TradingView/Pine Script indicators used as decision-
 - 47 reference/donor scripts
 - export: 53/53 successful, 0 failures
 
-## First engineering target
+## Product architecture
 
-**SignalGate Dashboard**. The initial audit found the highest operational coupling there between GO/WATCH/NO-TRADE decisions and MTF/LTF request semantics.
+The reboot now targets a three-part suite instead of six independent end-user indicators:
 
-See `docs/audit/2026-09-22-initial-audit.md`.
+- **Market Map** — trend/regime, structure, structural liquidity, correction/retest zones, targets and invalidation.
+- **Execution** — momentum, RSI/exhaustion, volume participation and entry confirmation.
+- **Decision Panel** — concise semantic synthesis of Market Map + Execution.
+
+SignalGate Dashboard 0.1.0 is the accepted timing-safe synthesis baseline. The next implementation focus is **Market Map**, using MA 6x as the operator-familiar trend layer and Fibonacci as a first-class Correction Engine input.
+
+See:
+- `docs/TRADING_SYSTEM_DESIGN.md`
+- `docs/DEFAULTS_AND_PROFILES.md`
+- `docs/audit/2026-09-22-initial-audit.md`.
 
 ## Repository layout
 
@@ -33,6 +42,6 @@ See `docs/audit/2026-09-22-initial-audit.md`.
 - `archive/sources/core/` — exact pre-reboot core Pine sources
 - `archive/sources/reference/` — exact pre-reboot donor/reference sources
 - `src/core/` — active reboot sources; intentionally empty until promotion
-- `docs/` — canonical state, extraction, versioning, testing, catalog, audits
+- `docs/` — canonical state, suite architecture, defaults/profiles, extraction, versioning, testing, catalog, audits
 - `tools/tradingview-export/` — read-only extractor and local splitter
 - `manifests/` — machine-readable import inventory

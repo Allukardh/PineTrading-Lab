@@ -4,8 +4,20 @@ All notable project changes are documented here.
 
 ## [Unreleased]
 
+### Added
+- Approved three-product suite architecture: **Market Map**, **Execution**, and **Decision Panel**.
+- Dedicated Correction Engine design for pullback/retest zones, confluence targets and invalidation.
+- Minimal-settings / profile-driven defaults policy.
+
+### Changed
+- Development roadmap no longer repairs six legacy core indicators as six independent end-user products.
+- MA 6x becomes the operator-familiar trend/regime foundation for Market Map.
+- Fibonacci retracement becomes a first-class Correction Engine input.
+- Liquidity Zones Tactical is reclassified as an internal structural-liquidity engine, not a leveraged-liquidation map.
+- Moving Average Shift standalone reboot work is paused until the Execution product phase.
+
 ### Next
-- Moving Average Shift reboot preparation.
+- Market Map foundation: MA/regime layer + structure + liquidity + correction engine.
 - SignalGate live event-specific field observations continue in issue #4.
 
 ## [SignalGate Dashboard 0.1.0] - 2026-09-22

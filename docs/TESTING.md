@@ -42,3 +42,18 @@ One intended event must produce one intended alert; stale/repeated event behavio
 
 ## Gate 6 — market-behavior validation
 Technical correctness is not evidence of trading edge. “Probability”, “quality”, GO/WATCH and similar labels are treated as heuristics until empirically calibrated.
+
+
+## Gate 7 — defaults / operator UX
+A technically correct script is not accepted if normal use requires low-level tuning.
+
+Validate:
+- default Profile is coherent without manual threshold editing
+- Auto timeframe behavior is safe and understandable
+- normal settings surface is minimal
+- profile changes alter coherent behavior bundles
+- engineering thresholds are hidden/internal unless a genuine operator preference exists
+- chart answers the intended user questions without requiring interpretation of internal scores
+- default visuals do not obscure price action
+
+See `docs/DEFAULTS_AND_PROFILES.md`.
