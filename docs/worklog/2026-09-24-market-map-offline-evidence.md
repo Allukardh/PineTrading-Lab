@@ -397,3 +397,26 @@ The proven defect was in **historical audit target freezing / ambiguity classifi
 The available evidence does **not** justify changing MM-0 trading semantics or tuning the engine.
 
 The next gate can move from aggregate lifecycle diagnosis to a **small targeted Pine/TradingView parity check** focused on the audit states that cannot be proven from the offline kernel alone.
+
+
+## Branch reconciliation before final TradingView parity
+
+The active MM-0 branch was reconciled with current `main` before requesting final operator evidence.
+
+Sync merge:
+
+`88bebb390a5b4b32762a119aef22e6fd082df4c9`
+
+The only overlapping file since the old branch base was `docs/CANONICAL_STATE.md`. The branch-specific copy was intentionally replaced by the current `main` canonical state because accepted/promoted truth belongs to `main`; unmerged MM-0 details remain in PR #10, worklogs and the chat handoff.
+
+After reconciliation:
+- branch is 0 commits behind `main`;
+- promoted Binance historical-data infrastructure is present;
+- continuity protocol v2 / reusable continuity standard is present;
+- Market Map Pine source was not changed by the sync.
+
+Final operator parity gate is deliberately small:
+1. BTCUSDT 4H — before and after one page/script reload, same defaults, full chart + semantic panel;
+2. BTCUSDT 1D — one post-reload screenshot, same defaults, to inspect LIVE/developing-impulse presentation and destination/correction semantics.
+
+No threshold changes are allowed from this visual gate. It is a parity/usefulness check, not tuning.
