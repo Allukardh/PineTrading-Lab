@@ -9,7 +9,7 @@ Primary source: Binance Public Data (`https://data.binance.vision`). The impleme
 - SPOT kline archives are published as daily or monthly ZIP files; this pipeline deliberately uses **monthly** archives.
 - Monthly kline files use the native 12-field `/api/v3/klines` schema.
 - Each archive normally has a sibling `.CHECKSUM` file containing the expected SHA-256.
-- Binance SPOT archive timestamps are milliseconds before 2025-01-01 and microseconds from 2025-01-01 onward. The parser detects the unit from magnitude, normalizes to microseconds, and validates candle duration using the native source precision.
+- Binance documents SPOT archive timestamps as milliseconds before 2025-01-01 and microseconds from 2025-01-01 onward. The parser detects the actual unit from magnitude and normalizes to microseconds. Because verified official archives can deviate from the documented epoch rule (for example BTCUSDT `3d` in `2025-01`), the documented rule is audited in manifests rather than used to rewrite or reject native timestamps.
 - Binance states that new monthly data becomes available on the first Monday of the following month. Therefore the default run ends at the latest month expected to be publishable: the previous calendar month after the first Monday has arrived, otherwise one month earlier.
 
 Official references:
@@ -92,7 +92,7 @@ Before consolidation the pipeline validates:
 - ZIP structure/integrity (`ZipFile.testzip`);
 - exactly one CSV payload per Binance monthly kline ZIP;
 - exact 12-column native kline schema;
-- timestamp magnitude/unit; the candle grid is validated from `open time`, while native `close time` conventions are classified and preserved. Verified legacy archives include exact-boundary closes, early closes, and at least one `pre_open` close timestamp (BTCUSDT 15m, 2020-12-21 14:00 UTC). These native metadata anomalies are reported rather than rewritten;
+- timestamp magnitude/unit; the actual unit is accepted from the native integer magnitude, while deviations from the documented 2025 microsecond epoch rule are counted and sampled in manifests. The candle grid is validated from `open time`, while native `close time` conventions are classified and preserved. Verified legacy archives include exact-boundary closes, early closes, and at least one `pre_open` close timestamp (BTCUSDT 15m, 2020-12-21 14:00 UTC). These native metadata anomalies are reported rather than rewritten;
 - numeric/finite OHLCV values;
 - non-negative trade count and volume fields;
 - OHLC ordering constraints;
@@ -134,6 +134,7 @@ Each final dataset manifest includes at least:
 - candle count and source-file count;
 - duplicate count and conflict details;
 - gap count/details plus `open_time_discontinuities_found` and exact unexpected open-time discontinuities;
+- observed timestamp-unit counts plus documented-epoch anomaly count/samples;
 - native close-time convention counts plus anomaly count/samples;
 - missing monthly files;
 - checksum verification summary;
