@@ -428,3 +428,24 @@ The current unconfirmed candle is excluded from deterministic pathology/reload c
 Volume-acceptance evidence can add correction confluence only after bar confirmation.
 
 This converts the remaining historical-sanity gate from screenshot inspection into a reproducible CSV evidence workflow.
+
+
+## Sweep/reclaim promotion
+
+The liquidity engine previously knew whether pools had been consumed but did not surface the important distinction between:
+- acceptance/break through liquidity
+- wick-through + close-back reclaim
+
+MM-0 now captures the nearest newly consumed structural/PDH/PDL/PWH/PWL level that is reclaimed on the same confirmed candle.
+
+Effects:
+- `FASE = SWEEP / RECLAIM` when the reclaim agrees with the active map direction
+- reclaimed liquidity remains eligible as the liquidity confluence for the active correction zone on that event bar
+- no extra operator setting or panel row
+- schema-2 CSV audit exports the reclaim direction for offline analysis
+
+## Stable volume-confluence timing
+
+The current-bar volume acceptance layer now freezes to the previous confirmed bar while the new realtime candle is open. Historical zone-touch bars receive an event-local acceptance calculation.
+
+This fixes a subtle lifecycle defect where a volume-confluence star could otherwise appear at close and disappear immediately at the next candle open.
