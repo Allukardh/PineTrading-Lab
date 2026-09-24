@@ -1,0 +1,158 @@
+from __future__ import annotations
+
+import hashlib
+import json
+import tempfile
+import unittest
+from datetime import datetime, timezone
+import zipfile
+from decimal import Decimal
+from pathlib import Path
+
+from tools.binance_market_data import PIPELINE_VERSION, SCHEMA_VERSION
+from tools.binance_market_data.core import (
+    DataValidationError, infer_timestamp_unit, iter_months, latest_publishable_month,
+    parse_checksum_text, parse_kline_row, sha256_file, timestamp_to_us, verify_checksum,
+)
+from tools.binance_market_data.storage import (
+    build_manifest, manifest_is_current, source_fingerprint, write_json, write_parquet,
+)
+from tools.binance_market_data.validation import deduplicate, detect_gaps, read_zip_klines
+
+
+ROW_MS = [
+    "1609459200000", "29000.00000000", "29100.00000000", "28900.00000000", "29050.00000000",
+    "10.00000000", "1609460099999", "290500.00000000", "100", "6.00000000", "174300.00000000", "0"
+]
+ROW_US = [
+    "1735689600000000", "93000.00000000", "93100.00000000", "92900.00000000", "93050.00000000",
+    "5.00000000", "1735690499999999", "465250.00000000", "80", "3.00000000", "279150.00000000", "0"
+]
+
+
+class CoreTests(unittest.TestCase):
+    def test_month_iterator(self):
+        self.assertEqual(list(iter_months("2024-11", "2025-02")), ["2024-11", "2024-12", "2025-01", "2025-02"])
+
+    def test_latest_publishable_month_respects_first_monday(self):
+        self.assertEqual(latest_publishable_month(datetime(2026, 9, 23, tzinfo=timezone.utc)), "2026-08")
+        self.assertEqual(latest_publishable_month(datetime(2026, 10, 1, tzinfo=timezone.utc)), "2026-08")
+        self.assertEqual(latest_publishable_month(datetime(2026, 10, 5, tzinfo=timezone.utc)), "2026-09")
+
+    def test_timestamp_units(self):
+        self.assertEqual(infer_timestamp_unit(1609459200000), "ms")
+        self.assertEqual(infer_timestamp_unit(1735689600000000), "us")
+        self.assertEqual(timestamp_to_us(1609459200000), (1609459200000000, "ms"))
+        self.assertEqual(timestamp_to_us(1735689600000000), (1735689600000000, "us"))
+        with self.assertRaises(DataValidationError):
+            timestamp_to_us(1735689600000)
+        with self.assertRaises(DataValidationError):
+            timestamp_to_us(1609459200000000)
+
+    def test_parse_preserves_taker_and_trade_fields(self):
+        row = parse_kline_row(ROW_MS, source_file="x.zip")
+        self.assertEqual(row["open_time_raw"], 1609459200000)
+        self.assertEqual(row["close_time_raw"], 1609460099999)
+        self.assertEqual(row["number_of_trades"], 100)
+        self.assertEqual(row["taker_buy_base_asset_volume"], Decimal("6.00000000"))
+        self.assertEqual(row["taker_buy_quote_asset_volume"], Decimal("174300.00000000"))
+        self.assertEqual(row["source_timestamp_unit"], "ms")
+
+    def test_schema_field_count_rejected(self):
+        with self.assertRaises(DataValidationError):
+            parse_kline_row(ROW_MS[:-1], source_file="bad.zip")
+
+    def test_checksum(self):
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "x.zip"
+            p.write_bytes(b"abc")
+            digest = hashlib.sha256(b"abc").hexdigest()
+            text = f"{digest}  x.zip\n"
+            self.assertEqual(parse_checksum_text(text), (digest, "x.zip"))
+            self.assertTrue(verify_checksum(p, text))
+
+    def test_zip_parsing_and_corruption(self):
+        with tempfile.TemporaryDirectory() as td:
+            good = Path(td) / "good.zip"
+            with zipfile.ZipFile(good, "w", compression=zipfile.ZIP_DEFLATED) as z:
+                z.writestr("good.csv", ",".join(ROW_MS) + "\n")
+            rows = read_zip_klines(good, "15m")
+            self.assertEqual(len(rows), 1)
+            bad = Path(td) / "bad.zip"
+            bad.write_bytes(b"not a zip")
+            with self.assertRaises(DataValidationError):
+                read_zip_klines(bad, "15m")
+
+    def test_dedup_and_conflict(self):
+        a = parse_kline_row(ROW_MS, source_file="a.zip")
+        b = dict(a, source_file="b.zip")
+        unique, dupes, conflicts = deduplicate([a, b])
+        self.assertEqual(len(unique), 1)
+        self.assertEqual(dupes, 1)
+        self.assertEqual(conflicts, [])
+        c = dict(a, close=Decimal("29060"), source_file="c.zip")
+        _, dupes, conflicts = deduplicate([a, c])
+        self.assertEqual(dupes, 1)
+        self.assertEqual(len(conflicts), 1)
+
+    def test_gap_detection(self):
+        a = parse_kline_row(ROW_MS, source_file="a.zip")
+        b = dict(a, open_time_us=a["open_time_us"] + 3 * 900_000_000, close_time_us=a["close_time_us"] + 3 * 900_000_000)
+        gaps, discontinuities = detect_gaps([a, b], "15m")
+        self.assertEqual(gaps[0]["missing_candles"], 2)
+        self.assertEqual(discontinuities, [])
+
+    def test_fingerprint_and_manifest_idempotency(self):
+        sources = [{"filename":"a.zip","zip_sha256":"a"*64,"checksum_expected":"a"*64,"checksum_status":"verified"}]
+        fp = source_fingerprint(sources)
+        with tempfile.TemporaryDirectory() as td:
+            td = Path(td)
+            pq = td / "x.parquet"
+            pq.write_bytes(b"parquet-placeholder")
+            mf = td / "x.json"
+            write_json(mf, {
+                "pipeline_version": PIPELINE_VERSION,
+                "schema_version": SCHEMA_VERSION,
+                "source_fingerprint_sha256": fp,
+                "dataset_sha256": sha256_file(pq),
+            })
+            self.assertTrue(manifest_is_current(mf, pq, fp))
+            pq.write_bytes(b"changed")
+            self.assertFalse(manifest_is_current(mf, pq, fp))
+
+    def test_manifest_required_fields(self):
+        row = parse_kline_row(ROW_US, source_file="x.zip")
+        with tempfile.TemporaryDirectory() as td:
+            pq = Path(td) / "BTCUSDT_15m.parquet"
+            pq.write_bytes(b"x")
+            src = [{"filename":"x.zip","zip_sha256":"f"*64,"size_bytes":1,"checksum_expected":"f"*64,"checksum_status":"verified"}]
+            fp = source_fingerprint(src)
+            m = build_manifest(
+                symbol="BTCUSDT", market="spot", timeframe="15m", source_url="https://data.binance.vision/",
+                rows=[row], source_files=src, missing_files=[], duplicate_count=0, conflicts=[], gaps=[],
+                discontinuities=[], parquet_path=pq, fingerprint=fp,
+            )
+            for key in ("symbol","market","timeframe","data_source","first_date","last_date","candles",
+                        "source_file_count","duplicates_found","gaps_found","files_missing","checksum_status",
+                        "dataset_sha256","final_size_bytes","pipeline_version","schema_version"):
+                self.assertIn(key, m)
+
+    def test_parquet_consolidation_when_pyarrow_available(self):
+        try:
+            import pyarrow.parquet as pq
+        except ImportError:
+            self.skipTest("pyarrow not installed in local runtime")
+        row = parse_kline_row(ROW_US, source_file="x.zip")
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "x.parquet"
+            write_parquet([row], p, symbol="BTCUSDT", market="spot", timeframe="15m")
+            table = pq.read_table(p)
+            self.assertEqual(table.num_rows, 1)
+            self.assertIn("open_time_raw", table.column_names)
+            self.assertIn("close_time_raw", table.column_names)
+            self.assertIn("taker_buy_base_asset_volume", table.column_names)
+            self.assertIn("source_timestamp_unit", table.column_names)
+
+
+if __name__ == "__main__":
+    unittest.main()

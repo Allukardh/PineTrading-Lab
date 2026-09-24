@@ -13,3 +13,9 @@ __pycache__/
 Thumbs.db
 .vscode/
 .idea/
+
+# Historical market-data artifacts (large; store in Google Drive, not Git)
+data/
+*.parquet
+*.zip
+*.zip.CHECKSUM
