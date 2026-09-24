@@ -76,6 +76,14 @@ class CoreTests(unittest.TestCase):
         row = parse_kline_row(legacy, source_file="BTCUSDT-15m-2017-12.zip")
         self.assertEqual(validate_candle_duration(row, "15m"), "early_close")
 
+    def test_verified_pre_open_close_time_is_preserved_and_classified(self):
+        legacy = list(ROW_MS)
+        legacy[0] = "1608559200000"
+        legacy[6] = "1608558440521"
+        row = parse_kline_row(legacy, source_file="BTCUSDT-15m-2020-12.zip")
+        self.assertEqual(row["close_time_raw"], 1608558440521)
+        self.assertEqual(validate_candle_duration(row, "15m"), "pre_open")
+
     def test_checksum(self):
         with tempfile.TemporaryDirectory() as td:
             p = Path(td) / "x.zip"
