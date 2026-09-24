@@ -1,0 +1,144 @@
+name: Materialize Binance research universe
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/materialize-binance-universe.yml"
+      - "configs/binance-spot-research-universe.json"
+      - "tools/binance_market_data/**"
+
+permissions:
+  contents: read
+
+jobs:
+  materialize:
+    strategy:
+      fail-fast: false
+      matrix:
+        symbol:
+          - ETHUSDT
+          - AVAXUSDT
+          - DOGEUSDT
+          - DOTUSDT
+          - ADAUSDT
+          - XRPUSDT
+          - SOLUSDT
+          - UNIUSDT
+          - NEARUSDT
+          - AAVEUSDT
+          - HBARUSDT
+          - LINKUSDT
+          - SUIUSDT
+          - LTCUSDT
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements-market-data.txt
+
+      - name: Materialize official Binance history
+        run: |
+          python -m tools.binance_market_data run \
+            --config configs/binance-spot-research-universe.json \
+            --symbol "${{ matrix.symbol }}" \
+            --data-root "$RUNNER_TEMP/Binance"
+
+      - name: Emit canonical inventory and manifests
+        run: |
+          SYMBOL="${{ matrix.symbol }}"
+          echo "=== INVENTORY $SYMBOL ==="
+          cat "$RUNNER_TEMP/Binance/spot/$SYMBOL/manifests/${SYMBOL}_inventory.json"
+          echo
+          echo "=== DATASET MANIFESTS $SYMBOL ==="
+          for f in "$RUNNER_TEMP"/Binance/spot/"$SYMBOL"/manifests/"$SYMBOL"_*.manifest.json; do
+            echo "--- $(basename "$f") ---"
+            cat "$f"
+            echo
+          done
+
+      - name: Bundle raw provenance
+        run: |
+          SYMBOL="${{ matrix.symbol }}"
+          tar -cf "$RUNNER_TEMP/${SYMBOL}_raw_monthly.tar" -C "$RUNNER_TEMP/Binance/spot/$SYMBOL" raw
+
+      - name: Bundle manifests
+        run: |
+          SYMBOL="${{ matrix.symbol }}"
+          tar -cf "$RUNNER_TEMP/${SYMBOL}_manifests.tar" -C "$RUNNER_TEMP/Binance/spot/$SYMBOL" manifests
+
+      - name: Bundle reports
+        run: |
+          SYMBOL="${{ matrix.symbol }}"
+          tar -cf "$RUNNER_TEMP/${SYMBOL}_reports.tar" -C "$RUNNER_TEMP/Binance/spot/$SYMBOL" reports
+
+      - name: Upload 15m Parquet
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ runner.temp }}/Binance/spot/${{ matrix.symbol }}/consolidated/${{ matrix.symbol }}_15m.parquet
+          archive: false
+          retention-days: 7
+
+      - name: Upload 1h Parquet
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ runner.temp }}/Binance/spot/${{ matrix.symbol }}/consolidated/${{ matrix.symbol }}_1h.parquet
+          archive: false
+          retention-days: 7
+
+      - name: Upload 4h Parquet
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ runner.temp }}/Binance/spot/${{ matrix.symbol }}/consolidated/${{ matrix.symbol }}_4h.parquet
+          archive: false
+          retention-days: 7
+
+      - name: Upload 1d Parquet
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ runner.temp }}/Binance/spot/${{ matrix.symbol }}/consolidated/${{ matrix.symbol }}_1d.parquet
+          archive: false
+          retention-days: 7
+
+      - name: Upload 3d Parquet
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ runner.temp }}/Binance/spot/${{ matrix.symbol }}/consolidated/${{ matrix.symbol }}_3d.parquet
+          archive: false
+          retention-days: 7
+
+      - name: Upload 1w Parquet
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ runner.temp }}/Binance/spot/${{ matrix.symbol }}/consolidated/${{ matrix.symbol }}_1w.parquet
+          archive: false
+          retention-days: 7
+
+      - name: Upload raw provenance bundle
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ runner.temp }}/${{ matrix.symbol }}_raw_monthly.tar
+          archive: false
+          retention-days: 7
+
+      - name: Upload manifest bundle
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ runner.temp }}/${{ matrix.symbol }}_manifests.tar
+          archive: false
+          retention-days: 7
+
+      - name: Upload report bundle
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ runner.temp }}/${{ matrix.symbol }}_reports.tar
+          archive: false
+          retention-days: 7

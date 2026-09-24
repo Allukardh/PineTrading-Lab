@@ -7,7 +7,7 @@ from pathlib import Path
 
 import requests
 
-from .core import DataValidationError, parse_checksum_text, sha256_file, verify_checksum
+from .core import DataValidationError, iter_months, parse_checksum_text, sha256_file, verify_checksum
 
 
 @dataclass(frozen=True)
@@ -28,7 +28,7 @@ class BinanceArchiveClient:
         self.timeout = timeout
         self.retries = retries
         self.session = requests.Session()
-        self.session.headers.update({"User-Agent": "PineTrading-Lab-market-data/0.1.0"})
+        self.session.headers.update({"User-Agent": "PineTrading-Lab-market-data/0.2.0"})
 
     @staticmethod
     def archive_relpath(market: str, symbol: str, timeframe: str, month: str) -> str:
@@ -48,6 +48,34 @@ class BinanceArchiveClient:
                     raise
                 time.sleep(min(2 ** attempt, 8))
         raise AssertionError("unreachable")
+
+    def find_first_available_month(
+        self,
+        *,
+        market: str,
+        symbol: str,
+        timeframe: str,
+        search_start: str,
+        search_end: str,
+    ) -> str | None:
+        """Discover the first official monthly archive from checksum sidecars.
+
+        This is intentionally network-light: only tiny .CHECKSUM objects are requested.
+        The discovered month is a symbol-level lower bound; the normal pipeline still
+        records any later timeframe-specific missing monthly archives explicitly.
+        """
+        for month in iter_months(search_start, search_end):
+            rel = self.archive_relpath(market, symbol, timeframe, month)
+            filename = Path(rel).name
+            checksum_url = f"{self.base_url}/{rel}.CHECKSUM"
+            checksum_text, _ = self._get_text_optional(checksum_url)
+            if checksum_text is None:
+                continue
+            _, checksum_name = parse_checksum_text(checksum_text)
+            if checksum_name and Path(checksum_name).name != filename:
+                raise DataValidationError(f"{filename}: checksum sidecar names {checksum_name}")
+            return month
+        return None
 
     def _download_resumable(self, url: str, dest: Path) -> int:
         dest.parent.mkdir(parents=True, exist_ok=True)

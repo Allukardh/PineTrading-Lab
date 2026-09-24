@@ -16,12 +16,19 @@ def load_config(path: Path) -> dict:
         raise DataValidationError("initial pipeline supports market=spot only")
     if not cfg.get("symbols"):
         raise DataValidationError("config has no symbols")
+    seen: set[str] = set()
     for item in cfg["symbols"]:
         symbol = str(item.get("symbol", "")).strip().upper()
         if not symbol:
             raise DataValidationError("symbol entry is missing symbol")
-        if not item.get("start_month"):
+        if symbol in seen:
+            raise DataValidationError(f"duplicate symbol in config: {symbol}")
+        seen.add(symbol)
+        start_month = item.get("start_month")
+        if not start_month:
             raise DataValidationError(f"{symbol}: start_month is required")
+        if start_month == "auto" and not (item.get("discovery_start_month") or cfg.get("discovery_start_month")):
+            raise DataValidationError(f"{symbol}: auto start_month requires discovery_start_month")
         timeframes = item.get("timeframes") or []
         if not timeframes:
             raise DataValidationError(f"{symbol}: no timeframes configured")
@@ -31,10 +38,41 @@ def load_config(path: Path) -> dict:
     return cfg
 
 
+def resolve_symbol_start_month(*, cfg: dict, symbol_cfg: dict, client: BinanceArchiveClient) -> str:
+    requested = str(symbol_cfg["start_month"])
+    if requested != "auto":
+        return requested
+
+    market = cfg["market"]
+    symbol = symbol_cfg["symbol"].upper()
+    search_start = str(symbol_cfg.get("discovery_start_month") or cfg["discovery_start_month"])
+    end_month = symbol_cfg.get("end_month") or latest_publishable_month()
+    if end_month == "auto":
+        end_month = latest_publishable_month()
+    discovery_timeframe = str(symbol_cfg.get("discovery_timeframe") or cfg.get("discovery_timeframe") or "1d")
+    if discovery_timeframe not in INTERVAL_US:
+        raise DataValidationError(f"{symbol}: unsupported discovery_timeframe {discovery_timeframe}")
+
+    found = client.find_first_available_month(
+        market=market,
+        symbol=symbol,
+        timeframe=discovery_timeframe,
+        search_start=search_start,
+        search_end=end_month,
+    )
+    if found is None:
+        raise DataValidationError(
+            f"{symbol}: no official monthly {discovery_timeframe} archive found from {search_start} through {end_month}"
+        )
+    return found
+
+
 def run_dataset(*, cfg: dict, symbol_cfg: dict, timeframe: str, data_root: Path, client: BinanceArchiveClient) -> dict:
     market = cfg["market"]
     symbol = symbol_cfg["symbol"].upper()
     start_month = symbol_cfg["start_month"]
+    if start_month == "auto":
+        start_month = resolve_symbol_start_month(cfg=cfg, symbol_cfg=symbol_cfg, client=client)
     end_month = symbol_cfg.get("end_month") or latest_publishable_month()
     if end_month == "auto":
         end_month = latest_publishable_month()
@@ -99,9 +137,11 @@ def run_dataset(*, cfg: dict, symbol_cfg: dict, timeframe: str, data_root: Path,
         parquet_path=parquet_path,
         fingerprint=fingerprint,
     )
+    manifest["resolved_start_month"] = start_month
     write_json(manifest_path, manifest)
     write_json(report_path, {
         "dataset": f"{symbol}_{timeframe}",
+        "resolved_start_month": start_month,
         "status": manifest["status"],
         "candles": manifest["candles"],
         "first_date": manifest["first_date"],
@@ -126,16 +166,34 @@ def run_dataset(*, cfg: dict, symbol_cfg: dict, timeframe: str, data_root: Path,
     return manifest
 
 
-def run_config(config_path: Path, data_root: Path) -> dict:
+def run_config(config_path: Path, data_root: Path, *, symbol_filter: str | None = None) -> dict:
     cfg = load_config(config_path)
     client = BinanceArchiveClient(cfg.get("source_base_url", "https://data.binance.vision"))
+    selected = cfg["symbols"]
+    if symbol_filter:
+        wanted = symbol_filter.strip().upper()
+        selected = [item for item in selected if item["symbol"].upper() == wanted]
+        if not selected:
+            raise DataValidationError(f"symbol {wanted} not present in {config_path}")
+
     inventory = {
         "pipeline_version": PIPELINE_VERSION,
         "schema_version": SCHEMA_VERSION,
         "market": cfg["market"],
         "datasets": [],
+        "symbol_discovery": {},
     }
-    for symbol_cfg in cfg["symbols"]:
+    for original_cfg in selected:
+        symbol = original_cfg["symbol"].upper()
+        resolved_start = resolve_symbol_start_month(cfg=cfg, symbol_cfg=original_cfg, client=client)
+        symbol_cfg = dict(original_cfg)
+        symbol_cfg["symbol"] = symbol
+        symbol_cfg["start_month"] = resolved_start
+        inventory["symbol_discovery"][symbol] = {
+            "requested_start_month": original_cfg["start_month"],
+            "resolved_start_month": resolved_start,
+            "discovery_timeframe": original_cfg.get("discovery_timeframe") or cfg.get("discovery_timeframe") or "1d",
+        }
         for timeframe in symbol_cfg["timeframes"]:
             manifest = run_dataset(
                 cfg=cfg,
@@ -147,15 +205,19 @@ def run_config(config_path: Path, data_root: Path) -> dict:
             inventory["datasets"].append({
                 key: manifest.get(key)
                 for key in (
-                    "symbol", "market", "timeframe", "first_date", "last_date", "candles",
+                    "symbol", "market", "timeframe", "resolved_start_month", "first_date", "last_date", "candles",
                     "source_file_count", "duplicates_found", "gaps_found", "open_time_discontinuities_found",
                     "timestamp_units", "timestamp_epoch_anomalies_found", "close_time_conventions",
                     "close_time_anomalies_found", "files_missing", "checksum_status", "dataset_sha256",
                     "final_size_bytes", "status", "output_file",
                 )
             })
-    if len(cfg["symbols"]) == 1:
-        symbol = cfg["symbols"][0]["symbol"].upper()
         inventory_path = data_root / cfg["market"] / symbol / "manifests" / f"{symbol}_inventory.json"
-        write_json(inventory_path, inventory)
+        write_json(inventory_path, {
+            "pipeline_version": PIPELINE_VERSION,
+            "schema_version": SCHEMA_VERSION,
+            "market": cfg["market"],
+            "symbol_discovery": {symbol: inventory["symbol_discovery"][symbol]},
+            "datasets": [x for x in inventory["datasets"] if x["symbol"] == symbol],
+        })
     return inventory
