@@ -92,6 +92,8 @@ class AnalyzerTests(unittest.TestCase):
             self.assertEqual(report["counts"]["invalidation_outcomes"], 1)
             self.assertEqual(report["counts"]["resolved_non_ambiguous"], 2)
             self.assertEqual(report["counts"]["ambiguous"], 1)
+            self.assertEqual(report["ambiguous_timing"], {"SAME_TOUCH": 1})
+            self.assertEqual(report["ambiguous_timing_by_model"]["FIB"], {"SAME_TOUCH": 1})
             self.assertAlmostEqual(report["rates"]["zone_to_destination_pct_resolved"], 50.0)
             self.assertAlmostEqual(report["rates"]["resolved_non_ambiguous_pct_of_touches"], 200.0 / 3.0)
             self.assertAlmostEqual(report["rates"]["destination_pct_of_touches"], 100.0 / 3.0)
@@ -139,7 +141,26 @@ class AnalyzerTests(unittest.TestCase):
             self.assertEqual(report["counts"]["zone_touches"], 1)
             self.assertEqual(report["counts"]["superseded_after_touch"], 1)
             self.assertAlmostEqual(report["rates"]["superseded_pct_of_touches"], 100.0)
+            self.assertEqual(report["supersession_transitions"], {"LONG->LONG": 1})
+            self.assertEqual(report["superseded_touch_models"], {"LIVE/ADAPT": 1})
+            self.assertEqual(report["distributions"]["bars_touch_to_supersession"]["median"], 1.0)
             self.assertEqual(report["pathologies"], {})
+
+    def test_post_touch_ambiguity_is_classified_separately(self):
+        rows = [
+            row("2026-01-01 00:00", 100, 104, 99, 103, 1, 5, 4, 12, 100, 95, 110, 90, 4, new=1),
+            row("2026-01-01 01:00", 103, 103, 97, 99, 1, 5, 4, 12, 100, 95, 110, 90, 4, touch=1),
+            row("2026-01-01 02:00", 99, 112, 89, 101, 1, 5, 4, 12, 100, 95, 110, 90, 4, amb_evt=1),
+        ]
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "post_touch_amb.csv"
+            self.write_csv(p, rows)
+            report = mm.analyze(p)
+            self.assertEqual(report["ambiguous_timing"], {"POST_TOUCH_BOTH_BOUNDS": 1})
+            self.assertEqual(
+                report["ambiguous_timing_by_model"]["LIVE/ADAPT"],
+                {"POST_TOUCH_BOTH_BOUNDS": 1},
+            )
 
     def test_reload_compare_pass_and_fail(self):
         with tempfile.TemporaryDirectory() as td:
