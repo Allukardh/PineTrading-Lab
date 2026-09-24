@@ -26,7 +26,7 @@ def read_zip_klines(path: Path, timeframe: str) -> list[dict]:
                         continue
                     try:
                         item = parse_kline_row(row, source_file=path.name)
-                        validate_candle_duration(item, timeframe)
+                        item["source_close_time_convention"] = validate_candle_duration(item, timeframe)
                     except Exception as exc:
                         if isinstance(exc, DataValidationError):
                             raise DataValidationError(f"{path.name}:{line_no}: {exc}") from exc
