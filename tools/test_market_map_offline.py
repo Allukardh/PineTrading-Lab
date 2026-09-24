@@ -70,7 +70,13 @@ class T(unittest.TestCase):
         self.assertEqual(len(rows), len(x))
         self.assertEqual(set(rows[0]), set(mm.AUDIT_HEADER))
         self.assertTrue(any((r['MM Audit • Nova tese evt'] == 1 for r in rows)))
-        self.assertTrue(all((r['MM Audit • MapDir'] in (-1, 0, 1) and r['MM Audit • Modelo'] in (0, 1, 2, 3, 4) and
-                0 <= r['MM Audit • Confluências'] <= 6 for r in rows))
+        self.assertTrue(all(
+            r['MM Audit • MapDir'] in (-1, 0, 1)
+            and r['MM Audit • Modelo'] in (0, 1, 2, 3, 4)
+            and 0 <= r['MM Audit • Confluências'] <= 6
+            for r in rows
+        ))
+
+
 if __name__ == '__main__':
     unittest.main()
