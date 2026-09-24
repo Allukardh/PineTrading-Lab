@@ -15,6 +15,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   btc-primary:
@@ -32,16 +33,42 @@ jobs:
       - name: Install market-data dependencies
         run: python -m pip install --disable-pip-version-check -r requirements-market-data.txt
 
-      - name: Materialize official Binance BTC history
+      - name: Acquire canonical BTC snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          python -m tools.binance_market_data run \
-            --config configs/binance-spot-btcusdt.json \
-            --symbol BTCUSDT \
-            --data-root "$RUNNER_TEMP/Binance"
+          set -u
+          DEST="$RUNNER_TEMP/Binance/spot/BTCUSDT/consolidated"
+          mkdir -p "$DEST"
+          OK=1
+          for ARTIFACT in \
+            BTCUSDT_15m.parquet \
+            BTCUSDT_1h.parquet \
+            BTCUSDT_4h.parquet \
+            BTCUSDT_1d.parquet \
+            BTCUSDT_3d.parquet \
+            BTCUSDT_1w.parquet
+          do
+            if ! gh run download 36006762328 --repo "$GITHUB_REPOSITORY" --name "$ARTIFACT" --dir "$DEST"; then
+              OK=0
+              break
+            fi
+          done
+
+          if [ "$OK" -ne 1 ]; then
+            echo "Canonical run artifacts unavailable; falling back to official rematerialization."
+            rm -rf "$RUNNER_TEMP/Binance"
+            python -m tools.binance_market_data run \
+              --config configs/binance-spot-btcusdt.json \
+              --symbol BTCUSDT \
+              --data-root "$RUNNER_TEMP/Binance"
+          else
+            echo "Using exact canonical run #36006762328 Parquet artifacts."
+          fi
 
       - name: Run pre-registered Execution evidence plan
         run: |
-          python tools/execution_historical_evidence.py \
+          python -m tools.execution_historical_evidence \
             --data-root "$RUNNER_TEMP/Binance" \
             --symbol BTCUSDT \
             --canonical-manifest manifests/binance-spot-btcusdt.production-2026-09-24.json \
