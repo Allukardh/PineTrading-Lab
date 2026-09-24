@@ -131,6 +131,7 @@ Current prototype:
 - automatic confirmed HTF context
 - HH/HL/LH/LL + BOS/CHoCH
 - structural-liquidity pools + PDH/PDL/PWH/PWL ranking
+- confirmed sweep/reclaim phase with reclaimed-level correction confluence
 - directional destination ladder: nearest + next distinct intact liquidity
 - target proximity disclosure without automatic trade instruction
 - failed-breakout/fakeout state
