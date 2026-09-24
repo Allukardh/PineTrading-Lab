@@ -53,6 +53,16 @@ class CoreTests(unittest.TestCase):
         with self.assertRaises(DataValidationError):
             timestamp_to_us(12345)
 
+    def test_pre_transition_ms_candle_can_close_after_epoch_switch(self):
+        row = parse_kline_row([
+            "1735516800000", "93000", "93100", "92900", "93050", "5",
+            "1735775999999", "465250", "80", "3", "279150", "0"
+        ], source_file="BTCUSDT-3d-2024-12.zip")
+        self.assertEqual(row["source_timestamp_unit"], "ms")
+        self.assertLess(row["open_time_us"], 1_735_689_600_000_000)
+        self.assertGreater(row["close_time_us"], 1_735_689_600_000_000)
+        self.assertEqual(validate_candle_duration(row, "3d"), "boundary_minus_tick")
+
     def test_parse_preserves_taker_and_trade_fields(self):
         row = parse_kline_row(ROW_MS, source_file="x.zip")
         self.assertEqual(row["open_time_raw"], 1609459200000)
@@ -144,6 +154,10 @@ class CoreTests(unittest.TestCase):
     def test_fingerprint_and_manifest_idempotency(self):
         sources = [{"filename":"a.zip","zip_sha256":"a"*64,"checksum_expected":"a"*64,"checksum_status":"verified"}]
         fp = source_fingerprint(sources)
+        missing = ["BTCUSDT-15m-2026-08.zip"]
+        fp_missing = source_fingerprint(sources, missing_files=missing)
+        self.assertNotEqual(fp, fp_missing)
+        self.assertEqual(fp_missing, source_fingerprint(sources, missing_files=list(reversed(missing))))
         with tempfile.TemporaryDirectory() as td:
             td = Path(td)
             pq = td / "x.parquet"
@@ -156,6 +170,7 @@ class CoreTests(unittest.TestCase):
                 "dataset_sha256": sha256_file(pq),
             })
             self.assertTrue(manifest_is_current(mf, pq, fp))
+            self.assertFalse(manifest_is_current(mf, pq, fp_missing))
             pq.write_bytes(b"changed")
             self.assertFalse(manifest_is_current(mf, pq, fp))
 
