@@ -20,6 +20,8 @@ SPEC.loader.exec_module(mm)
 
 HEADER = [
     "Time", "Open", "High", "Low", "Close",
+    "MM Audit • Schema",
+    "MM Audit • Confirmado",
     "MM Audit • MapDir",
     "MM Audit • ATR",
     "MM Audit • Modelo",
@@ -48,7 +50,7 @@ def row(
     def v(x):
         return "" if x is None else x
     return [
-        t, o, h, l, c, direction, atr, model, samples,
+        t, o, h, l, c, 1, 1, direction, atr, model, samples,
         v(top), v(bottom), v(dest), v(inv), conf,
         new, touch, dest_evt, inv_evt, amb_evt,
     ]
@@ -80,6 +82,9 @@ class AnalyzerTests(unittest.TestCase):
             self.write_csv(p)
             report = mm.analyze(p)
 
+            self.assertEqual(report["audit_schema"], 1)
+            self.assertEqual(report["confirmed_rows"], len(ROWS))
+            self.assertEqual(report["provisional_rows"], 0)
             self.assertEqual(report["counts"]["theses"], 3)
             self.assertEqual(report["counts"]["zone_touches"], 3)
             self.assertEqual(report["counts"]["destination_outcomes"], 1)
@@ -103,7 +108,7 @@ class AnalyzerTests(unittest.TestCase):
             self.assertEqual(same["mismatch_counts"], {})
 
             changed = [list(x) for x in ROWS]
-            changed[2][5] = -1  # historical MapDir mutation
+            changed[2][7] = -1  # historical MapDir mutation
             self.write_csv(b, changed)
 
             diff = mm.compare_reload(a, b)
