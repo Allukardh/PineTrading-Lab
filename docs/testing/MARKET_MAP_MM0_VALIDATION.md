@@ -76,6 +76,21 @@ Full worklog:
 
 `docs/worklog/2026-09-24-market-map-offline-evidence.md`
 
+Robustness extension also completed for **3D / 1W** after reproducing Pine's self-context rule above 1D and disabling PDH/PDL there exactly as the Pine candidate does.
+
+Robustness run:
+
+`36039959727`
+
+Result:
+- six-timeframe structural pathology gate: **PASS**
+- six-timeframe outcome accounting: **100%**
+- 3D: 63 touches / 14 non-ambiguous resolved / no pathology
+- 1W: 29 touches / only 8 non-ambiguous resolved / no pathology
+- weekly result is explicitly flagged as a small sample and must not drive tuning
+
+The six-timeframe aggregate leaves the core lifecycle finding essentially unchanged: roughly two-thirds of touched theses are superseded/censored before a non-ambiguous destination/invalidation resolution.
+
 ### TradingView parity path
 
 TradingView remains the authority for:
