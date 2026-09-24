@@ -10,8 +10,8 @@
 
 ## 0. Durable write-ahead checkpoint — schema v2
 
-**Checkpoint state:** STABLE  
-**Product work currently in flight:** none  
+**Checkpoint state:** PREPARED  
+**Product work currently in flight:** continuity-standard canonization + MM-0 lifecycle diagnostic consumption  
 **Continuity protocol:** WRITE-AHEAD + COMMIT-RESULT  
 **Continuity hardening promoted:** PR #16 → `3f9e5a73d3aa94c9bfae6d984f1c25a83e60bf42`  
 **Operator evidence required right now:** none
@@ -39,6 +39,9 @@ Current-head automated evidence:
 
 ### Exact next atomic product action
 
+1. Canonize the continuity protocol as a reusable project standard/template without duplicating per-commit noise.
+2. Then consume MM-0 lifecycle-diagnostic evidence and isolate representative ambiguity/supersession cases.
+
 Do **not** tune MM-0 and do **not** ask the operator for TradingView evidence yet.
 
 Resume by consuming the lifecycle-diagnostic evidence and isolating representative cases for:
@@ -55,7 +58,14 @@ Then decide whether the observed patterns are:
 
 Only if a semantic defect is demonstrated should Market Map Pine logic change.
 
-### Recovery algorithm if interruption occurs after the next WRITE-AHEAD checkpoint
+### Prepared-block expectation
+
+Expected durable outputs from this block:
+- one concise reusable continuity-standard document referenced by project continuity docs;
+- no product-semantic change unless the MM-0 diagnostic evidence proves a lifecycle defect;
+- if product branch changes, new PR #10 head/workflow evidence must be recorded here before returning to STABLE.
+
+### Recovery algorithm if interruption occurs after this WRITE-AHEAD checkpoint
 
 1. compare actual PR #10 / PR #12 heads with the heads recorded in this section;
 2. inspect only commits newer than the recorded heads;
