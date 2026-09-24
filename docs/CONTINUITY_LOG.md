@@ -475,6 +475,8 @@ Decision:
 
 This protocol is now part of the locked working methodology.
 
+Promotion: PR #16 merged to `main` at `3f9e5a73d3aa94c9bfae6d984f1c25a83e60bf42`.
+
 ---
 
 ## 9. Current continuation checkpoint
