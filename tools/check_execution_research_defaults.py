@@ -58,7 +58,7 @@ def main() -> int:
         "oversold": 30,
         "extended_overbought": 80,
         "extended_oversold": 20,
-        "step_lookback": 2,
+        "zone_memory_bars": 2,
         "minimum_directional_step": 0.25,
     }
     _expect(rsi, expected_rsi, "RSI defaults")
