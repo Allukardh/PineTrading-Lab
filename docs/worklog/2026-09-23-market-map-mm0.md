@@ -449,3 +449,15 @@ Effects:
 The current-bar volume acceptance layer now freezes to the previous confirmed bar while the new realtime candle is open. Historical zone-touch bars receive an event-local acceptance calculation.
 
 This fixes a subtle lifecycle defect where a volume-confluence star could otherwise appear at close and disappear immediately at the next candle open.
+
+
+## Superseded-outcome accounting
+
+Historical telemetry previously left a touched-but-replaced thesis inside `Zona sem desfecho` forever.
+
+MM-0 now classifies that lifecycle explicitly:
+- when a new thesis starts while the prior thesis had touched its correction zone but had no resolved outcome, `diagSupersededAfterTouch` increments
+- `Zona sem desfecho` subtracts resolved, ambiguous **and superseded** cases
+- the invalidation cumulative label was clarified to `Invalidações pós-toque`
+
+This makes censored historical cases explicit instead of silently contaminating the open-outcome count.
