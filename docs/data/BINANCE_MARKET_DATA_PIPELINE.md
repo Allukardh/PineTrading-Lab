@@ -16,6 +16,7 @@ Official references:
 
 - `https://github.com/binance/binance-public-data`
 - `https://data.binance.vision`
+- `https://www.binance.com/en/support/announcement/detail/360000737572` (2018-02-09 system-upgrade completion notice)
 
 ## Initial scope
 
@@ -98,9 +99,9 @@ Before consolidation the pipeline validates:
 - duplicate candle open times;
 - conflicting duplicates;
 - fixed-interval gaps;
-- discontinuities that are not integer multiples of the requested timeframe.
+- discontinuities that are not integer multiples of the requested timeframe. These are retained as provenance findings rather than silently normalized.
 
-Exact duplicate candles are deduplicated deterministically and counted. Conflicting duplicates or non-integral interval discontinuities are fatal. Legitimate integral gaps are retained as gaps; the pipeline **never fabricates candles**.
+Exact duplicate candles are deduplicated deterministically and counted. Conflicting duplicates remain fatal. Integral gaps and non-integral open-time discontinuities are retained as findings; the pipeline **never fabricates or re-times candles**. This matters for verified historical Binance behavior: around the 2018-02-08/09 system-upgrade outage, the official BTCUSDT 15m archive contains an off-grid restart at `2018-02-09T09:58:14.789Z` and later re-aligns to the normal 15-minute grid.
 
 ## Parquet schema
 
@@ -132,7 +133,7 @@ Each final dataset manifest includes at least:
 - first and last candle timestamps;
 - candle count and source-file count;
 - duplicate count and conflict details;
-- gap count/details and unexpected open-time discontinuities;
+- gap count/details plus `open_time_discontinuities_found` and exact unexpected open-time discontinuities;
 - native close-time convention counts plus anomaly count/samples;
 - missing monthly files;
 - checksum verification summary;
