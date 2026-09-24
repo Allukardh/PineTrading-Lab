@@ -53,6 +53,32 @@ class T(unittest.TestCase):
         t.touch(5, 110)
         self.assertEqual(t.resolve(5, 111, 99, False), (False, False, True))
 
+    def test_same_bar_long_target_can_be_ordered_from_open_and_zone(self):
+        t = mm.Tracker()
+        t.start(1, 1)
+        t.touch(5, 110, open_value=99, zone_top=100, zone_bottom=95)
+        self.assertEqual(t.resolve(5, 111, 96, False), (True, False, False))
+
+    def test_same_bar_short_target_can_be_ordered_from_open_and_zone(self):
+        t = mm.Tracker()
+        t.start(1, -1)
+        t.touch(5, 90, open_value=101, zone_top=105, zone_bottom=100)
+        self.assertEqual(t.resolve(5, 104, 89, False), (True, False, False))
+
+    def test_same_bar_target_remains_ambiguous_when_open_is_between_zone_and_target(self):
+        t = mm.Tracker()
+        t.start(1, 1)
+        t.touch(5, 110, open_value=105, zone_top=100, zone_bottom=95)
+        self.assertEqual(t.resolve(5, 111, 96, False), (False, False, True))
+
+    def test_target_must_remain_beyond_current_zone(self):
+        self.assertTrue(mm.usable_target(1, 110, 100, 95))
+        self.assertFalse(mm.usable_target(1, 98, 100, 95))
+        self.assertFalse(mm.usable_target(1, 90, 100, 95))
+        self.assertTrue(mm.usable_target(-1, 90, 105, 100))
+        self.assertFalse(mm.usable_target(-1, 102, 105, 100))
+        self.assertFalse(mm.usable_target(-1, 110, 105, 100))
+
     def test_later_dest(self):
         t = mm.Tracker()
         t.start(1, 1)
