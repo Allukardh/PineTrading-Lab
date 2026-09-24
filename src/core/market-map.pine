@@ -1,0 +1,1071 @@
+//@version=6
+indicator("Market Map v0.1.0", shorttitle="Market Map", overlay=true, max_bars_back=5000, max_boxes_count=50, max_lines_count=100, max_labels_count=100)
+
+// ============================================================================
+// Market Map MM-0
+// Clean-room implementation for PineTrading-Lab.
+// Purpose: trend/regime + confirmed structure + structural liquidity +
+//          correction zones + concise map.
+// ============================================================================
+
+// ---------------------------------------------------------------------------
+// Minimal operator controls
+// ---------------------------------------------------------------------------
+groupView = "Visual"
+showMAs = input.bool(true, "Mostrar médias", group=groupView)
+showPanel = input.bool(true, "Mostrar painel", group=groupView)
+
+groupAdvanced = "Avançado / Diagnóstico"
+showStructureDetails = input.bool(false, "Mostrar BOS/CHoCH e zonas secundárias", group=groupAdvanced)
+
+// Engineering defaults are intentionally internal. They are product defaults,
+// not operator tuning requirements.
+int AUDIT_SCHEMA = 2
+int FAST_LEN = 21
+int MID_LEN = 50
+int SLOW_LEN = 200
+int ATR_LEN = 14
+int PIVOT_LEN = 3
+int POOL_MAX = 24
+int RETEST_MAX_BARS = 24
+int FAIL_MAX_BARS = 6
+int PULLBACK_SAMPLE_MAX = 24
+int PULLBACK_MIN_SAMPLES = 5
+int ACCEPTANCE_BINS = 20
+int ACCEPTANCE_MAX_BARS = 240
+float EQ_TOL_ATR = 0.12
+float RETEST_TOL_ATR = 0.18
+float FAIL_TOL_ATR = 0.08
+float INVALID_TOL_ATR = 0.12
+float INVALID_WARN_ATR = 0.20
+float TARGET_MERGE_ATR = 0.10
+float TARGET_NEAR_ATR = 0.30
+float PULLBACK_MIN_DEPTH = 0.12
+float PULLBACK_MAX_DEPTH = 0.90
+
+bool detailed = showStructureDetails
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+f_sec(_tf, _expr) =>
+    _reqSec = timeframe.in_seconds(_tf)
+    _chartSec = timeframe.in_seconds()
+    _reqSec > _chartSec ? request.security(syminfo.tickerid, _tf, _expr[1], barmerge.gaps_off, barmerge.lookahead_on) : _expr
+
+f_price(_v) =>
+    na(_v) ? "—" : str.tostring(_v, format.mintick)
+
+f_zone(_top, _bottom) =>
+    na(_top) or na(_bottom) ? "—" : str.tostring(_bottom, format.mintick) + " – " + str.tostring(_top, format.mintick)
+
+f_stars(_n) =>
+    _n >= 5 ? "★★★★★" :
+     _n == 4 ? "★★★★" :
+     _n == 3 ? "★★★" :
+     _n == 2 ? "★★" :
+     _n == 1 ? "★" : "—"
+
+f_in_zone(_v, _top, _bottom, _tol) =>
+    not na(_v) and not na(_top) and not na(_bottom) and _v <= _top + _tol and _v >= _bottom - _tol
+
+f_trim_pool(_levels, _swept, _strength, _bars) =>
+    if array.size(_levels) > POOL_MAX
+        array.shift(_levels)
+        array.shift(_swept)
+        array.shift(_strength)
+        array.shift(_bars)
+
+f_push_pullback(_arr, _depth) =>
+    if not na(_depth) and _depth >= PULLBACK_MIN_DEPTH and _depth <= PULLBACK_MAX_DEPTH
+        array.push(_arr, _depth)
+        if array.size(_arr) > PULLBACK_SAMPLE_MAX
+            array.shift(_arr)
+
+f_quantile(_arr, _q) =>
+    float result = na
+    int n = array.size(_arr)
+    if n > 0
+        float[] copy = array.copy(_arr)
+        array.sort(copy, order.ascending)
+        float pos = (n - 1) * _q
+        int lo = int(math.floor(pos))
+        int hi = int(math.ceil(pos))
+        float loV = array.get(copy, lo)
+        float hiV = array.get(copy, hi)
+        result := lo == hi ? loV : loV + (hiV - loV) * (pos - lo)
+    result
+
+f_impulse_acceptance(_startBar, _endBar, _low, _high) =>
+    float vwapValue = na
+    float volumeNode = na
+    int matchedBars = 0
+    float impulseSpan = _high - _low
+    if not na(_startBar) and not na(_endBar) and impulseSpan > syminfo.mintick
+        float totalPV = 0.0
+        float totalV = 0.0
+        float[] bins = array.new_float(ACCEPTANCE_BINS, 0.0)
+        for ago = 0 to ACCEPTANCE_MAX_BARS - 1
+            int sourceBar = bar_index - ago
+            if sourceBar >= _startBar and sourceBar <= _endBar
+                float v = nz(volume[ago], 0.0)
+                float p = hlc3[ago]
+                if v > 0 and not na(p)
+                    totalPV += p * v
+                    totalV += v
+                    matchedBars += 1
+                    float rel = math.max(0.0, math.min(0.999999, (p - _low) / impulseSpan))
+                    int bin = int(math.floor(rel * ACCEPTANCE_BINS))
+                    array.set(bins, bin, array.get(bins, bin) + v)
+        if totalV > 0
+            vwapValue := totalPV / totalV
+            float maxBinV = array.max(bins)
+            int nodeBin = array.indexof(bins, maxBinV)
+            volumeNode := _low + (nodeBin + 0.5) * (impulseSpan / ACCEPTANCE_BINS)
+    [vwapValue, volumeNode, matchedBars]
+
+// ---------------------------------------------------------------------------
+// Timeframe context — automatic, deterministic, confirmed HTF
+// ---------------------------------------------------------------------------
+float chartSec = timeframe.in_seconds()
+float tf15Sec = timeframe.in_seconds("15")
+float tf60Sec = timeframe.in_seconds("60")
+float tf240Sec = timeframe.in_seconds("240")
+float tfDSec = timeframe.in_seconds("D")
+float tfWSec = timeframe.in_seconds("W")
+
+if na(chartSec)
+    runtime.error("Market Map requires a time-based chart timeframe.")
+
+string contextTf = chartSec <= tf15Sec ? "60" :
+     chartSec <= tf60Sec ? "240" :
+     chartSec <= tf240Sec ? "D" :
+     chartSec <= tfDSec ? "W" :
+     timeframe.period
+
+// ---------------------------------------------------------------------------
+// Trend / regime layer
+// ---------------------------------------------------------------------------
+float emaFast = ta.ema(close, FAST_LEN)
+float emaMid = ta.ema(close, MID_LEN)
+float emaSlow = ta.ema(close, SLOW_LEN)
+float atr = ta.atr(ATR_LEN)
+
+float ctxClose = f_sec(contextTf, close)
+float ctxMid = f_sec(contextTf, ta.ema(close, MID_LEN))
+float ctxSlow = f_sec(contextTf, ta.ema(close, SLOW_LEN))
+
+// Regime is deliberately slower than execution. A normal pullback below the
+// fast/mid layer should not erase a higher-timeframe bullish/bearish regime.
+bool localBullRegime = emaMid > emaSlow and emaSlow >= emaSlow[3]
+bool localBearRegime = emaMid < emaSlow and emaSlow <= emaSlow[3]
+bool ctxBullRegime = ctxMid > ctxSlow and ctxClose > ctxSlow
+bool ctxBearRegime = ctxMid < ctxSlow and ctxClose < ctxSlow
+
+int regimeDir = localBullRegime and ctxBullRegime ? 1 : localBearRegime and ctxBearRegime ? -1 : 0
+string regimeTxt = regimeDir == 1 ? "ALTA" : regimeDir == -1 ? "BAIXA" : "NEUTRO / TRANSIÇÃO"
+
+// ---------------------------------------------------------------------------
+// Confirmed swing structure
+// ---------------------------------------------------------------------------
+float ph = ta.pivothigh(high, PIVOT_LEN, PIVOT_LEN)
+float pl = ta.pivotlow(low, PIVOT_LEN, PIVOT_LEN)
+bool newPH = not na(ph)
+bool newPL = not na(pl)
+
+// Evaluate rolling post-pivot windows every bar; used to reconstruct whether a
+// newly confirmed pivot was already swept during its confirmation delay.
+float postPivotHigh = ta.highest(high, PIVOT_LEN)
+float postPivotLow = ta.lowest(low, PIVOT_LEN)
+
+var float lastSwingHigh = na
+var float prevSwingHigh = na
+var int lastSwingHighBar = na
+var int prevSwingHighBar = na
+var string lastHighType = "—"
+
+var float lastSwingLow = na
+var float prevSwingLow = na
+var int lastSwingLowBar = na
+var int prevSwingLowBar = na
+var string lastLowType = "—"
+
+bool eqHighNow = newPH and not na(lastSwingHigh) and math.abs(ph - lastSwingHigh) <= atr * EQ_TOL_ATR
+bool eqLowNow = newPL and not na(lastSwingLow) and math.abs(pl - lastSwingLow) <= atr * EQ_TOL_ATR
+
+// Structural-liquidity pool store.
+var float[] highPools = array.new_float()
+var bool[] highSwept = array.new_bool()
+var int[] highStrength = array.new_int()
+var int[] highBars = array.new_int()
+
+var float[] lowPools = array.new_float()
+var bool[] lowSwept = array.new_bool()
+var int[] lowStrength = array.new_int()
+var int[] lowBars = array.new_int()
+
+// Completed structural pullbacks become empirical depth samples.
+// Samples are recorded before the current pivot replaces the previous swing state.
+var float[] bullPullbacks = array.new_float()
+var float[] bearPullbacks = array.new_float()
+
+int candidatePivotBar = bar_index - PIVOT_LEN
+float bullPullbackDepth = na
+float bearPullbackDepth = na
+
+if newPL and lastHighType == "HH" and not na(lastSwingLowBar) and not na(lastSwingHighBar) and lastSwingLowBar < lastSwingHighBar and lastSwingHighBar < candidatePivotBar
+    float priorBullRange = lastSwingHigh - lastSwingLow
+    bullPullbackDepth := priorBullRange > syminfo.mintick ? (lastSwingHigh - pl) / priorBullRange : na
+
+if newPH and lastLowType == "LL" and not na(lastSwingHighBar) and not na(lastSwingLowBar) and lastSwingHighBar < lastSwingLowBar and lastSwingLowBar < candidatePivotBar
+    float priorBearRange = lastSwingHigh - lastSwingLow
+    bearPullbackDepth := priorBearRange > syminfo.mintick ? (ph - lastSwingLow) / priorBearRange : na
+
+f_push_pullback(bullPullbacks, bullPullbackDepth)
+f_push_pullback(bearPullbacks, bearPullbackDepth)
+
+if newPH
+    prevSwingHigh := lastSwingHigh
+    prevSwingHighBar := lastSwingHighBar
+    lastSwingHigh := ph
+    lastSwingHighBar := bar_index - PIVOT_LEN
+    lastHighType := na(prevSwingHigh) ? "H" : ph > prevSwingHigh ? "HH" : "LH"
+
+    bool alreadySwept = postPivotHigh > ph + syminfo.mintick
+    int strength = eqHighNow ? 2 : 1
+    array.push(highPools, ph)
+    array.push(highSwept, alreadySwept)
+    array.push(highStrength, strength)
+    array.push(highBars, lastSwingHighBar)
+    f_trim_pool(highPools, highSwept, highStrength, highBars)
+
+if newPL
+    prevSwingLow := lastSwingLow
+    prevSwingLowBar := lastSwingLowBar
+    lastSwingLow := pl
+    lastSwingLowBar := bar_index - PIVOT_LEN
+    lastLowType := na(prevSwingLow) ? "L" : pl > prevSwingLow ? "HL" : "LL"
+
+    bool alreadySwept = postPivotLow < pl - syminfo.mintick
+    int strength = eqLowNow ? 2 : 1
+    array.push(lowPools, pl)
+    array.push(lowSwept, alreadySwept)
+    array.push(lowStrength, strength)
+    array.push(lowBars, lastSwingLowBar)
+    f_trim_pool(lowPools, lowSwept, lowStrength, lowBars)
+
+// Mark confirmed sweeps and retain the nearest same-bar reclaim event before
+// the consumed pool disappears from the unswept-liquidity map.
+float reclaimAboveLevel = na
+string reclaimAboveSource = "—"
+float reclaimBelowLevel = na
+string reclaimBelowSource = "—"
+
+if barstate.isconfirmed
+    int highCount = array.size(highPools)
+    if highCount > 0
+        for i = 0 to highCount - 1
+            float level = array.get(highPools, i)
+            bool wasSwept = array.get(highSwept, i)
+            if not wasSwept and high > level + syminfo.mintick
+                if close < level and (na(reclaimAboveLevel) or level < reclaimAboveLevel)
+                    reclaimAboveLevel := level
+                    reclaimAboveSource := array.get(highStrength, i) >= 2 ? "EQH" : "SWING"
+                array.set(highSwept, i, true)
+
+    int lowCount = array.size(lowPools)
+    if lowCount > 0
+        for i = 0 to lowCount - 1
+            float level = array.get(lowPools, i)
+            bool wasSwept = array.get(lowSwept, i)
+            if not wasSwept and low < level - syminfo.mintick
+                if close > level and (na(reclaimBelowLevel) or level > reclaimBelowLevel)
+                    reclaimBelowLevel := level
+                    reclaimBelowSource := array.get(lowStrength, i) >= 2 ? "EQL" : "SWING"
+                array.set(lowSwept, i, true)
+
+// Structure break calculations are evaluated every bar and committed on close.
+bool crossSwingHigh = ta.crossover(close, lastSwingHigh)
+bool crossSwingLow = ta.crossunder(close, lastSwingLow)
+bool breakUp = barstate.isconfirmed and not na(lastSwingHigh) and crossSwingHigh
+bool breakDown = barstate.isconfirmed and not na(lastSwingLow) and crossSwingLow
+
+var int structureDir = 0
+bool chochUp = breakUp and structureDir < 0
+bool chochDown = breakDown and structureDir > 0
+bool bosUp = breakUp and not chochUp
+bool bosDown = breakDown and not chochDown
+
+var float lastBreakLevel = na
+var int lastBreakDir = 0
+var int lastBreakBar = na
+var int preBreakStructureDir = 0
+
+// A breakout starts a developing impulse immediately. This lets Market Map
+// project pullback zones before the terminal pivot is confirmed. The LIVE
+// label explicitly tells the operator that the extreme can still expand.
+var int liveImpulseDir = 0
+var float liveImpulseLow = na
+var float liveImpulseHigh = na
+var int liveImpulseStartBar = na
+var int liveImpulseBreakBar = na
+
+if breakUp
+    preBreakStructureDir := structureDir
+    structureDir := 1
+    lastBreakLevel := lastSwingHigh
+    lastBreakDir := 1
+    lastBreakBar := bar_index
+
+    liveImpulseDir := 1
+    liveImpulseLow := lastSwingLow
+    liveImpulseHigh := high
+    liveImpulseStartBar := lastSwingLowBar
+    liveImpulseBreakBar := bar_index
+
+if breakDown
+    preBreakStructureDir := structureDir
+    structureDir := -1
+    lastBreakLevel := lastSwingLow
+    lastBreakDir := -1
+    lastBreakBar := bar_index
+
+    liveImpulseDir := -1
+    liveImpulseHigh := lastSwingHigh
+    liveImpulseLow := low
+    liveImpulseStartBar := lastSwingHighBar
+    liveImpulseBreakBar := bar_index
+
+if liveImpulseDir == 1 and not na(liveImpulseHigh)
+    liveImpulseHigh := math.max(liveImpulseHigh, high)
+
+if liveImpulseDir == -1 and not na(liveImpulseLow)
+    liveImpulseLow := math.min(liveImpulseLow, low)
+
+bool retestUp = barstate.isconfirmed and lastBreakDir == 1 and not na(lastBreakBar) and bar_index > lastBreakBar and bar_index - lastBreakBar <= RETEST_MAX_BARS and low <= lastBreakLevel + atr * RETEST_TOL_ATR and close >= lastBreakLevel
+bool retestDown = barstate.isconfirmed and lastBreakDir == -1 and not na(lastBreakBar) and bar_index > lastBreakBar and bar_index - lastBreakBar <= RETEST_MAX_BARS and high >= lastBreakLevel - atr * RETEST_TOL_ATR and close <= lastBreakLevel
+
+bool failedBreakUp = barstate.isconfirmed and lastBreakDir == 1 and not na(lastBreakBar) and bar_index > lastBreakBar and bar_index - lastBreakBar <= FAIL_MAX_BARS and close < lastBreakLevel - atr * FAIL_TOL_ATR
+bool failedBreakDown = barstate.isconfirmed and lastBreakDir == -1 and not na(lastBreakBar) and bar_index > lastBreakBar and bar_index - lastBreakBar <= FAIL_MAX_BARS and close > lastBreakLevel + atr * FAIL_TOL_ATR
+bool fakeoutUpEvt = failedBreakUp
+bool fakeoutDownEvt = failedBreakDown
+
+if fakeoutUpEvt or fakeoutDownEvt
+    structureDir := preBreakStructureDir
+    lastBreakDir := 0
+    liveImpulseDir := 0
+
+string swingStructureTxt = lastHighType + "/" + lastLowType
+bool bullSwingSequence = lastHighType == "HH" and lastLowType == "HL"
+bool bearSwingSequence = lastHighType == "LH" and lastLowType == "LL"
+
+string structureTxt = structureDir == 1 ?
+     (bullSwingSequence ? "ALTA • HH/HL" : bearSwingSequence ? "ALTA • REVERSÃO" : "ALTA • MISTA") :
+     structureDir == -1 ?
+     (bearSwingSequence ? "BAIXA • LH/LL" : bullSwingSequence ? "BAIXA • REVERSÃO" : "BAIXA • MISTA") :
+     swingStructureTxt
+
+// ---------------------------------------------------------------------------
+// Confirmed external liquidity references
+// ---------------------------------------------------------------------------
+bool dayLevelsAllowed = chartSec <= tfDSec
+bool weekLevelsAllowed = chartSec <= tfWSec
+
+float prevDayHigh = dayLevelsAllowed ? request.security(syminfo.tickerid, "D", high[1], barmerge.gaps_off, barmerge.lookahead_on) : na
+float prevDayLow = dayLevelsAllowed ? request.security(syminfo.tickerid, "D", low[1], barmerge.gaps_off, barmerge.lookahead_on) : na
+float prevWeekHigh = weekLevelsAllowed ? request.security(syminfo.tickerid, "W", high[1], barmerge.gaps_off, barmerge.lookahead_on) : na
+float prevWeekLow = weekLevelsAllowed ? request.security(syminfo.tickerid, "W", low[1], barmerge.gaps_off, barmerge.lookahead_on) : na
+
+bool newDay = ta.change(time("D")) != 0
+bool newWeek = ta.change(time("W")) != 0
+
+var bool pdhSwept = false
+var bool pdlSwept = false
+var bool pwhSwept = false
+var bool pwlSwept = false
+
+if newDay
+    pdhSwept := false
+    pdlSwept := false
+
+if newWeek
+    pwhSwept := false
+    pwlSwept := false
+
+if barstate.isconfirmed
+    if dayLevelsAllowed and not pdhSwept and not na(prevDayHigh) and high > prevDayHigh + syminfo.mintick
+        if close < prevDayHigh and (na(reclaimAboveLevel) or prevDayHigh < reclaimAboveLevel)
+            reclaimAboveLevel := prevDayHigh
+            reclaimAboveSource := "PDH"
+        pdhSwept := true
+    if dayLevelsAllowed and not pdlSwept and not na(prevDayLow) and low < prevDayLow - syminfo.mintick
+        if close > prevDayLow and (na(reclaimBelowLevel) or prevDayLow > reclaimBelowLevel)
+            reclaimBelowLevel := prevDayLow
+            reclaimBelowSource := "PDL"
+        pdlSwept := true
+    if weekLevelsAllowed and not pwhSwept and not na(prevWeekHigh) and high > prevWeekHigh + syminfo.mintick
+        if close < prevWeekHigh and (na(reclaimAboveLevel) or prevWeekHigh < reclaimAboveLevel)
+            reclaimAboveLevel := prevWeekHigh
+            reclaimAboveSource := "PWH"
+        pwhSwept := true
+    if weekLevelsAllowed and not pwlSwept and not na(prevWeekLow) and low < prevWeekLow - syminfo.mintick
+        if close > prevWeekLow and (na(reclaimBelowLevel) or prevWeekLow > reclaimBelowLevel)
+            reclaimBelowLevel := prevWeekLow
+            reclaimBelowSource := "PWL"
+        pwlSwept := true
+
+// ---------------------------------------------------------------------------
+// Nearest unswept structural liquidity
+// ---------------------------------------------------------------------------
+float liqAbove = na
+int liqAboveStrength = 0
+int liqAboveBar = na
+string liqAboveSource = "—"
+int hc = array.size(highPools)
+if hc > 0
+    for i = 0 to hc - 1
+        float level = array.get(highPools, i)
+        bool swept = array.get(highSwept, i)
+        if not swept and level > close
+            if na(liqAbove) or level < liqAbove
+                liqAbove := level
+                liqAboveStrength := array.get(highStrength, i)
+                liqAboveBar := array.get(highBars, i)
+                liqAboveSource := liqAboveStrength >= 2 ? "EQH" : "SWING"
+
+if dayLevelsAllowed and not pdhSwept and not na(prevDayHigh) and prevDayHigh > close and (na(liqAbove) or prevDayHigh < liqAbove)
+    liqAbove := prevDayHigh
+    liqAboveStrength := 2
+    liqAboveBar := bar_index
+    liqAboveSource := "PDH"
+
+if weekLevelsAllowed and not pwhSwept and not na(prevWeekHigh) and prevWeekHigh > close and (na(liqAbove) or prevWeekHigh < liqAbove)
+    liqAbove := prevWeekHigh
+    liqAboveStrength := 3
+    liqAboveBar := bar_index
+    liqAboveSource := "PWH"
+
+float liqBelow = na
+int liqBelowStrength = 0
+int liqBelowBar = na
+string liqBelowSource = "—"
+int lc = array.size(lowPools)
+if lc > 0
+    for i = 0 to lc - 1
+        float level = array.get(lowPools, i)
+        bool swept = array.get(lowSwept, i)
+        if not swept and level < close
+            if na(liqBelow) or level > liqBelow
+                liqBelow := level
+                liqBelowStrength := array.get(lowStrength, i)
+                liqBelowBar := array.get(lowBars, i)
+                liqBelowSource := liqBelowStrength >= 2 ? "EQL" : "SWING"
+
+if dayLevelsAllowed and not pdlSwept and not na(prevDayLow) and prevDayLow < close and (na(liqBelow) or prevDayLow > liqBelow)
+    liqBelow := prevDayLow
+    liqBelowStrength := 2
+    liqBelowBar := bar_index
+    liqBelowSource := "PDL"
+
+if weekLevelsAllowed and not pwlSwept and not na(prevWeekLow) and prevWeekLow < close and (na(liqBelow) or prevWeekLow > liqBelow)
+    liqBelow := prevWeekLow
+    liqBelowStrength := 3
+    liqBelowBar := bar_index
+    liqBelowSource := "PWL"
+
+// ---------------------------------------------------------------------------
+// Destination ladder — next distinct liquidity after the nearest pool
+// ---------------------------------------------------------------------------
+float mergeTol = atr * TARGET_MERGE_ATR
+
+float liqAbove2 = na
+string liqAbove2Source = "—"
+if hc > 0
+    for i = 0 to hc - 1
+        float level = array.get(highPools, i)
+        bool swept = array.get(highSwept, i)
+        bool distinct = na(liqAbove) or math.abs(level - liqAbove) > mergeTol
+        if not swept and level > close and distinct
+            if na(liqAbove2) or level < liqAbove2
+                liqAbove2 := level
+                liqAbove2Source := array.get(highStrength, i) >= 2 ? "EQH" : "SWING"
+
+if dayLevelsAllowed and not pdhSwept and not na(prevDayHigh) and prevDayHigh > close and (na(liqAbove) or math.abs(prevDayHigh - liqAbove) > mergeTol)
+    if na(liqAbove2) or prevDayHigh < liqAbove2
+        liqAbove2 := prevDayHigh
+        liqAbove2Source := "PDH"
+
+if weekLevelsAllowed and not pwhSwept and not na(prevWeekHigh) and prevWeekHigh > close and (na(liqAbove) or math.abs(prevWeekHigh - liqAbove) > mergeTol)
+    if na(liqAbove2) or prevWeekHigh < liqAbove2
+        liqAbove2 := prevWeekHigh
+        liqAbove2Source := "PWH"
+
+float liqBelow2 = na
+string liqBelow2Source = "—"
+if lc > 0
+    for i = 0 to lc - 1
+        float level = array.get(lowPools, i)
+        bool swept = array.get(lowSwept, i)
+        bool distinct = na(liqBelow) or math.abs(level - liqBelow) > mergeTol
+        if not swept and level < close and distinct
+            if na(liqBelow2) or level > liqBelow2
+                liqBelow2 := level
+                liqBelow2Source := array.get(lowStrength, i) >= 2 ? "EQL" : "SWING"
+
+if dayLevelsAllowed and not pdlSwept and not na(prevDayLow) and prevDayLow < close and (na(liqBelow) or math.abs(prevDayLow - liqBelow) > mergeTol)
+    if na(liqBelow2) or prevDayLow > liqBelow2
+        liqBelow2 := prevDayLow
+        liqBelow2Source := "PDL"
+
+if weekLevelsAllowed and not pwlSwept and not na(prevWeekLow) and prevWeekLow < close and (na(liqBelow) or math.abs(prevWeekLow - liqBelow) > mergeTol)
+    if na(liqBelow2) or prevWeekLow > liqBelow2
+        liqBelow2 := prevWeekLow
+        liqBelow2Source := "PWL"
+
+// ---------------------------------------------------------------------------
+// Correction Engine — latest confirmed structural impulse
+// ---------------------------------------------------------------------------
+// If slow regime and confirmed local structure disagree, do not pretend a
+// correction thesis is still clean. Freeze directional correction mapping
+// until the conflict resolves.
+bool regimeStructureConflict = regimeDir != 0 and structureDir != 0 and regimeDir != structureDir
+int mapDir = regimeStructureConflict ? 0 : regimeDir != 0 ? regimeDir : structureDir
+
+bool bullishReclaimEvt = not na(reclaimBelowLevel)
+bool bearishReclaimEvt = not na(reclaimAboveLevel)
+bool relevantReclaimEvt = mapDir == 1 ? bullishReclaimEvt : mapDir == -1 ? bearishReclaimEvt : false
+float relevantReclaimLevel = mapDir == 1 ? reclaimBelowLevel : mapDir == -1 ? reclaimAboveLevel : na
+string relevantReclaimSource = mapDir == 1 ? reclaimBelowSource : mapDir == -1 ? reclaimAboveSource : "—"
+int reclaimEventDir = relevantReclaimEvt ? mapDir : 0
+
+float destination1 = mapDir == 1 ? liqAbove : mapDir == -1 ? liqBelow : na
+string destination1Source = mapDir == 1 ? liqAboveSource : mapDir == -1 ? liqBelowSource : "—"
+float destination2 = mapDir == 1 ? liqAbove2 : mapDir == -1 ? liqBelow2 : na
+string destination2Source = mapDir == 1 ? liqAbove2Source : mapDir == -1 ? liqBelow2Source : "—"
+float destinationDistanceAtr = not na(destination1) and atr > 0 ? math.abs(destination1 - close) / atr : na
+bool destinationNear = not na(destinationDistanceAtr) and destinationDistanceAtr <= TARGET_NEAR_ATR
+
+bool destinationHitUp = barstate.isconfirmed and mapDir[1] == 1 and not na(destination1[1]) and high >= destination1[1]
+bool destinationHitDown = barstate.isconfirmed and mapDir[1] == -1 and not na(destination1[1]) and low <= destination1[1]
+bool destinationHitEvt = destinationHitUp or destinationHitDown
+float destinationHitLevel = destinationHitEvt ? destination1[1] : na
+string destinationHitSource = destinationHitEvt ? destination1Source[1] : "—"
+
+string destinationTxtBase = na(destination1) ? "—" :
+     f_price(destination1) + " • " + destination1Source +
+     (destinationNear ? " • PRÓX." : "") +
+     (not na(destination2) ? " → " + f_price(destination2) + " • " + destination2Source : "")
+string destinationTxt = destinationHitEvt ?
+     "ATINGIDO " + f_price(destinationHitLevel) + " • " + destinationHitSource +
+     (not na(destination1) ? " → " + f_price(destination1) + " • " + destination1Source : "") :
+     destinationTxtBase
+
+float impulseLow = na
+float impulseHigh = na
+int impulseStartBar = na
+int impulseEndBar = na
+
+if mapDir == 1 and not na(lastSwingHigh)
+    if not na(lastSwingLowBar) and lastSwingLowBar < lastSwingHighBar
+        impulseLow := lastSwingLow
+        impulseStartBar := lastSwingLowBar
+    else if not na(prevSwingLowBar) and prevSwingLowBar < lastSwingHighBar
+        impulseLow := prevSwingLow
+        impulseStartBar := prevSwingLowBar
+    impulseHigh := lastSwingHigh
+    impulseEndBar := lastSwingHighBar
+
+if mapDir == -1 and not na(lastSwingLow)
+    if not na(lastSwingHighBar) and lastSwingHighBar < lastSwingLowBar
+        impulseHigh := lastSwingHigh
+        impulseStartBar := lastSwingHighBar
+    else if not na(prevSwingHighBar) and prevSwingHighBar < lastSwingLowBar
+        impulseHigh := prevSwingHigh
+        impulseStartBar := prevSwingHighBar
+    impulseLow := lastSwingLow
+    impulseEndBar := lastSwingLowBar
+
+bool useLiveImpulse = false
+bool liveBullUsable = mapDir == 1 and liveImpulseDir == 1 and not na(liveImpulseStartBar) and not na(liveImpulseLow) and not na(liveImpulseHigh)
+bool liveBearUsable = mapDir == -1 and liveImpulseDir == -1 and not na(liveImpulseStartBar) and not na(liveImpulseLow) and not na(liveImpulseHigh)
+bool liveIsNewer = na(impulseEndBar) or (not na(liveImpulseBreakBar) and liveImpulseBreakBar > impulseEndBar)
+
+if liveBullUsable and liveIsNewer
+    impulseLow := liveImpulseLow
+    impulseHigh := liveImpulseHigh
+    impulseStartBar := liveImpulseStartBar
+    impulseEndBar := bar_index
+    useLiveImpulse := true
+
+if liveBearUsable and liveIsNewer
+    impulseLow := liveImpulseLow
+    impulseHigh := liveImpulseHigh
+    impulseStartBar := liveImpulseStartBar
+    impulseEndBar := bar_index
+    useLiveImpulse := true
+
+float impulseRange = not na(impulseHigh) and not na(impulseLow) ? impulseHigh - impulseLow : na
+bool correctionReady = not na(impulseRange) and impulseRange > syminfo.mintick * 20 and not na(impulseEndBar)
+
+float fib382 = na
+float fib500 = na
+float fib618 = na
+float fib786 = na
+
+if correctionReady and mapDir == 1
+    fib382 := impulseHigh - impulseRange * 0.382
+    fib500 := impulseHigh - impulseRange * 0.500
+    fib618 := impulseHigh - impulseRange * 0.618
+    fib786 := impulseHigh - impulseRange * 0.786
+
+if correctionReady and mapDir == -1
+    fib382 := impulseLow + impulseRange * 0.382
+    fib500 := impulseLow + impulseRange * 0.500
+    fib618 := impulseLow + impulseRange * 0.618
+    fib786 := impulseLow + impulseRange * 0.786
+
+float t1Top = correctionReady ? math.max(fib382, fib500) : na
+float t1Bottom = correctionReady ? math.min(fib382, fib500) : na
+float fibT2Top = correctionReady ? math.max(fib500, fib618) : na
+float fibT2Bottom = correctionReady ? math.min(fib500, fib618) : na
+float t3Top = correctionReady ? math.max(fib618, fib786) : na
+float t3Bottom = correctionReady ? math.min(fib618, fib786) : na
+
+// Empirical correction depth: recent completed HH→HL or LL→LH pullbacks.
+// With insufficient history, fall back to the classic 0.500–0.618 zone.
+float bullQ25 = f_quantile(bullPullbacks, 0.25)
+float bullMedian = f_quantile(bullPullbacks, 0.50)
+float bullQ75 = f_quantile(bullPullbacks, 0.75)
+float bearQ25 = f_quantile(bearPullbacks, 0.25)
+float bearMedian = f_quantile(bearPullbacks, 0.50)
+float bearQ75 = f_quantile(bearPullbacks, 0.75)
+
+int pullbackSamples = mapDir == 1 ? array.size(bullPullbacks) : mapDir == -1 ? array.size(bearPullbacks) : 0
+float pullbackQ25 = mapDir == 1 ? bullQ25 : mapDir == -1 ? bearQ25 : na
+float pullbackMedian = mapDir == 1 ? bullMedian : mapDir == -1 ? bearMedian : na
+float pullbackQ75 = mapDir == 1 ? bullQ75 : mapDir == -1 ? bearQ75 : na
+bool empiricalReady = pullbackSamples >= PULLBACK_MIN_SAMPLES and not na(pullbackMedian)
+
+float empiricalSpread = empiricalReady ? math.max(0.0, pullbackQ75 - pullbackQ25) : na
+float empiricalHalfBand = empiricalReady ? math.max(0.045, math.min(0.11, empiricalSpread * 0.45)) : na
+float primaryRatioShallow = empiricalReady ? math.max(0.236, math.min(0.786, pullbackMedian - empiricalHalfBand)) : 0.500
+float primaryRatioDeep = empiricalReady ? math.max(primaryRatioShallow + 0.04, math.min(0.886, pullbackMedian + empiricalHalfBand)) : 0.618
+
+float primaryA = na
+float primaryB = na
+if correctionReady and mapDir == 1
+    primaryA := impulseHigh - impulseRange * primaryRatioShallow
+    primaryB := impulseHigh - impulseRange * primaryRatioDeep
+if correctionReady and mapDir == -1
+    primaryA := impulseLow + impulseRange * primaryRatioShallow
+    primaryB := impulseLow + impulseRange * primaryRatioDeep
+
+float primaryTop = correctionReady ? math.max(primaryA, primaryB) : na
+float primaryBottom = correctionReady ? math.min(primaryA, primaryB) : na
+string correctionBaseModel = empiricalReady ? "ADAPT " + str.tostring(pullbackSamples) : "FIB"
+string correctionModel = correctionReady ? (useLiveImpulse ? "LIVE/" : "") + correctionBaseModel : "—"
+int correctionModelCode = not correctionReady ? 0 : useLiveImpulse ? (empiricalReady ? 4 : 3) : (empiricalReady ? 2 : 1)
+
+// Current-impulse volume acceptance. This is a bar-volume approximation:
+// VWAP is exact for the selected bars; VNode bins each bar's hlc3 volume into
+// the impulse range and is intentionally NOT labeled as exchange POC.
+//
+// On an open realtime bar, acceptance intentionally stops at the previous
+// confirmed bar and uses the previous confirmed LIVE extreme. This prevents a
+// volume-confluence star from flashing only at candle close and disappearing
+// again as soon as the next candle opens.
+float impulseVwap = na
+float impulseVNode = na
+int acceptanceBars = 0
+int acceptanceEndBar = impulseEndBar
+float acceptanceLow = impulseLow
+float acceptanceHigh = impulseHigh
+
+if barstate.islast and correctionReady and not barstate.isconfirmed and useLiveImpulse
+    acceptanceEndBar := bar_index - 1
+    if mapDir == 1
+        acceptanceHigh := nz(liveImpulseHigh[1], impulseHigh)
+    if mapDir == -1
+        acceptanceLow := nz(liveImpulseLow[1], impulseLow)
+
+if barstate.islast and correctionReady and acceptanceEndBar >= impulseStartBar
+    [calcVwap, calcVNode, calcBars] = f_impulse_acceptance(impulseStartBar, acceptanceEndBar, acceptanceLow, acceptanceHigh)
+    impulseVwap := calcVwap
+    impulseVNode := calcVNode
+    acceptanceBars := calcBars
+
+float invalidation = correctionReady ? (mapDir == 1 ? impulseLow - atr * INVALID_TOL_ATR : impulseHigh + atr * INVALID_TOL_ATR) : na
+
+// Invalidation is a thesis lifecycle, not just another line.
+// Intrabar crossing is shown as a test; only a confirmed close permanently
+// invalidates the current impulse thesis. A new structural impulse resets it.
+// Stable identity across LIVE -> confirmed-terminal-pivot transition.
+// The thesis is anchored by impulse origin + direction, not by the evolving end bar.
+int impulseKey = correctionReady and not na(impulseStartBar) ? impulseStartBar * 3 + (mapDir + 1) : na
+bool invalidationBrokenNow = correctionReady and (mapDir == 1 ? close < invalidation : mapDir == -1 ? close > invalidation : false)
+
+var int invalidatedImpulseKey = na
+if barstate.isconfirmed and invalidationBrokenNow and not na(impulseKey)
+    invalidatedImpulseKey := impulseKey
+
+bool thesisInvalidated = correctionReady and not na(impulseKey) and invalidatedImpulseKey == impulseKey
+bool correctionActive = correctionReady and not thesisInvalidated
+string activeDestinationTxt = thesisInvalidated ? "—" : destinationTxt
+bool activeDestinationNear = not thesisInvalidated and destinationNear
+
+float invalidationDistance = correctionActive ? (mapDir == 1 ? close - invalidation : mapDir == -1 ? invalidation - close : na) : na
+bool nearInvalidation = correctionActive and not invalidationBrokenNow and not na(invalidationDistance) and invalidationDistance >= 0 and invalidationDistance <= atr * INVALID_WARN_ATR
+
+// ---------------------------------------------------------------------------
+// Historical engineering telemetry — Data Window only
+// ---------------------------------------------------------------------------
+// These counters validate map behavior on the chart's loaded history. They are
+// engineering diagnostics, not predictive probabilities and not trade signals.
+var int diagTrackedKey = na
+var int diagTrackedDir = 0
+var float diagTrackedDestination = na
+var int diagZoneTouchBar = na
+var bool diagZoneTouched = false
+var bool diagDestinationHit = false
+var bool diagInvalidated = false
+var bool diagOutcomeResolved = false
+
+var int diagTheses = 0
+var int diagZoneTouches = 0
+var int diagDestinationHits = 0
+var int diagInvalidations = 0
+var int diagZoneToDestination = 0
+var int diagZoneToInvalidation = 0
+var int diagAmbiguousOutcomes = 0
+var int diagSupersededAfterTouch = 0
+var int diagOutcomeBarsSum = 0
+var int diagOutcomeBarsCount = 0
+
+bool diagNewThesis = barstate.isconfirmed and correctionReady and not na(impulseKey) and impulseKey != diagTrackedKey
+if diagNewThesis
+    if diagZoneTouched and not diagOutcomeResolved
+        diagSupersededAfterTouch += 1
+    diagTrackedKey := impulseKey
+    diagTrackedDir := mapDir
+    diagTrackedDestination := na
+    diagZoneTouchBar := na
+    diagZoneTouched := false
+    diagDestinationHit := false
+    diagInvalidated := false
+    diagOutcomeResolved := false
+    diagTheses += 1
+
+bool diagZoneTouchNow = barstate.isconfirmed and correctionActive and not diagZoneTouched and high >= primaryBottom and low <= primaryTop
+
+// Historical bars are not the chart's last bar, so the normal live acceptance
+// calculation is intentionally absent there. Recompute it only on the first
+// correction-zone touch so historical confluence-at-touch remains faithful
+// without paying a 240-bar scan on every historical candle.
+float diagTouchVwap = na
+float diagTouchVNode = na
+int diagTouchAcceptanceBars = 0
+if diagZoneTouchNow
+    [touchVwap, touchVNode, touchBars] = f_impulse_acceptance(impulseStartBar, impulseEndBar, impulseLow, impulseHigh)
+    diagTouchVwap := touchVwap
+    diagTouchVNode := touchVNode
+    diagTouchAcceptanceBars := touchBars
+
+if diagZoneTouchNow
+    diagZoneTouched := true
+    diagZoneTouchBar := bar_index
+    // Freeze the target that was actionable entering the touch candle only when
+    // it is still a valid post-correction destination. A LIVE correction zone
+    // can move enough that yesterday's nearest liquidity is now inside/behind
+    // the zone; counting that stale level as a future destination corrupts the
+    // historical zone-outcome audit.
+    bool prevTargetBeyondZone = not na(destination1[1]) and
+         (mapDir == 1 ? destination1[1] > primaryTop : mapDir == -1 ? destination1[1] < primaryBottom : false)
+    bool currentTargetBeyondZone = not na(destination1) and
+         (mapDir == 1 ? destination1 > primaryTop : mapDir == -1 ? destination1 < primaryBottom : false)
+    bool prevTargetUsable = mapDir[1] == mapDir and prevTargetBeyondZone
+    diagTrackedDestination := prevTargetUsable ? destination1[1] : currentTargetBeyondZone ? destination1 : na
+    diagZoneTouches += 1
+
+bool diagDestinationCondition = barstate.isconfirmed and diagZoneTouched and not diagDestinationHit and not na(diagTrackedDestination) and
+     ((diagTrackedDir == 1 and high >= diagTrackedDestination) or (diagTrackedDir == -1 and low <= diagTrackedDestination))
+bool diagInvalidationCondition = barstate.isconfirmed and diagZoneTouched and thesisInvalidated and not diagInvalidated
+
+// OHLC usually does not reveal intrabar ordering. One safe exception exists:
+// if a valid target lies beyond the correction zone and the candle opens in or
+// behind that zone, reaching the target necessarily happens after the zone was
+// touched. Keep genuinely unordered same-bar outcomes ambiguous.
+bool diagSameBarAsTouch = diagZoneTouched and not na(diagZoneTouchBar) and bar_index == diagZoneTouchBar
+bool diagZoneBeforeTargetInferable = diagSameBarAsTouch and diagDestinationCondition and not diagInvalidationCondition and
+     ((diagTrackedDir == 1 and diagTrackedDestination > primaryTop and open <= primaryTop) or
+      (diagTrackedDir == -1 and diagTrackedDestination < primaryBottom and open >= primaryBottom))
+bool diagAmbiguousNow = not diagOutcomeResolved and
+     ((diagSameBarAsTouch and (diagDestinationCondition or diagInvalidationCondition) and not diagZoneBeforeTargetInferable) or
+      (diagDestinationCondition and diagInvalidationCondition))
+
+bool diagDestinationResolvedNow = diagDestinationCondition and not diagAmbiguousNow and not diagOutcomeResolved
+bool diagInvalidationResolvedNow = diagInvalidationCondition and not diagAmbiguousNow and not diagOutcomeResolved
+
+if diagAmbiguousNow
+    diagAmbiguousOutcomes += 1
+    diagOutcomeResolved := true
+
+if diagDestinationCondition
+    diagDestinationHit := true
+    diagDestinationHits += 1
+    if diagDestinationResolvedNow
+        diagZoneToDestination += 1
+        diagOutcomeResolved := true
+        diagOutcomeBarsSum += bar_index - diagZoneTouchBar
+        diagOutcomeBarsCount += 1
+
+if diagInvalidationCondition
+    diagInvalidated := true
+    diagInvalidations += 1
+    if diagInvalidationResolvedNow
+        diagZoneToInvalidation += 1
+        diagOutcomeResolved := true
+        diagOutcomeBarsSum += bar_index - diagZoneTouchBar
+        diagOutcomeBarsCount += 1
+
+float diagResolvedAfterZone = diagZoneToDestination + diagZoneToInvalidation
+float diagOpenAfterZone = math.max(0, diagZoneTouches - diagResolvedAfterZone - diagAmbiguousOutcomes - diagSupersededAfterTouch)
+float diagZoneTouchPct = diagTheses > 0 ? 100.0 * diagZoneTouches / diagTheses : na
+float diagAvgBarsToOutcome = diagOutcomeBarsCount > 0 ? 1.0 * diagOutcomeBarsSum / diagOutcomeBarsCount : na
+float diagZoneReactionPct = diagResolvedAfterZone > 0 ? 100.0 * diagZoneToDestination / diagResolvedAfterZone : na
+
+bool inT1 = correctionActive and close <= t1Top and close >= t1Bottom
+bool inPrimary = correctionActive and close <= primaryTop and close >= primaryBottom
+bool inT3 = correctionActive and close <= t3Top and close >= t3Bottom
+
+float zoneTol = atr * 0.15
+bool fibCoreOverlap = correctionReady and primaryTop >= fibT2Bottom and primaryBottom <= fibT2Top
+
+float acceptanceEvidenceVwap = diagZoneTouchNow ? diagTouchVwap : impulseVwap
+float acceptanceEvidenceVNode = diagZoneTouchNow ? diagTouchVNode : impulseVNode
+int acceptanceEvidenceBars = diagZoneTouchNow ? diagTouchAcceptanceBars : acceptanceBars
+bool acceptanceEvidenceReady = acceptanceEvidenceBars >= 8 and not na(acceptanceEvidenceVwap)
+
+int correctionConfluence = correctionActive ? 1 : 0
+correctionConfluence += fibCoreOverlap ? 1 : 0
+correctionConfluence += f_in_zone(emaMid, primaryTop, primaryBottom, zoneTol) ? 1 : 0
+correctionConfluence += f_in_zone(lastBreakLevel, primaryTop, primaryBottom, zoneTol) ? 1 : 0
+float reactionLiquidityLevel = relevantReclaimEvt ? relevantReclaimLevel : (mapDir == 1 ? liqBelow : liqAbove)
+correctionConfluence += f_in_zone(reactionLiquidityLevel, primaryTop, primaryBottom, zoneTol) ? 1 : 0
+correctionConfluence += acceptanceEvidenceReady and (f_in_zone(acceptanceEvidenceVwap, primaryTop, primaryBottom, zoneTol) or f_in_zone(acceptanceEvidenceVNode, primaryTop, primaryBottom, zoneTol)) ? 1 : 0
+
+// ---------------------------------------------------------------------------
+// Phase classifier
+// ---------------------------------------------------------------------------
+string phaseTxt = "MAPEANDO"
+
+if mapDir == 1 and correctionActive
+    phaseTxt := close > impulseHigh ? "ROMPIMENTO / IMPULSO" :
+         retestUp ? "RETESTE" :
+         inT1 or inPrimary or inT3 ? "CORREÇÃO" :
+         close < t3Bottom and close > invalidation ? "CORREÇÃO PROFUNDA" :
+         close < impulseHigh ? "PULLBACK" : "IMPULSO"
+
+if mapDir == -1 and correctionActive
+    phaseTxt := close < impulseLow ? "ROMPIMENTO / IMPULSO" :
+         retestDown ? "RETESTE" :
+         inT1 or inPrimary or inT3 ? "CORREÇÃO" :
+         close > t3Top and close < invalidation ? "CORREÇÃO PROFUNDA" :
+         close > impulseLow ? "PULLBACK" : "IMPULSO"
+
+if mapDir == 0
+    phaseTxt := regimeStructureConflict ? "TRANSIÇÃO ESTRUTURAL" : "TRANSIÇÃO"
+
+if correctionActive and relevantReclaimEvt
+    phaseTxt := "SWEEP / RECLAIM"
+
+if correctionActive and (nearInvalidation or invalidationBrokenNow)
+    phaseTxt := "TESTE DE INVALIDAÇÃO"
+
+if thesisInvalidated
+    phaseTxt := "TESE INVALIDADA"
+
+if fakeoutUpEvt or fakeoutDownEvt
+    phaseTxt := "FALSO ROMPIMENTO"
+
+// ---------------------------------------------------------------------------
+// Visual layer
+// ---------------------------------------------------------------------------
+color fastColor = color.rgb(0, 188, 212)
+color midColor = color.rgb(255, 167, 38)
+color slowColor = color.rgb(239, 83, 80)
+
+plot(showMAs ? emaFast : na, "EMA 21", color=fastColor, linewidth=1)
+plot(showMAs ? emaMid : na, "EMA 50", color=midColor, linewidth=2)
+plot(showMAs ? emaSlow : na, "EMA 200", color=slowColor, linewidth=3)
+
+plotshape(detailed and bosUp, title="BOS Up", style=shape.labelup, location=location.belowbar, color=color.new(color.green, 0), text="B↑", textcolor=color.white, size=size.tiny, display=display.pane)
+plotshape(detailed and chochUp, title="CHoCH Up", style=shape.labelup, location=location.belowbar, color=color.new(color.teal, 0), text="CH↑", textcolor=color.white, size=size.tiny, display=display.pane)
+plotshape(detailed and bosDown, title="BOS Down", style=shape.labeldown, location=location.abovebar, color=color.new(color.red, 0), text="B↓", textcolor=color.white, size=size.tiny, display=display.pane)
+plotshape(detailed and chochDown, title="CHoCH Down", style=shape.labeldown, location=location.abovebar, color=color.new(color.orange, 0), text="CH↓", textcolor=color.white, size=size.tiny, display=display.pane)
+plotshape(detailed and retestUp, title="Retest Up", style=shape.circle, location=location.belowbar, color=color.new(color.green, 0), size=size.tiny, display=display.pane)
+plotshape(detailed and retestDown, title="Retest Down", style=shape.circle, location=location.abovebar, color=color.new(color.red, 0), size=size.tiny, display=display.pane)
+plotshape(detailed and fakeoutUpEvt, title="Failed Break Up", style=shape.labeldown, location=location.abovebar, color=color.new(color.orange, 0), text="FX↑", textcolor=color.white, size=size.tiny, display=display.pane)
+plotshape(detailed and fakeoutDownEvt, title="Failed Break Down", style=shape.labelup, location=location.belowbar, color=color.new(color.orange, 0), text="FX↓", textcolor=color.white, size=size.tiny, display=display.pane)
+
+// Current-map objects only: no historical box clutter.
+var box t1Box = na
+var box t2Box = na
+var box t3Box = na
+var line invalidLine = na
+var line liqAboveLine = na
+var line liqBelowLine = na
+
+if barstate.islast
+    bool showT1T3 = detailed and correctionActive
+    bool showPrimary = correctionActive
+
+    if showT1T3
+        if na(t1Box)
+            t1Box := box.new(impulseEndBar, t1Top, bar_index + 20, t1Bottom, xloc=xloc.bar_index, extend=extend.right, border_color=color.new(color.aqua, 55), bgcolor=color.new(color.aqua, 92))
+        else
+            box.set_left(t1Box, impulseEndBar)
+            box.set_right(t1Box, bar_index + 20)
+            box.set_top(t1Box, t1Top)
+            box.set_bottom(t1Box, t1Bottom)
+
+        if na(t3Box)
+            t3Box := box.new(impulseEndBar, t3Top, bar_index + 20, t3Bottom, xloc=xloc.bar_index, extend=extend.right, border_color=color.new(color.red, 58), bgcolor=color.new(color.red, 93))
+        else
+            box.set_left(t3Box, impulseEndBar)
+            box.set_right(t3Box, bar_index + 20)
+            box.set_top(t3Box, t3Top)
+            box.set_bottom(t3Box, t3Bottom)
+    else
+        if not na(t1Box)
+            box.delete(t1Box)
+            t1Box := na
+        if not na(t3Box)
+            box.delete(t3Box)
+            t3Box := na
+
+    if showPrimary
+        if na(t2Box)
+            t2Box := box.new(impulseEndBar, primaryTop, bar_index + 20, primaryBottom, xloc=xloc.bar_index, extend=extend.right, border_color=color.new(color.yellow, 30), bgcolor=color.new(color.yellow, 88))
+        else
+            box.set_left(t2Box, impulseEndBar)
+            box.set_right(t2Box, bar_index + 20)
+            box.set_top(t2Box, primaryTop)
+            box.set_bottom(t2Box, primaryBottom)
+    else
+        if not na(t2Box)
+            box.delete(t2Box)
+            t2Box := na
+
+    if correctionActive
+        if na(invalidLine)
+            invalidLine := line.new(impulseEndBar, invalidation, bar_index + 20, invalidation, xloc=xloc.bar_index, extend=extend.right, color=color.new(color.red, 15), style=line.style_dashed, width=1)
+        else
+            line.set_xy1(invalidLine, impulseEndBar, invalidation)
+            line.set_xy2(invalidLine, bar_index + 20, invalidation)
+    else
+        if not na(invalidLine)
+            line.delete(invalidLine)
+            invalidLine := na
+
+    if not na(liqAbove)
+        if na(liqAboveLine)
+            liqAboveLine := line.new(math.max(liqAboveBar, bar_index - 5000), liqAbove, bar_index + 20, liqAbove, xloc=xloc.bar_index, extend=extend.right, color=color.new(color.fuchsia, 25), style=line.style_dotted, width=1)
+        else
+            line.set_xy1(liqAboveLine, math.max(liqAboveBar, bar_index - 5000), liqAbove)
+            line.set_xy2(liqAboveLine, bar_index + 20, liqAbove)
+    else
+        if not na(liqAboveLine)
+            line.delete(liqAboveLine)
+            liqAboveLine := na
+
+    if not na(liqBelow)
+        if na(liqBelowLine)
+            liqBelowLine := line.new(math.max(liqBelowBar, bar_index - 5000), liqBelow, bar_index + 20, liqBelow, xloc=xloc.bar_index, extend=extend.right, color=color.new(color.fuchsia, 25), style=line.style_dotted, width=1)
+        else
+            line.set_xy1(liqBelowLine, math.max(liqBelowBar, bar_index - 5000), liqBelow)
+            line.set_xy2(liqBelowLine, bar_index + 20, liqBelow)
+    else
+        if not na(liqBelowLine)
+            line.delete(liqBelowLine)
+            liqBelowLine := na
+
+// Audit series are Data Window / CSV-export fields for offline validation.
+// Codes:
+//   MapDir: -1 bear / 0 none-transition / +1 bull
+//   Model: 0 none / 1 FIB / 2 ADAPT / 3 LIVE-FIB / 4 LIVE-ADAPT
+plot(AUDIT_SCHEMA, "MM Audit • Schema", color=color.new(color.white, 100), display=display.data_window)
+plot(barstate.isconfirmed ? 1 : 0, "MM Audit • Confirmado", color=color.new(color.white, 100), display=display.data_window)
+plot(mapDir, "MM Audit • MapDir", color=color.new(color.white, 100), display=display.data_window)
+plot(atr, "MM Audit • ATR", color=color.new(color.white, 100), display=display.data_window)
+plot(correctionModelCode, "MM Audit • Modelo", color=color.new(color.white, 100), display=display.data_window)
+plot(pullbackSamples, "MM Audit • Amostras adaptativas", color=color.new(color.white, 100), display=display.data_window)
+plot(correctionActive ? primaryTop : na, "MM Audit • Correção topo", color=color.new(color.white, 100), display=display.data_window)
+plot(correctionActive ? primaryBottom : na, "MM Audit • Correção fundo", color=color.new(color.white, 100), display=display.data_window)
+plot(thesisInvalidated ? na : destination1, "MM Audit • Destino 1", color=color.new(color.white, 100), display=display.data_window)
+plot(correctionReady ? invalidation : na, "MM Audit • Invalidação", color=color.new(color.white, 100), display=display.data_window)
+plot(correctionConfluence, "MM Audit • Confluências", color=color.new(color.white, 100), display=display.data_window)
+plot(diagNewThesis ? 1 : 0, "MM Audit • Nova tese evt", color=color.new(color.white, 100), display=display.data_window)
+plot(diagZoneTouchNow ? 1 : 0, "MM Audit • Toque zona evt", color=color.new(color.white, 100), display=display.data_window)
+plot(diagDestinationResolvedNow ? 1 : 0, "MM Audit • Zona→Destino evt", color=color.new(color.white, 100), display=display.data_window)
+plot(diagInvalidationResolvedNow ? 1 : 0, "MM Audit • Zona→Invalidação evt", color=color.new(color.white, 100), display=display.data_window)
+plot(diagAmbiguousNow ? 1 : 0, "MM Audit • Ambíguo evt", color=color.new(color.white, 100), display=display.data_window)
+plot(reclaimEventDir, "MM Audit • Sweep reclaim evt", color=color.new(color.white, 100), display=display.data_window)
+
+// Historical diagnostics are intentionally hidden from the chart/status line.
+plot(diagTheses, "MM Hist • Teses", color=color.new(color.white, 100), display=display.data_window)
+plot(diagZoneTouches, "MM Hist • Toques correção", color=color.new(color.white, 100), display=display.data_window)
+plot(diagZoneTouchPct, "MM Hist • Teses com toque %", color=color.new(color.white, 100), display=display.data_window)
+plot(diagDestinationHits, "MM Hist • Destinos pós-toque atingidos", color=color.new(color.white, 100), display=display.data_window)
+plot(diagInvalidations, "MM Hist • Invalidações pós-toque", color=color.new(color.white, 100), display=display.data_window)
+plot(diagZoneToDestination, "MM Hist • Zona→Destino", color=color.new(color.white, 100), display=display.data_window)
+plot(diagZoneToInvalidation, "MM Hist • Zona→Invalidação", color=color.new(color.white, 100), display=display.data_window)
+plot(diagAmbiguousOutcomes, "MM Hist • Resultados ambíguos", color=color.new(color.white, 100), display=display.data_window)
+plot(diagSupersededAfterTouch, "MM Hist • Zona supersedida", color=color.new(color.white, 100), display=display.data_window)
+plot(diagOpenAfterZone, "MM Hist • Zona sem desfecho", color=color.new(color.white, 100), display=display.data_window)
+plot(diagAvgBarsToOutcome, "MM Hist • Barras toque→desfecho", color=color.new(color.white, 100), display=display.data_window)
+plot(diagZoneReactionPct, "MM Hist • Zona→Destino % (engenharia)", color=color.new(color.white, 100), display=display.data_window)
+
+// ---------------------------------------------------------------------------
+// Single semantic panel — no Compact/Full variants
+// ---------------------------------------------------------------------------
+var table panel = table.new(position.bottom_right, 2, 10, bgcolor=color.new(color.black, 82), frame_color=color.new(color.gray, 55), frame_width=1, border_color=color.new(color.gray, 75))
+
+if barstate.islast
+    if showPanel
+        color regimeColor = regimeDir == 1 ? color.lime : regimeDir == -1 ? color.red : color.silver
+        color phaseColor = phaseTxt == "CORREÇÃO" or phaseTxt == "CORREÇÃO PROFUNDA" ? color.orange : phaseTxt == "RETESTE" ? color.aqua : color.white
+
+        table.cell(panel, 0, 0, "MARKET MAP", text_color=color.white, text_size=size.small, bgcolor=color.new(color.blue, 72))
+        table.cell(panel, 1, 0, "v0.1.0", text_color=color.silver, text_size=size.tiny, bgcolor=color.new(color.blue, 72))
+
+        table.cell(panel, 0, 1, "REGIME", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 1, regimeTxt, text_color=regimeColor, text_size=size.small)
+
+        table.cell(panel, 0, 2, "FASE", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 2, phaseTxt, text_color=phaseColor, text_size=size.small)
+
+        table.cell(panel, 0, 3, "ESTRUTURA", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 3, structureTxt, text_color=color.white, text_size=size.small)
+
+        table.cell(panel, 0, 4, "CORREÇÃO", text_color=color.silver, text_size=size.tiny)
+        string correctionTxt = correctionActive ? f_zone(primaryTop, primaryBottom) + "  " + f_stars(correctionConfluence) : "—"
+        table.cell(panel, 1, 4, correctionTxt, text_color=color.yellow, text_size=size.small)
+
+        table.cell(panel, 0, 5, "DESTINO", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 5, activeDestinationTxt, text_color=activeDestinationNear ? color.orange : color.aqua, text_size=size.small)
+
+        table.cell(panel, 0, 6, "LIQ ↑", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 6, f_price(liqAbove) + " • " + liqAboveSource, text_color=color.fuchsia, text_size=size.small)
+
+        table.cell(panel, 0, 7, "LIQ ↓", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 7, f_price(liqBelow) + " • " + liqBelowSource, text_color=color.fuchsia, text_size=size.small)
+
+        table.cell(panel, 0, 8, "INVALIDA", text_color=color.silver, text_size=size.tiny)
+        string invalidTxt = thesisInvalidated ? "ROMPIDA • " + f_price(invalidation) : f_price(invalidation)
+        table.cell(panel, 1, 8, invalidTxt, text_color=color.red, text_size=size.small)
+
+        table.cell(panel, 0, 9, "CONTEXTO", text_color=color.silver, text_size=size.tiny)
+        string contextTxt = contextTf + " • HTF CONF" + (correctionActive ? " • " + correctionModel : "")
+        table.cell(panel, 1, 9, contextTxt, text_color=color.silver, text_size=size.tiny)
+    else
+        table.clear(panel, 0, 0, 1, 9)

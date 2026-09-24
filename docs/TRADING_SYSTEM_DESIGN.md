@@ -8,11 +8,11 @@
 
 PineTrading-Lab is not intended to become a collection of six independent indicators that the operator must mentally reconcile.
 
-The product goal is a **three-part trading suite** that reduces mechanical chart interpretation while preserving final human discretion:
+The product goal is **three logical layers delivered through two runtime indicators**, reducing mechanical chart interpretation while preserving final human discretion:
 
 1. **Market Map** — where price is, what regime/phase it is in, where structure/liquidity lives, and where a correction/retest is likely to react.
 2. **Execution** — whether momentum/participation currently supports acting on the map.
-3. **Decision Panel** — concise synthesis of Market Map + Execution into a small number of actionable states.
+3. **Decision Panel** — concise synthesis of Market Map + Execution into a small number of actionable states, embedded in Market Map rather than deployed as a third indicator.
 
 The suite supports a decision. It does not replace macro/news/political/context analysis and does not place trades.
 
@@ -30,6 +30,16 @@ Any metric that does not materially improve one of these answers belongs under t
 
 ## 3. Final suite
 
+### Runtime topology
+
+The final operator surface is intentionally limited to **two TradingView indicators**:
+
+1. **Market Map overlay + embedded Decision Panel**
+2. **Execution lower pane**
+
+The three-layer vocabulary remains useful architecturally, but it must never be interpreted as a requirement for three separate Pine scripts. SignalGate Dashboard remains an engineering/timing donor and accepted historical baseline, not a third final runtime product.
+
+
 ### 3.1 Market Map
 
 **Role:** price-chart overlay and structural context engine.
@@ -45,7 +55,7 @@ Market Map owns:
 - breakout vs retest state
 - correction zones
 - Fibonacci retracement/confluence
-- volume-derived support/resistance / POC / high-volume nodes where useful
+- volume-acceptance / volume-supported confluence where it demonstrates incremental value
 - nearest upside/downside technical targets
 - structural invalidation
 
@@ -69,7 +79,9 @@ Execution must not create its own independent market map. It answers:
 
 ### 3.3 Decision Panel
 
-**Role:** small, human-readable synthesis layer.
+**Role:** one small, human-readable synthesis layer **embedded in Market Map**. It is not a standalone mandatory runtime indicator.
+
+There are **no Compact/Full panel variants**. That legacy split created two bad outcomes: one panel omitted useful context and the other exposed internal clutter. The suite uses one semantic panel whose contents are curated by the engine. The operator may show or hide it, but does not choose between competing information architectures.
 
 The accepted SignalGate Dashboard 0.1.0 is a timing-safe engineering baseline, **not** the final UX contract.
 
@@ -80,30 +92,27 @@ Target format:
 ```text
 BTCUSDT • 15m
 
-REGIME       ↑ ALTA
-FASE         ↘ CORREÇÃO
-ESTRUTURA    HH/HL • intacta
+REGIME       ALTA
+FASE         CORREÇÃO
+ESTRUTURA    ALTA • HH/HL
 
-LIQUIDEZ ↑   87.400–87.650
-LIQUIDEZ ↓   85.050–84.850
-
-PULLBACK
-T1           85.950–85.700
-T2           85.150–84.850  ★ confluência
-T3           84.300–84.050
+CORREÇÃO     85.150–84.850  ★★★
+DESTINO      87.400 • PDH → 88.100 • EQH
+LIQ ↑        87.400 • PDH
+LIQ ↓        84.700 • EQL
+INVALIDA     84.050
 
 EXECUÇÃO     AGUARDAR
 CONFIRMAÇÃO  Reteste + momentum
-INVALIDA     < 84.050
 ```
 
-When confirmation arrives:
+When confirmation arrives, Decision Panel may simplify to:
 
 ```text
 FASE         RETESTE
-EXECUÇÃO     LONG ✓
-ALVO 1       87.400
-ALVO 2       88.100
+EXECUÇÃO     CONFIRMA LONG
+DESTINO      87.400 → 88.100
+INVALIDA     84.050
 ```
 
 Internal engines may remain complex. The visible answer should not be.
@@ -121,18 +130,19 @@ The six extracted core scripts remain valuable source material, but they are no 
 | Buying Selling Volume 2-in-1 | Participation/pressure evidence; historical proxy + possible realtime mode | Execution |
 | SignalGate Dashboard | Timing-safe synthesis baseline; semantics to be simplified | Decision Panel |
 
-## 5. MA 6x is the operator anchor
+## 5. MA 6x + Fibonacci are operator evidence, not product constraints
 
-The operator's historical workflow relied primarily on **MA 6x plus Fibonacci retracement**. This is important product evidence.
+The operator's historical workflow relied primarily on **MA 6x plus Fibonacci retracement**. This tells us that moving-average structure and retracement context are genuinely useful to the operator, but it does **not** require the new suite to preserve the old layout, number of averages, periods, algorithms, or Fibonacci presentation.
 
 Therefore:
 
-- the MA visual layer must not be discarded
-- Market Map should preserve the ability to display the familiar MA structure clearly
-- current MA 6x periods (7/20/50/100/200/350 EMA defaults) are treated as a compatibility baseline, not automatically as statistically optimal
-- final defaults are product decisions to be validated, not tuning work delegated to the operator
+- Market Map should retain a useful moving-average layer because it materially helps visual trend reading
+- MA 6x is a donor/research baseline, not a UI contract
+- the new engine may reduce, replace, or change the old 7/20/50/100/200/350 set when a cleaner design is better
+- Fibonacci is a useful Correction Engine input, not a mandatory standalone drawing model
+- final defaults are engineering/product decisions and may differ materially from the legacy scripts
+- no legacy habit should block a demonstrably clearer or more robust design
 - MA 6x “probability”/quality concepts must not be presented as calibrated probabilities unless backed by empirical calibration
-- Fibonacci becomes a first-class input to the Correction Engine instead of a manual afterthought
 
 ## 6. Correction Engine
 
@@ -152,7 +162,7 @@ A correction zone may receive confluence from:
 - Fibonacci retracement of the structural impulse
 - support/resistance zone
 - volume-supported level
-- POC / high-volume node where appropriate
+- volume-acceptance / high-volume evidence where justified
 - VWAP/anchored VWAP where appropriate
 - nearby structural-liquidity pool
 - ATR / recent pullback depth context
@@ -161,21 +171,18 @@ A correction zone may receive confluence from:
 
 Do not claim an exact future price.
 
-Prefer zones:
+The normal operator view exposes **one primary correction zone** plus structural invalidation.
 
-- **T1 — shallow correction / retest**
-- **T2 — primary confluence zone**
-- **T3 — deep correction**
-- **Invalidation — structural condition that breaks the thesis**
+Shallow/deep Fibonacci satellites may exist internally or under Advanced/Diagnostics, but they are not separate default panel rows.
 
 Example:
 
 ```text
-T1  85.950–85.700
-T2  85.150–84.850  ★★★
-T3  84.300–84.050
-INV < 83.950
+CORREÇÃO  85.150–84.850  ★★★
+INVALIDA  83.950
 ```
+
+The primary zone may adapt to recent completed pullback depth when enough samples exist, with Fibonacci retained as a fallback/reference input.
 
 The star/confluence label represents independent evidence count/quality, not a fabricated win probability.
 
@@ -269,9 +276,10 @@ Defaults are part of the product.
 
 Normal settings should be limited to:
 
-- **Profile:** Sniper / Balanced / Aggressive
+- **Profile only when it materially improves a product.** A product may intentionally have no profile selector.
 - optional trading horizon only if Auto cannot reliably infer it
-- visual mode: Clean / Standard / Detailed
+- a single curated default visual
+- optional Advanced structural-detail toggle
 - color/theme controls
 - line/zone visibility where genuinely personal
 - alert enable/disable
@@ -281,14 +289,16 @@ Everything else should be:
 - controlled internally by the selected profile, or
 - hidden under an explicit Advanced/Diagnostics section.
 
-### 10.2 Default profile
+### 10.2 Profiles are optional product tools
 
-**Balanced** is the default unless evidence later supports a better universal default.
+Do not add Sniper/Balanced/Aggressive merely for consistency across the suite.
 
-Profiles control coherent bundles, not isolated magic numbers:
+Use profiles only when one product genuinely needs distinct coherent operating styles. If one robust automatic/default behavior is preferable, expose no profile at all.
+
+When profiles are justified, they must control coherent bundles rather than isolated magic numbers. A likely contract is:
 
 - **Sniper:** fewer, later, stronger confirmations
-- **Balanced:** general-purpose default
+- **Balanced:** general-purpose behavior
 - **Aggressive:** earlier/more frequent signals with lower confirmation burden
 
 ### 10.3 No configuration dumping
@@ -334,7 +344,7 @@ Default Market Map should show only:
 - structural invalidation
 - only the most relevant event labels
 
-Historical/debug labels are optional.
+Historical/debug labels are optional and belong behind an Advanced/Diagnostics toggle. Do not create multiple visual-mode presets merely to hide/show the same information.
 
 ## 13. Probability terminology
 
@@ -361,8 +371,9 @@ Architecture replaces the previous “repair six independent scripts in sequence
 3. structural-liquidity engine
 4. breakout/retest state
 5. Correction Engine + Fibonacci
-6. volume/POC confluence
-7. clean target/invalidation rendering
+6. validated volume-acceptance confluence
+7. directional destination + invalidation rendering
+8. historical CSV sanity + reload-parity validation
 
 ### Phase B — Execution
 
@@ -377,7 +388,7 @@ Architecture replaces the previous “repair six independent scripts in sequence
 1. consume semantic outputs from Market Map + Execution
 2. retire opaque G1/G2/G3/G4/G5 presentation
 3. show regime/phase/zones/execution/invalidation
-4. optional compact/full modes
+4. one curated semantic panel; no Compact/Full variants
 5. alerts tied to semantic state transitions
 
 ## 15. Current development consequences
@@ -385,7 +396,8 @@ Architecture replaces the previous “repair six independent scripts in sequence
 - SignalGate Dashboard 0.1.0 remains an accepted engineering baseline.
 - MAS-0 work is preserved but **paused as a standalone-product reboot**.
 - No more core script will be “fixed for its own sake” before mapping its logic into the three-product architecture.
-- The next implementation milestone is **Market Map foundation**, beginning with the MA 6x trend/regime layer and Correction Engine design.
+- Market Map MM-0 is the active foundation candidate; implementation is substantially complete and promotion is blocked on historical CSV sanity, reload parity, and the final visual pass.
+- Execution architecture research may proceed in parallel, but production implementation waits for the Market Map semantic contract to stabilize.
 
 ## 16. Acceptance criterion for the suite
 
@@ -396,12 +408,13 @@ The target operator experience is:
 ```text
 REGIME      Alta
 FASE        Correção
-T2          84.850–85.150
+ESTRUTURA   Alta • HH/HL
+CORREÇÃO    84.850–85.150  ★★★
+DESTINO     87.400 PDH → 88.100 EQH
 LIQ ↑       87.400
 LIQ ↓       84.700
 EXECUÇÃO    Aguardar
-TRIGGER     Reteste + momentum
-INVALIDA    < 84.050
+INVALIDA    84.050
 ```
 
 If the operator must study ten internal scores before understanding what the system is saying, the UX has failed.

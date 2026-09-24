@@ -108,6 +108,114 @@ def main() -> None:
             if token not in sg:
                 fail(f"SignalGate event-edge invariant missing: {token}")
 
+    mm_path = ROOT / "src/core/market-map.pine"
+    if mm_path.exists():
+        mm = norm(mm_path.read_text(encoding="utf-8"))
+        required_mm = [
+            'indicator("Market Map v0.1.0"',
+            '_expr[1], barmerge.gaps_off, barmerge.lookahead_on',
+            'int FAST_LEN = 21',
+            'int MID_LEN = 50',
+            'int SLOW_LEN = 200',
+            'string contextTf = chartSec <= tf15Sec ? "60"',
+            'bool alreadySwept = postPivotHigh > ph + syminfo.mintick',
+            'bool alreadySwept = postPivotLow < pl - syminfo.mintick',
+            'float fibT2Top = correctionReady ? math.max(fib500, fib618) : na',
+            'float fibT2Bottom = correctionReady ? math.min(fib500, fib618) : na',
+            'string correctionBaseModel = empiricalReady ? "ADAPT "',
+            'string correctionModel = correctionReady ? (useLiveImpulse ? "LIVE/" : "")',
+            'f_impulse_acceptance(_startBar, _endBar, _low, _high)',
+            'correctionConfluence += f_in_zone(emaMid, primaryTop, primaryBottom, zoneTol) ? 1 : 0',
+            'phaseTxt := close > impulseHigh ? "ROMPIMENTO / IMPULSO"',
+            'table.cell(panel, 0, 1, "REGIME"',
+            'table.cell(panel, 0, 4, "CORREÇÃO"',
+            'table.cell(panel, 0, 5, "DESTINO"',
+            'table.cell(panel, 0, 6, "LIQ ↑"',
+            'table.cell(panel, 0, 8, "INVALIDA"',
+            'liqAboveSource := "PDH"',
+            'liqAboveSource := "PWH"',
+            'liqBelowSource := "PDL"',
+            'liqBelowSource := "PWL"',
+            'float liqAbove2 = na',
+            'float liqBelow2 = na',
+            'float destination1 = mapDir == 1 ? liqAbove : mapDir == -1 ? liqBelow : na',
+            'bool destinationNear = not na(destinationDistanceAtr) and destinationDistanceAtr <= TARGET_NEAR_ATR',
+            'string activeDestinationTxt = thesisInvalidated ? "—" : destinationTxt',
+            'bool acceptanceEvidenceReady = acceptanceEvidenceBars >= 8 and not na(acceptanceEvidenceVwap)',
+            'acceptanceEndBar := bar_index - 1',
+            'diagTouchAcceptanceBars := touchBars',
+            'bool destinationHitEvt = destinationHitUp or destinationHitDown',
+            '"ATINGIDO " + f_price(destinationHitLevel)',
+            'int impulseKey = correctionReady and not na(impulseStartBar) ? impulseStartBar * 3 + (mapDir + 1) : na',
+            'var int diagTheses = 0',
+            'var int diagAmbiguousOutcomes = 0',
+            'var int diagSupersededAfterTouch = 0',
+            'diagSupersededAfterTouch += 1',
+            'bool prevTargetBeyondZone = not na(destination1[1])',
+            'bool currentTargetBeyondZone = not na(destination1)',
+            'diagTrackedDestination := prevTargetUsable ? destination1[1] : currentTargetBeyondZone ? destination1 : na',
+            'bool diagZoneBeforeTargetInferable = diagSameBarAsTouch and diagDestinationCondition and not diagInvalidationCondition',
+            'bool diagAmbiguousNow = not diagOutcomeResolved',
+            'float diagOpenAfterZone = math.max(0, diagZoneTouches - diagResolvedAfterZone - diagAmbiguousOutcomes - diagSupersededAfterTouch)',
+            'float diagZoneTouchPct = diagTheses > 0 ? 100.0 * diagZoneTouches / diagTheses : na',
+            'float diagAvgBarsToOutcome = diagOutcomeBarsCount > 0 ? 1.0 * diagOutcomeBarsSum / diagOutcomeBarsCount : na',
+            'float diagZoneReactionPct = diagResolvedAfterZone > 0 ? 100.0 * diagZoneToDestination / diagResolvedAfterZone : na',
+            'int AUDIT_SCHEMA = 2',
+            'plot(AUDIT_SCHEMA, "MM Audit • Schema"',
+            'plot(barstate.isconfirmed ? 1 : 0, "MM Audit • Confirmado"',
+            'plot(mapDir, "MM Audit • MapDir"',
+            'plot(diagZoneTouchNow ? 1 : 0, "MM Audit • Toque zona evt"',
+            'plot(diagDestinationResolvedNow ? 1 : 0, "MM Audit • Zona→Destino evt"',
+            'plot(reclaimEventDir, "MM Audit • Sweep reclaim evt"',
+            'phaseTxt := "SWEEP / RECLAIM"',
+            'float reactionLiquidityLevel = relevantReclaimEvt ? relevantReclaimLevel',
+            'plot(diagAmbiguousOutcomes, "MM Hist • Resultados ambíguos"',
+            'plot(diagSupersededAfterTouch, "MM Hist • Zona supersedida"',
+            'plot(diagZoneReactionPct, "MM Hist • Zona→Destino % (engenharia)"',
+            'table.cell(panel, 0, 5, "DESTINO"',
+            'phaseTxt := "FALSO ROMPIMENTO"',
+            'bool bullSwingSequence = lastHighType == "HH" and lastLowType == "HL"',
+            '"ALTA • REVERSÃO"',
+            '"BAIXA • REVERSÃO"',
+            'bool regimeStructureConflict = regimeDir != 0 and structureDir != 0 and regimeDir != structureDir',
+            'phaseTxt := regimeStructureConflict ? "TRANSIÇÃO ESTRUTURAL" : "TRANSIÇÃO"',
+            'var int invalidatedImpulseKey = na',
+            'phaseTxt := "TESTE DE INVALIDAÇÃO"',
+            'phaseTxt := "TESE INVALIDADA"',
+            'string contextTxt = contextTf + " • HTF CONF" + (correctionActive ? " • " + correctionModel : "")',
+            '// Single semantic panel — no Compact/Full variants',
+        ]
+        for token in required_mm:
+            if token not in mm:
+                fail(f"Market Map MM-0 invariant missing: {token}")
+
+        forbidden_mm = [
+            'lookahead_off)',
+            'Liquidation Map',
+            'probability',
+            'probabilidade',
+            'compactPanel',
+            'fullPanel',
+            'Painel compacto',
+            'Painel completo',
+            'lastStructureEvent',
+            'varip ',
+            'barstate.isrealtime',
+            'timenow',
+        ]
+        for token in forbidden_mm:
+            if token in mm:
+                fail(f"Market Map MM-0 forbidden pattern present: {token}")
+
+        operator_inputs = [
+            line.strip() for line in mm.splitlines()
+            if line.strip().startswith(("showMAs = input.", "showPanel = input.", "showStructureDetails = input."))
+        ]
+        if len(operator_inputs) != 3:
+            fail(f"Market Map should expose exactly 3 operator controls in MM-0, found {len(operator_inputs)}")
+        if 'visualMode = input.' in mm:
+            fail("Market Map visual-mode dropdown should not exist in MM-0")
+
     print("PASS: archive integrity + reboot invariants")
 
 

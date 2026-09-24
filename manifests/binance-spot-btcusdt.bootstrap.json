@@ -1,0 +1,14 @@
+{
+  "pipeline_version": "0.1.0",
+  "schema_version": "binance-spot-kline-v1",
+  "market": "spot",
+  "symbol": "BTCUSDT",
+  "timeframes": ["15m", "1h", "4h", "1d", "3d", "1w"],
+  "source": "https://data.binance.vision",
+  "configured_start_month": "2017-08",
+  "configured_end_month": "auto_latest_publishable_month",
+  "materialization_status": "blocked_in_chatgpt_runtime_dns",
+  "drive_root_folder_id": "1iX6XQW9gjaYRfYN7PShMLx-ZqQQ-VttX",
+  "drive_btcusdt_folder_id": "19RrYqQdsvpt09eIwAz3YMG1lkeIbe-hS",
+  "note": "Production manifests are generated per timeframe after a network-capable run; this bootstrap file records the reproducible plan and storage target only."
+}

@@ -4,21 +4,41 @@ All notable project changes are documented here.
 
 ## [Unreleased]
 
+### Next
+- Run the pre-registered Execution evidence research plan against accepted Binance datasets.
+- Keep production `execution.pine` blocked until MTE-A / RSE-A / PSE-A evidence is reviewed.
+- Integrate validated Execution semantics into the embedded Market Map Decision Panel without creating a third runtime indicator.
+
+## [Market Map 0.1.0] - 2026-09-24
+
 ### Added
-- Approved three-product suite architecture: **Market Map**, **Execution**, and **Decision Panel**.
-- Dedicated Correction Engine design for pullback/retest zones, confluence targets and invalidation.
-- Minimal-settings / profile-driven defaults policy.
+- First accepted Market Map baseline: EMA 21/50/200 regime layer, confirmed structure, structural liquidity, correction engine, destination ladder and structural invalidation.
+- Adaptive correction depth with Fibonacci fallback/core reference.
+- Confirmed sweep/reclaim semantics and external PDH/PDL/PWH/PWL liquidity.
+- Impulse VWAP + clean-room VNode acceptance confluence.
+- One semantic Decision Panel embedded in Market Map; no Compact/Full variants and no third mandatory panel script.
+- Audit Schema v2, offline Market Map kernel, lifecycle analyzer and reload-parity tooling.
 
 ### Changed
-- Development roadmap no longer repairs six legacy core indicators as six independent end-user products.
-- MA 6x becomes the operator-familiar trend/regime foundation for Market Map.
-- Fibonacci retracement becomes a first-class Correction Engine input.
-- Liquidity Zones Tactical is reclassified as an internal structural-liquidity engine, not a leveraged-liquidation map.
-- Moving Average Shift standalone reboot work is paused until the Execution product phase.
+- Final runtime topology is **two TradingView indicators for three logical layers**: Market Map + embedded Decision Panel, and Execution lower pane.
+- Historical audit target freezing now rejects stale targets that moved inside/behind the current correction zone.
+- Same-bar zone→destination outcomes are resolved only when candle open + level topology prove the event order; genuinely unordered cases remain ambiguous.
+- SignalGate remains a timing/reload/alert engineering donor rather than a final runtime product.
 
-### Next
-- Market Map foundation: MA/regime layer + structure + liquidity + correction engine.
-- SignalGate live event-specific field observations continue in issue #4.
+### Validation
+- Corrected BTCUSDT six-timeframe offline lifecycle/pathology gate: PASS.
+- 45,694 theses / 32,550 first correction-zone touches / 100% outcome accounting.
+- 8,208 destination outcomes, 1,055 invalidation outcomes, 1,121 ambiguous, 22,163 superseded/censored, 3 open.
+- Structural pathologies: 0.
+- Pine v6 compile: PASS — run `36073131137`.
+- Static integrity: PASS — runs `36073131121`, `36073128209`.
+- Final TradingView BTCUSDT 4H before/after reload parity: PASS.
+- Final BTCUSDT 1D correction/destination/invalidation visual sanity: PASS.
+
+### Promotion
+- PR #10 merged to `main`.
+- Merge commit: `0eeb0d37b256a950cfb38f627fa3521bb213d380`.
+- Issue #9 closed as completed.
 
 ## [SignalGate Dashboard 0.1.0] - 2026-09-22
 

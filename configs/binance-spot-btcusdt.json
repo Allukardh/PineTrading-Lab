@@ -1,0 +1,12 @@
+{
+  "source_base_url": "https://data.binance.vision",
+  "market": "spot",
+  "symbols": [
+    {
+      "symbol": "BTCUSDT",
+      "start_month": "2017-08",
+      "end_month": "auto",
+      "timeframes": ["15m", "1h", "4h", "1d", "3d", "1w"]
+    }
+  ]
+}

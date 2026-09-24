@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pinetrading-lab:schema:binance-spot-kline-v1",
+  "title": "Binance SPOT Kline Native Row",
+  "type": "array",
+  "minItems": 12,
+  "maxItems": 12,
+  "prefixItems": [
+    {"title": "open time", "type": ["integer", "string"]},
+    {"title": "open", "type": ["number", "string"]},
+    {"title": "high", "type": ["number", "string"]},
+    {"title": "low", "type": ["number", "string"]},
+    {"title": "close", "type": ["number", "string"]},
+    {"title": "volume", "type": ["number", "string"]},
+    {"title": "close time", "type": ["integer", "string"]},
+    {"title": "quote asset volume", "type": ["number", "string"]},
+    {"title": "number of trades", "type": ["integer", "string"]},
+    {"title": "taker buy base asset volume", "type": ["number", "string"]},
+    {"title": "taker buy quote asset volume", "type": ["number", "string"]},
+    {"title": "ignore", "type": ["number", "string"]}
+  ]
+}
