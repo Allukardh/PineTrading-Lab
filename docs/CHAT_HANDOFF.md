@@ -1,7 +1,7 @@
 # PineTrading-Lab — Chat Continuation Checkpoint
 
 **Status:** CANONICAL CHAT HANDOFF  
-**Date:** 2026-09-23 21:47 BRT  
+**Date:** 2026-09-24 14:39 BRT  
 **Repository:** `Allukardh/PineTrading-Lab`  
 **Accepted main baseline:** SignalGate Dashboard 0.1.0  
 **Primary active candidate:** Market Map MM-0  
@@ -130,12 +130,13 @@ The existing TradingView CSV audit/analyzer remains useful infrastructure if exp
 
 None right now.
 
-Issue #14 is building the official Binance historical-data pipeline in a separate chat/thread.
+The Binance historical-data infrastructure is now promoted on `main` via PR #15 / Issue #14.
 
-When that data pipeline is ready:
-- consume its PR/manifests/Drive datasets;
-- run the offline MM-0 historical validation;
-- only then ask for a small number of targeted TradingView screenshots/reload checks if needed.
+Next:
+- consume the canonical production manifests/reports and Drive datasets;
+- build/validate the deterministic offline Market Map audit kernel against MM-0 semantics;
+- run historical sanity on BTCUSDT 15m / 1H / 4H / 1D first, then use 3D / 1W for higher-timeframe robustness where useful;
+- only after offline evidence identifies representative states, ask for a small number of targeted TradingView screenshots/reload checks if Pine/runtime parity still needs confirmation.
 
 Do not ask the operator for thousands of Binance files or a TradingView plan upgrade.
 
@@ -309,49 +310,62 @@ manifests/execution-research-defaults-v1.json
 
 The three reload-safe evidence-engine candidates now exist and pass reference tests.
 
-While Issue #14 prepares Binance data:
+Issue #14 has landed, so the evidence gate is now active:
 
-> Keep production `execution.pine` blocked. Do not numerically optimize MTE-A/RSE-A/PSE-A without market data.
+> Keep production `execution.pine` blocked. Run the pre-registered historical tests for MTE-A / RSE-A / PSE-A against the accepted Binance datasets before numerically retuning or promoting any candidate formula.
 
 The historical research questions are pre-registered in:
 
 `docs/testing/EXECUTION_EVIDENCE_RESEARCH_PLAN.md`
 
-Next useful engineering before data arrives may focus on:
-- Execution lower-pane renderer contract / one-glance UX;
-- report/analyzer glue that does not duplicate Issue #14's downloader work;
-- shared-kernel/code-generation architecture needed later for Market Map's embedded Decision Panel.
-
-When Issue #14 lands, historical evidence takes priority over further formula invention.
+Historical evidence now takes priority over further formula invention. Non-numeric UX/shared-kernel work remains secondary and must not bypass the evidence gate.
 
 ---
 
-## 6. Delegated market-data infrastructure
+## 6. Historical market-data infrastructure — PROMOTED
 
-A separate chat/thread may own the historical data plumbing so the main Pine engineering thread remains focused.
+Issue #14 and PR #15 are complete.
 
-**Tracker:** Issue #14 — `Infra: Binance historical market-data pipeline + Google Drive dataset store`
+**Issue:** #14 — closed  
+**PR:** #15 — merged  
+**Branch head promoted:** `64a9fc0a4ea05299b78253563b3b20874e8a7256`  
+**Merge commit:** `bf132cf715aade528aa89b1b327566a964015609`
 
-Expected branch:
+Accepted scope:
+- official Binance Public Data SPOT monthly klines;
+- 15 symbols;
+- 15m / 1h / 4h / 1d / 3d / 1w;
+- checksum-first/resumable source acquisition;
+- native timestamp provenance + deterministic normalization;
+- duplicate/gap/off-grid/close-time findings without fabricated candles;
+- consolidated Zstd Parquet datasets;
+- deterministic manifests/reports/hashes/idempotency;
+- Google Drive as the large dataset store;
+- GitHub for code/config/schema/tests/docs/small reports.
 
-`infra/binance-market-data`
+Production inventory:
+- 15 symbols / 90 datasets;
+- 4,849,829 candles;
+- 7,503 available official checksums verified;
+- 0 checksum mismatches;
+- 1 exact AVAXUSDT duplicate deterministically deduplicated and reported.
 
-Scope:
-- official Binance public spot klines
-- BTCUSDT first
-- 15m / 1h / 4h / 1d / 3d / 1w
-- monthly archives preferred
-- automated download/checksum/normalization/gap detection
-- consolidated Parquet outputs
-- Google Drive for large/raw/consolidated data
-- GitHub only for code/manifests/tests/docs/reports
+Final promotion gate:
+- Market data pipeline: PASS — 21/21 tests;
+- Static integrity: PASS;
+- P1 timestamp-transition review addressed and regression-tested;
+- P2 missing-archive idempotency review addressed and regression-tested.
 
-The delegated thread must not modify Market Map/Execution semantics.
+Primary consumer paths:
+- `configs/binance-spot-research-universe.json`
+- `docs/data/BINANCE_MARKET_DATA_PIPELINE.md`
+- `docs/data/GOOGLE_DRIVE_LAYOUT.md`
+- `manifests/binance-spot-btcusdt.production-2026-09-24.json`
+- `manifests/binance-spot-research-universe.production-2026-09-24.json`
+- `reports/binance-spot-btcusdt-materialization-2026-09-24.md`
+- `reports/binance-spot-research-universe-materialization-2026-09-24.md`
 
-If this main chat is active while Issue #14 is being handled elsewhere:
-- continue Execution architecture/UX research here without retuning the evidence formulas
-- consume the data-pipeline PR/artifacts only when they are ready
-- do not duplicate the downloader work in this thread
+Do not reopen downloader/infrastructure design unless a concrete validation requirement exposes a real defect. The next use of this work is historical evidence for Market Map and Execution.
 
 ---
 
@@ -374,15 +388,16 @@ Without new evidence, do not return to:
 
 ---
 
-## 8. If this chat dies before the CSV gate
+## 8. If this chat dies during the offline evidence gate
 
 Resume like this:
 
 1. verify PR #10 and PR #12 heads/status;
 2. read any commits newer than the SHAs recorded above;
-3. if Issue #14 data artifacts are ready, prioritize offline MM-0 + Execution evidence validation;
-4. otherwise continue non-numeric Execution architecture/UX research on PR #12;
-5. do not create production Execution Pine until MM-0 and the evidence candidates have enough historical validation;
-6. update this handoff whenever the exact next discriminant changes.
+3. treat PR #15 / Issue #14 infrastructure as accepted `main` state;
+4. prioritize offline MM-0 historical validation using the accepted Binance production datasets;
+5. run the pre-registered Execution evidence tests before retuning MTE-A / RSE-A / PSE-A;
+6. do not create production Execution Pine until MM-0 and the evidence candidates have enough historical validation;
+7. update this handoff whenever the exact next discriminant changes.
 
 The project should continue from here without requiring the operator to re-explain the methodology, product goal or prior decisions.
