@@ -176,7 +176,11 @@ def parse_kline_row(row: Sequence[str], *, source_file: str) -> dict:
     if values["low"] > values["high"]:
         raise DataValidationError(f"{source_file}: low > high")
     if close_us < open_us:
-        raise DataValidationError(f"{source_file}: close_time precedes open_time")
+        raise DataValidationError(
+            f"{source_file}: close_time precedes open_time: "
+            f"open_raw={open_raw} close_raw={close_raw} "
+            f"open_us={open_us} close_us={close_us} delta_us={close_us - open_us}"
+        )
 
     return {
         "open_time_raw": open_raw,
