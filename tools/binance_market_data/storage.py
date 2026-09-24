@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import json
 import os
+from collections import Counter
 from pathlib import Path
 from typing import Sequence
 
 from . import PIPELINE_VERSION, SCHEMA_VERSION
-from .core import iso_utc_from_us, sha256_file, sha256_json
+from .core import INTERVAL_US, iso_utc_from_us, sha256_file, sha256_json
 
 
 def source_fingerprint(source_files: Sequence[dict]) -> str:
@@ -65,6 +66,7 @@ def write_parquet(rows: Sequence[dict], path: Path, *, symbol: str, market: str,
         "ignore": pa.array([r["ignore"] for r in rows], type=dec),
         "source_file": pa.array([r["source_file"] for r in rows], type=pa.string()),
         "source_timestamp_unit": pa.array([r["source_timestamp_unit"] for r in rows], type=pa.string()),
+        "source_close_time_convention": pa.array([r.get("source_close_time_convention", "unclassified") for r in rows], type=pa.string()),
     }
     table = pa.table(data)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -86,10 +88,25 @@ def build_manifest(
     last = iso_utc_from_us(rows[-1]["open_time_us"]) if rows else None
     dataset_hash = sha256_file(parquet_path) if parquet_path.is_file() else None
     size = parquet_path.stat().st_size if parquet_path.is_file() else 0
+    close_time_conventions = Counter(r.get("source_close_time_convention", "unclassified") for r in rows)
+    anomalous_close_rows = [
+        r for r in rows
+        if r.get("source_close_time_convention") not in ("boundary_minus_tick", "exact_boundary")
+    ]
+    close_time_anomaly_samples = [
+        {
+            "open_time": iso_utc_from_us(r["open_time_us"]),
+            "close_time": iso_utc_from_us(r["close_time_us"]),
+            "source_file": r["source_file"],
+            "convention": r.get("source_close_time_convention", "unclassified"),
+            "delta_to_boundary_us": r["close_time_us"] - (r["open_time_us"] + INTERVAL_US[timeframe]),
+        }
+        for r in anomalous_close_rows[:100]
+    ]
     status = "ok"
     if conflicts or discontinuities:
         status = "invalid"
-    elif missing_files or gaps or checksum_counts.get("missing", 0):
+    elif missing_files or gaps or anomalous_close_rows or checksum_counts.get("missing", 0):
         status = "ok_with_findings"
     return {
         "pipeline_version": PIPELINE_VERSION,
@@ -107,6 +124,9 @@ def build_manifest(
         "gaps_found": len(gaps),
         "gaps": list(gaps),
         "unexpected_discontinuities": list(discontinuities),
+        "close_time_conventions": dict(sorted(close_time_conventions.items())),
+        "close_time_anomalies_found": len(anomalous_close_rows),
+        "close_time_anomaly_samples": close_time_anomaly_samples,
         "files_missing": list(missing_files),
         "checksum_status": checksum_counts,
         "source_fingerprint_sha256": fingerprint,
