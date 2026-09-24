@@ -110,6 +110,9 @@ def run_dataset(*, cfg: dict, symbol_cfg: dict, timeframe: str, data_root: Path,
         "gaps_found": len(gaps),
         "open_time_discontinuities_found": len(discontinuities),
         "open_time_discontinuity_samples": list(discontinuities[:100]),
+        "timestamp_units": manifest["timestamp_units"],
+        "timestamp_epoch_anomalies_found": manifest["timestamp_epoch_anomalies_found"],
+        "timestamp_epoch_anomaly_samples": manifest["timestamp_epoch_anomaly_samples"],
         "close_time_conventions": manifest["close_time_conventions"],
         "close_time_anomalies_found": manifest["close_time_anomalies_found"],
         "close_time_anomaly_samples": manifest["close_time_anomaly_samples"],
@@ -146,7 +149,7 @@ def run_config(config_path: Path, data_root: Path) -> dict:
                 for key in (
                     "symbol", "market", "timeframe", "first_date", "last_date", "candles",
                     "source_file_count", "duplicates_found", "gaps_found", "open_time_discontinuities_found",
-                    "close_time_conventions",
+                    "timestamp_units", "timestamp_epoch_anomalies_found", "close_time_conventions",
                     "close_time_anomalies_found", "files_missing", "checksum_status", "dataset_sha256",
                     "final_size_bytes", "status", "output_file",
                 )
