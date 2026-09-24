@@ -773,22 +773,33 @@ if diagZoneTouchNow
 if diagZoneTouchNow
     diagZoneTouched := true
     diagZoneTouchBar := bar_index
-    // Freeze the target that was actionable entering the touch candle whenever
-    // possible. This avoids using a new ladder level created by a same-bar sweep.
-    bool prevTargetUsable = mapDir[1] == mapDir and not na(destination1[1])
-    diagTrackedDestination := prevTargetUsable ? destination1[1] : destination1
+    // Freeze the target that was actionable entering the touch candle only when
+    // it is still a valid post-correction destination. A LIVE correction zone
+    // can move enough that yesterday's nearest liquidity is now inside/behind
+    // the zone; counting that stale level as a future destination corrupts the
+    // historical zone-outcome audit.
+    bool prevTargetBeyondZone = not na(destination1[1]) and
+         (mapDir == 1 ? destination1[1] > primaryTop : mapDir == -1 ? destination1[1] < primaryBottom : false)
+    bool currentTargetBeyondZone = not na(destination1) and
+         (mapDir == 1 ? destination1 > primaryTop : mapDir == -1 ? destination1 < primaryBottom : false)
+    bool prevTargetUsable = mapDir[1] == mapDir and prevTargetBeyondZone
+    diagTrackedDestination := prevTargetUsable ? destination1[1] : currentTargetBeyondZone ? destination1 : na
     diagZoneTouches += 1
 
 bool diagDestinationCondition = barstate.isconfirmed and diagZoneTouched and not diagDestinationHit and not na(diagTrackedDestination) and
      ((diagTrackedDir == 1 and high >= diagTrackedDestination) or (diagTrackedDir == -1 and low <= diagTrackedDestination))
 bool diagInvalidationCondition = barstate.isconfirmed and diagZoneTouched and thesisInvalidated and not diagInvalidated
 
-// OHLC does not reveal intrabar ordering. If the first zone touch and an
-// outcome happen on the same candle, or both outcome boundaries are crossed
-// on one candle, exclude that case from directional zone-outcome statistics.
+// OHLC usually does not reveal intrabar ordering. One safe exception exists:
+// if a valid target lies beyond the correction zone and the candle opens in or
+// behind that zone, reaching the target necessarily happens after the zone was
+// touched. Keep genuinely unordered same-bar outcomes ambiguous.
 bool diagSameBarAsTouch = diagZoneTouched and not na(diagZoneTouchBar) and bar_index == diagZoneTouchBar
+bool diagZoneBeforeTargetInferable = diagSameBarAsTouch and diagDestinationCondition and not diagInvalidationCondition and
+     ((diagTrackedDir == 1 and diagTrackedDestination > primaryTop and open <= primaryTop) or
+      (diagTrackedDir == -1 and diagTrackedDestination < primaryBottom and open >= primaryBottom))
 bool diagAmbiguousNow = not diagOutcomeResolved and
-     ((diagSameBarAsTouch and (diagDestinationCondition or diagInvalidationCondition)) or
+     ((diagSameBarAsTouch and (diagDestinationCondition or diagInvalidationCondition) and not diagZoneBeforeTargetInferable) or
       (diagDestinationCondition and diagInvalidationCondition))
 
 bool diagDestinationResolvedNow = diagDestinationCondition and not diagAmbiguousNow and not diagOutcomeResolved
