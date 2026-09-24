@@ -124,6 +124,19 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(gaps[0]["missing_candles"], 2)
         self.assertEqual(discontinuities, [])
 
+    def test_off_grid_restart_is_reported_as_finding(self):
+        a = parse_kline_row(ROW_MS, source_file="a.zip")
+        b = dict(
+            a,
+            open_time_us=a["open_time_us"] + 121_394_789_000,
+            close_time_us=a["close_time_us"] + 121_394_789_000,
+        )
+        gaps, discontinuities = detect_gaps([a, b], "15m")
+        self.assertEqual(gaps, [])
+        self.assertEqual(len(discontinuities), 1)
+        self.assertEqual(discontinuities[0]["delta_us"], 121_394_789_000)
+
+
     def test_fingerprint_and_manifest_idempotency(self):
         sources = [{"filename":"a.zip","zip_sha256":"a"*64,"checksum_expected":"a"*64,"checksum_status":"verified"}]
         fp = source_fingerprint(sources)
@@ -156,9 +169,20 @@ class CoreTests(unittest.TestCase):
                 discontinuities=[], parquet_path=pq, fingerprint=fp,
             )
             for key in ("symbol","market","timeframe","data_source","first_date","last_date","candles",
-                        "source_file_count","duplicates_found","gaps_found","files_missing","checksum_status",
-                        "dataset_sha256","final_size_bytes","pipeline_version","schema_version"):
+                        "source_file_count","duplicates_found","gaps_found","open_time_discontinuities_found",
+                        "files_missing","checksum_status","dataset_sha256","final_size_bytes",
+                        "pipeline_version","schema_version"):
                 self.assertIn(key, m)
+
+            finding = build_manifest(
+                symbol="BTCUSDT", market="spot", timeframe="15m", source_url="https://data.binance.vision/",
+                rows=[row], source_files=src, missing_files=[], duplicate_count=0, conflicts=[], gaps=[],
+                discontinuities=[{"after_open_time":"2018-02-08T00:15:00Z","before_open_time":"2018-02-09T09:58:14.789000Z",
+                                  "delta_us":121394789000,"expected_us":900000000}],
+                parquet_path=pq, fingerprint=fp,
+            )
+            self.assertEqual(finding["status"], "ok_with_findings")
+            self.assertEqual(finding["open_time_discontinuities_found"], 1)
 
     def test_parquet_consolidation_when_pyarrow_available(self):
         try:
