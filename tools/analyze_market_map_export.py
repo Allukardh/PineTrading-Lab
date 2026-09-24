@@ -393,6 +393,9 @@ def analyze(path: Path) -> dict:
 
     open_at_end = 1 if active and active.get("touched") and not active.get("resolved") else 0
     resolved = dest_outcomes + inv_outcomes
+    accounted_touches = resolved + ambiguous + superseded_after_touch + open_at_end
+    if accounted_touches != touch_count:
+        pathology["outcome_accounting_mismatch"] += abs(accounted_touches - touch_count)
 
     return {
         "file": str(path),
@@ -415,8 +418,16 @@ def analyze(path: Path) -> dict:
         },
         "rates": {
             "theses_with_zone_touch_pct": (100.0 * touch_count / thesis_count) if thesis_count else None,
+            # Conditional engineering statistic only. This excludes ambiguous,
+            # superseded/censored and still-open touched theses; never read it
+            # as a trade win rate.
             "zone_to_destination_pct_resolved": (100.0 * dest_outcomes / resolved) if resolved else None,
+            "resolved_non_ambiguous_pct_of_touches": (100.0 * resolved / touch_count) if touch_count else None,
+            "destination_pct_of_touches": (100.0 * dest_outcomes / touch_count) if touch_count else None,
+            "invalidation_pct_of_touches": (100.0 * inv_outcomes / touch_count) if touch_count else None,
             "ambiguous_pct_of_touches": (100.0 * ambiguous / touch_count) if touch_count else None,
+            "superseded_pct_of_touches": (100.0 * superseded_after_touch / touch_count) if touch_count else None,
+            "open_at_export_end_pct_of_touches": (100.0 * open_at_end / touch_count) if touch_count else None,
             "zone_touch_with_reclaim_pct": (100.0 * zone_touch_with_reclaim / touch_count) if touch_count else None,
         },
         "direction_theses": dict(direction_counts),
@@ -528,13 +539,30 @@ def aggregate_reports(reports: Sequence[dict]) -> dict:
             review_flags.append(f"{report['file']}: median correction-zone width is broad ({width_med:.2f} ATR)")
 
     resolved = resolved_dest + resolved_inv
+    touches = totals["zone_touches"]
+    accounted = (
+        totals["resolved_non_ambiguous"]
+        + totals["ambiguous"]
+        + totals["superseded_after_touch"]
+        + totals["open_at_export_end"]
+    )
     return {
         "files": len(reports),
         "counts": dict(totals),
         "direction_theses": dict(direction),
         "touch_models": dict(touch_models),
         "reclaim_events": dict(reclaim_events),
+        # Conditional on the small subset that resolved non-ambiguously.
         "zone_to_destination_pct_resolved": (100.0 * resolved_dest / resolved) if resolved else None,
+        "touch_outcome_accounting": {
+            "resolved_non_ambiguous_pct": (100.0 * totals["resolved_non_ambiguous"] / touches) if touches else None,
+            "destination_pct": (100.0 * totals["destination_outcomes"] / touches) if touches else None,
+            "invalidation_pct": (100.0 * totals["invalidation_outcomes"] / touches) if touches else None,
+            "ambiguous_pct": (100.0 * totals["ambiguous"] / touches) if touches else None,
+            "superseded_pct": (100.0 * totals["superseded_after_touch"] / touches) if touches else None,
+            "open_pct": (100.0 * totals["open_at_export_end"] / touches) if touches else None,
+            "accounted_pct": (100.0 * accounted / touches) if touches else None,
+        },
         "pathologies": dict(aggregate_pathologies),
         "hard_pass": not aggregate_pathologies,
         "review_flags": review_flags,
@@ -550,7 +578,20 @@ def print_aggregate(aggregate: dict) -> None:
         f"resolved: {c.get('resolved_non_ambiguous', 0)} | ambiguous: {c.get('ambiguous', 0)}"
     )
     pct = aggregate["zone_to_destination_pct_resolved"]
-    print(f"Zone -> destination among resolved: {'n/a' if pct is None else f'{pct:.1f}%'}")
+    print(
+        "Zone -> destination among non-ambiguous resolved only: "
+        + ("n/a" if pct is None else f"{pct:.1f}%")
+    )
+    a = aggregate["touch_outcome_accounting"]
+    if a["accounted_pct"] is not None:
+        print(
+            "All-touch accounting: "
+            f"destination={a['destination_pct']:.1f}% | "
+            f"invalidation={a['invalidation_pct']:.1f}% | "
+            f"ambiguous={a['ambiguous_pct']:.1f}% | "
+            f"superseded/censored={a['superseded_pct']:.1f}% | "
+            f"open={a['open_pct']:.1f}%"
+        )
     print(f"Directions: {aggregate['direction_theses']}")
     print(f"Touch models: {aggregate['touch_models']}")
     print(f"Reclaim events: {aggregate['reclaim_events']}")
@@ -584,10 +625,19 @@ def print_report(report: dict) -> None:
         )
     )
     print(
-        "Zone -> destination among resolved: "
+        "Zone -> destination among non-ambiguous resolved only: "
         + ("n/a" if rates["zone_to_destination_pct_resolved"] is None
            else f"{rates['zone_to_destination_pct_resolved']:.1f}%")
     )
+    if rates["destination_pct_of_touches"] is not None:
+        print(
+            "All-touch accounting: "
+            f"destination={rates['destination_pct_of_touches']:.1f}% | "
+            f"invalidation={rates['invalidation_pct_of_touches']:.1f}% | "
+            f"ambiguous={rates['ambiguous_pct_of_touches']:.1f}% | "
+            f"superseded/censored={rates['superseded_pct_of_touches']:.1f}% | "
+            f"open={rates['open_at_export_end_pct_of_touches']:.1f}%"
+        )
     print(f"Direction theses: {report['direction_theses']}")
     print(f"Reclaim events: {report['reclaim_events']}")
     print(f"Touch models: {report['touch_models']}")
