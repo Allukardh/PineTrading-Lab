@@ -17,8 +17,8 @@ Private engineering lab for TradingView/Pine Script indicators used as decision-
 - 53 scripts
 - 12663 source lines
 - 657404 source characters
-- 6 core reboot targets
-- 47 reference/donor scripts
+- 6 legacy core sources + 47 reference/donor scripts
+- final runtime topology: **2 indicators**
 - export: 53/53 successful, 0 failures
 
 ## Product architecture
@@ -29,7 +29,7 @@ The reboot now reduces the six legacy end-user indicators to **two runtime indic
 - **Execution** — lower-pane timing engine for momentum, RSI/exhaustion, volume participation and entry confirmation.
 - **Decision Panel** — a logical synthesis layer embedded in Market Map, **not a third mandatory indicator/script**.
 
-SignalGate Dashboard 0.1.0 is the accepted timing-safe synthesis baseline. The active product focus is **Market Map**. Legacy MA 6x, Fibonacci and the other archived scripts are research evidence/donors, not compatibility requirements; the project is free to change periods, visual language and correction logic when evidence supports a better design. The exact unmerged candidate checkpoint lives in `docs/CHAT_HANDOFF.md`.
+Market Map 0.1.0 is the accepted structural-map baseline on `main`. SignalGate Dashboard 0.1.0 remains preserved as a timing/reload/alert engineering baseline and donor; it is **not** a third final runtime product. The active product focus is now **Execution historical evidence research**. Legacy MA 6x, Fibonacci and the other archived scripts remain research evidence/donors, not compatibility requirements. The exact active checkpoint lives in `docs/CHAT_HANDOFF.md`.
 
 See:
 - `docs/TRADING_SYSTEM_DESIGN.md`
@@ -78,7 +78,7 @@ If interruption occurs between those two checkpoints, the next chat compares the
 - `archive/raw/` — immutable TradingView JSON export
 - `archive/sources/core/` — exact pre-reboot core Pine sources
 - `archive/sources/reference/` — exact pre-reboot donor/reference sources
-- `src/core/` — active reboot sources; intentionally empty until promotion
+- `src/core/` — accepted/current reboot Pine sources (including Market Map 0.1.0 and the preserved SignalGate engineering baseline)
 - `docs/` — canonical state, suite architecture, defaults/profiles, extraction, versioning, testing, catalog, audits
 - `tools/tradingview-export/` — read-only extractor and local splitter
 - `manifests/` — machine-readable import inventory
