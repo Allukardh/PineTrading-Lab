@@ -214,6 +214,10 @@ def analyze(path: Path) -> dict:
     confluence_touch_counts: Counter[str] = Counter()
     outcomes_by_direction: dict[str, Counter[str]] = defaultdict(Counter)
     outcomes_by_model: dict[str, Counter[str]] = defaultdict(Counter)
+    ambiguous_timing: Counter[str] = Counter()
+    ambiguous_timing_by_model: dict[str, Counter[str]] = defaultdict(Counter)
+    supersession_transitions: Counter[str] = Counter()
+    superseded_touch_models: Counter[str] = Counter()
 
     thesis_count = 0
     touch_count = 0
@@ -228,6 +232,7 @@ def analyze(path: Path) -> dict:
     dest_distance_atr: list[float] = []
     invalidation_distance_atr: list[float] = []
     bars_to_outcome: list[int] = []
+    bars_touch_to_supersession: list[int] = []
 
     pathology = Counter()
 
@@ -321,10 +326,17 @@ def analyze(path: Path) -> dict:
                     pathology["bear_invalidation_inside_or_below_zone"] += 1
 
         if new_thesis:
+            direction = "LONG" if map_dir == 1 else "SHORT" if map_dir == -1 else "NONE"
             if active and active.get("touched") and not active.get("resolved"):
                 superseded_after_touch += 1
+                prior_direction = active.get("direction", "NONE")
+                prior_model = active.get("model", "NONE")
+                supersession_transitions[f"{prior_direction}->{direction}"] += 1
+                superseded_touch_models[prior_model] += 1
+                touch_index = active.get("touch_index")
+                if touch_index is not None:
+                    bars_touch_to_supersession.append(idx - touch_index)
             thesis_count += 1
-            direction = "LONG" if map_dir == 1 else "SHORT" if map_dir == -1 else "NONE"
             direction_counts[direction] += 1
             active = {
                 "direction": direction,
@@ -385,6 +397,10 @@ def analyze(path: Path) -> dict:
             pathology["multiple_outcome_events_same_row"] += 1
 
         if ambiguous_evt:
+            ambiguity_class = "SAME_TOUCH" if zone_touch else "POST_TOUCH_BOTH_BOUNDS"
+            ambiguous_timing[ambiguity_class] += 1
+            ambiguity_model = active.get("model", model_name) if active is not None else model_name
+            ambiguous_timing_by_model[ambiguity_model][ambiguity_class] += 1
             resolve("AMB")
         elif zone_to_dest:
             resolve("DEST")
@@ -436,11 +452,16 @@ def analyze(path: Path) -> dict:
         "touch_confluence": dict(confluence_touch_counts),
         "outcomes_by_direction": {k: dict(v) for k, v in outcomes_by_direction.items()},
         "outcomes_by_model": {k: dict(v) for k, v in outcomes_by_model.items()},
+        "ambiguous_timing": dict(ambiguous_timing),
+        "ambiguous_timing_by_model": {k: dict(v) for k, v in ambiguous_timing_by_model.items()},
+        "supersession_transitions": dict(supersession_transitions),
+        "superseded_touch_models": dict(superseded_touch_models),
         "distributions": {
             "zone_width_atr": _quantiles(zone_width_atr),
             "destination_distance_atr": _quantiles(dest_distance_atr),
             "invalidation_distance_atr": _quantiles(invalidation_distance_atr),
             "bars_touch_to_outcome": _quantiles([float(x) for x in bars_to_outcome]),
+            "bars_touch_to_supersession": _quantiles([float(x) for x in bars_touch_to_supersession]),
         },
         "pathologies": dict(pathology),
         "columns": {k: data.header[v] for k, v in data.columns.items()},
@@ -504,6 +525,9 @@ def aggregate_reports(reports: Sequence[dict]) -> dict:
     direction = Counter()
     touch_models = Counter()
     reclaim_events = Counter()
+    ambiguous_timing = Counter()
+    supersession_transitions = Counter()
+    superseded_touch_models = Counter()
     resolved_dest = 0
     resolved_inv = 0
 
@@ -513,6 +537,9 @@ def aggregate_reports(reports: Sequence[dict]) -> dict:
         direction.update(report["direction_theses"])
         touch_models.update(report["touch_models"])
         reclaim_events.update(report["reclaim_events"])
+        ambiguous_timing.update(report.get("ambiguous_timing", {}))
+        supersession_transitions.update(report.get("supersession_transitions", {}))
+        superseded_touch_models.update(report.get("superseded_touch_models", {}))
         resolved_dest += report["counts"]["destination_outcomes"]
         resolved_inv += report["counts"]["invalidation_outcomes"]
 
@@ -552,6 +579,9 @@ def aggregate_reports(reports: Sequence[dict]) -> dict:
         "direction_theses": dict(direction),
         "touch_models": dict(touch_models),
         "reclaim_events": dict(reclaim_events),
+        "ambiguous_timing": dict(ambiguous_timing),
+        "supersession_transitions": dict(supersession_transitions),
+        "superseded_touch_models": dict(superseded_touch_models),
         # Conditional on the small subset that resolved non-ambiguously.
         "zone_to_destination_pct_resolved": (100.0 * resolved_dest / resolved) if resolved else None,
         "touch_outcome_accounting": {
@@ -595,6 +625,9 @@ def print_aggregate(aggregate: dict) -> None:
     print(f"Directions: {aggregate['direction_theses']}")
     print(f"Touch models: {aggregate['touch_models']}")
     print(f"Reclaim events: {aggregate['reclaim_events']}")
+    print(f"Ambiguous timing: {aggregate.get('ambiguous_timing', {})}")
+    print(f"Supersession transitions: {aggregate.get('supersession_transitions', {})}")
+    print(f"Superseded touch models: {aggregate.get('superseded_touch_models', {})}")
     if aggregate["pathologies"]:
         print(f"HARD FAIL pathologies: {aggregate['pathologies']}")
     else:
@@ -644,6 +677,10 @@ def print_report(report: dict) -> None:
     print(f"Touch confluence: {report['touch_confluence']}")
     print(f"Outcomes by direction: {report['outcomes_by_direction']}")
     print(f"Outcomes by model: {report['outcomes_by_model']}")
+    print(f"Ambiguous timing: {report.get('ambiguous_timing', {})}")
+    print(f"Ambiguous timing by model: {report.get('ambiguous_timing_by_model', {})}")
+    print(f"Supersession transitions: {report.get('supersession_transitions', {})}")
+    print(f"Superseded touch models: {report.get('superseded_touch_models', {})}")
     print("Distributions:")
     for name, stats in report["distributions"].items():
         print(f"  {name}: {stats}")
