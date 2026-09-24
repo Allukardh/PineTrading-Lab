@@ -20,6 +20,7 @@ showStructureDetails = input.bool(false, "Mostrar BOS/CHoCH e zonas secundárias
 
 // Engineering defaults are intentionally internal. They are product defaults,
 // not operator tuning requirements.
+int AUDIT_SCHEMA = 1
 int FAST_LEN = 21
 int MID_LEN = 50
 int SLOW_LEN = 200
@@ -907,6 +908,8 @@ if barstate.islast
 // Codes:
 //   MapDir: -1 bear / 0 none-transition / +1 bull
 //   Model: 0 none / 1 FIB / 2 ADAPT / 3 LIVE-FIB / 4 LIVE-ADAPT
+plot(AUDIT_SCHEMA, "MM Audit • Schema", color=color.new(color.white, 100), display=display.data_window)
+plot(barstate.isconfirmed ? 1 : 0, "MM Audit • Confirmado", color=color.new(color.white, 100), display=display.data_window)
 plot(mapDir, "MM Audit • MapDir", color=color.new(color.white, 100), display=display.data_window)
 plot(atr, "MM Audit • ATR", color=color.new(color.white, 100), display=display.data_window)
 plot(correctionModelCode, "MM Audit • Modelo", color=color.new(color.white, 100), display=display.data_window)
