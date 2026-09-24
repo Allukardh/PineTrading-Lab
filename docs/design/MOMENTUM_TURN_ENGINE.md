@@ -143,11 +143,14 @@ This is a **relative dead-band**, not a probability threshold.
 accel = core - core[1]
 accelActivity = RMA(abs(accel), 20)
 turnBand = max(0.02, 0.50 * accelActivity)
+accel semantic zero epsilon = 1e-9
 ```
 
 The absolute 0.02 floor is in ATR-normalized core units. Its purpose is to prevent floating-point/minuscule changes in an otherwise steady trend from being labeled as a turn when recent acceleration activity decays toward zero.
 
-This floor is provisional and must be challenged by real BTC/ETH/AVAX data.
+Additionally, acceleration values with absolute magnitude <= `1e-9` are treated as exact zero for semantic classification. This is a numerical-stability epsilon, not a trading threshold. It prevents mathematically equivalent scale/translation transforms from flipping `UP_ACCEL` ↔ `UP_DECEL` solely because of floating-point sign noise.
+
+The market-facing floor is provisional and must be challenged by real BTC/ETH/AVAX data.
 
 ## 8. Semantic state mapping
 
