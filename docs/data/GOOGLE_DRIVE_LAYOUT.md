@@ -11,7 +11,7 @@ PineTrading-Lab/
   Market Data/
     Binance/
       spot/
-        BTCUSDT/
+        <SYMBOL>/
           raw/
           consolidated/
           manifests/
@@ -45,3 +45,40 @@ Canonical files currently retained:
 The six consolidated files are the actual Parquet bytes emitted by the production run. Their SHA-256 values are recorded in the production inventory in Git. The `raw`, `manifests`, and `reports` TAR files are transport bundles produced by the same run; extracting them recreates the pipeline's native subdirectory/file layout.
 
 A direct local/Drive-mounted run still writes the interval subdirectories under `raw/` as documented above.
+
+
+## Research universe snapshot — 2026-09-24
+
+The same canonical layout is now materialized for:
+
+`ETHUSDT, AVAXUSDT, DOGEUSDT, DOTUSDT, ADAUSDT, XRPUSDT, SOLUSDT, UNIUSDT, NEARUSDT, AAVEUSDT, HBARUSDT, LINKUSDT, SUIUSDT, LTCUSDT`.
+
+Each symbol folder was audited after transfer and contains exactly:
+
+- 6 consolidated Parquets: `15m`, `1h`, `4h`, `1d`, `3d`, `1w`;
+- 1 raw monthly provenance TAR;
+- 1 manifests TAR;
+- 1 reports TAR.
+
+Connector-retry duplicates found during transfer for AVAXUSDT and UNIUSDT were deleted before this snapshot was declared canonical.
+
+Symbol-root Drive IDs:
+
+| Symbol | Root folder ID |
+| --- | --- |
+| ETHUSDT | `1irpsCP96I-ObGdYzBv2_7z4amMULIGfn` |
+| AVAXUSDT | `1SwWVsx_Yks6iXBNFtq9B_e1ZoBhvvEmj` |
+| DOGEUSDT | `1Cr9dimw7_OaIQPzaHbu4GxB8f7mEbG66` |
+| DOTUSDT | `1HEIntHrjXQSdzRajyp3R-M2NhOK28Zyu` |
+| ADAUSDT | `1ienuA44ZV-bjVEIff4UvWPmAIVQjyhCW` |
+| XRPUSDT | `1tV3m_jOq6uGQsrGO8r_Sj80XsVLAK24j` |
+| SOLUSDT | `1e10JFyC5X62Ulq0M_mUl5TkJmvCDsLio` |
+| UNIUSDT | `1cPJBNapdwCU0uyV1nyzhzNPJCYSAmMxG` |
+| NEARUSDT | `17A5JcQkJo-hcZe1iEedYHaqV58hLK2St` |
+| AAVEUSDT | `1648IvyfmKp7BkPIl8D_DV8VYHbylAaTR` |
+| HBARUSDT | `1Y1e6TnkruvJgOe_OdJSkqahqKSCKmAhQ` |
+| LINKUSDT | `1Q-Gk-JaFovj6Y7L1N4AGHtCbD5aZO_kx` |
+| SUIUSDT | `11kxnzUBKmTUvqRch9gIRb6fBiCrNXL-i` |
+| LTCUSDT | `1GbpKpgBuy1NeD0PwhZ9lHrM97m1rtqsV` |
+
+Exact subfolder IDs and production counts are versioned in `manifests/binance-spot-research-universe.production-2026-09-24.json`.

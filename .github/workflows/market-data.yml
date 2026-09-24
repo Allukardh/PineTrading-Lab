@@ -11,6 +11,7 @@ on:
       - "schemas/market-data-manifest-v1.json"
       - "requirements-market-data.txt"
       - ".github/workflows/market-data.yml"
+      - ".github/workflows/materialize-binance-universe.yml"
   pull_request:
     paths:
       - "tools/binance_market_data/**"
@@ -20,6 +21,7 @@ on:
       - "schemas/market-data-manifest-v1.json"
       - "requirements-market-data.txt"
       - ".github/workflows/market-data.yml"
+      - ".github/workflows/materialize-binance-universe.yml"
 
 permissions:
   contents: read

@@ -2,11 +2,6 @@ name: Materialize Binance research universe
 
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - ".github/workflows/materialize-binance-universe.yml"
-      - "configs/binance-spot-research-universe.json"
-      - "tools/binance_market_data/**"
 
 permissions:
   contents: read

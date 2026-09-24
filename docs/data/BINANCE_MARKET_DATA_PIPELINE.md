@@ -18,17 +18,17 @@ Official references:
 - `https://data.binance.vision`
 - `https://www.binance.com/en/support/announcement/detail/360000737572` (2018-02-09 system-upgrade completion notice)
 
-## Initial scope
+## Current production scope
 
 Market: `spot`
 
-Symbol: `BTCUSDT`
-
 Timeframes: `15m`, `1h`, `4h`, `1d`, `3d`, `1w`
 
-Configured start month: `2017-08`. End month defaults to the latest officially publishable monthly archive window.
+Canonical BTC baseline: `BTCUSDT`.
 
-The core is symbol-agnostic. Adding ETHUSDT or AVAXUSDT later requires another config entry, not a rewrite.
+Research universe: `ETHUSDT`, `AVAXUSDT`, `DOGEUSDT`, `DOTUSDT`, `ADAUSDT`, `XRPUSDT`, `SOLUSDT`, `UNIUSDT`, `NEARUSDT`, `AAVEUSDT`, `HBARUSDT`, `LINKUSDT`, `SUIUSDT`, `LTCUSDT`.
+
+For the multi-symbol config, `start_month=auto` discovers the first official monthly archive using the `1d` checksum sidecar. This avoids hard-coding exchange listing dates and prevents pre-listing months from being counted as missing history. A `--symbol SYMBOL` filter allows one symbol per CI matrix job while preserving the same pipeline implementation.
 
 ## Local/Drive layout
 
@@ -165,3 +165,27 @@ The production run intentionally preserves source findings instead of normalizin
 The heavy materialization workflow is `workflow_dispatch` by design after this successful production validation. Pull requests continue to use the normal deterministic unit/integration CI without repeatedly downloading the entire historical corpus.
 
 Small production inventory/report snapshots are versioned in Git. The large raw provenance bundle and six Parquets are stored in the Google Drive dataset hierarchy documented in `docs/data/GOOGLE_DRIVE_LAYOUT.md`.
+
+
+## Research universe production materialization — 2026-09-24
+
+Pipeline version `0.2.0` extended the already-validated BTC infrastructure without changing the kline schema or Market Map/Execution semantics.
+
+Production run `36012752615` materialized all 14 requested symbols successfully. Reproducibility run `36013237779` repeated all 14 matrix jobs successfully from the same pipeline code. Normal CI run `36013237831` passed 20/20 tests, including the new start-month discovery and symbol-filter tests.
+
+Research-universe totals:
+
+- 14 symbols / 84 datasets;
+- 4,429,685 consolidated candles;
+- 6,852 timeframe-month source archives;
+- 6,852 official Binance checksum sidecars verified;
+- 0 missing checksums and 0 checksum mismatches;
+- 1 exact duplicate candle in AVAXUSDT, deterministically deduplicated and reported;
+- 373,013,524 consolidated Parquet bytes;
+- 218,849,280 raw provenance TAR bytes.
+
+Across BTC plus the research universe, the store now contains 15 symbols / 90 datasets, 4,849,829 candles, 7,503 verified source checksums and 415,087,647 Parquet bytes.
+
+At materialization time the Binance monthly store consistently lacked the August 2026 `3d` archive and July/August 2026 `1w` archives for the 14 new symbols. These are explicit `files_missing` findings; no candles are fabricated.
+
+The full-universe matrix workflow is manual `workflow_dispatch` after successful production and reproducibility validation. Normal PR CI remains lightweight and deterministic.
