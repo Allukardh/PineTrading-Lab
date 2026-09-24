@@ -101,6 +101,10 @@ Decision:
 
 ## 6. Semantic contract
 
+Machine-readable integer/state codes are canonical in `manifests/suite-semantics-v1.json`.
+
+Human-readable design documents define meaning; the manifest defines transport/audit codes. CI must reject drift between the manifest and executable reference models.
+
 Products may compute the same canonical states internally, but the meanings must stay identical.
 
 ### 6.1 Market Map contract
