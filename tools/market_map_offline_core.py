@@ -21,7 +21,9 @@ TARGET_MERGE_ATR = 0.1
 PULLBACK_MIN_DEPTH = 0.12
 PULLBACK_MAX_DEPTH = 0.9
 AUDIT_HEADER = ['Time', 'Open', 'High', 'Low', 'Close', 'MM Audit • Schema', 'MM Audit • Confirmado', 'MM Audit • MapDir', 'MM Audit • ATR', 'MM Audit • Modelo', 'MM Audit • Amostras adaptativas', 'MM Audit • Correção topo', 'MM Audit • Correção fundo', 'MM Audit • Destino 1', 'MM Audit • Invalidação', 'MM Audit • Confluências', 'MM Audit • Nova tese evt', 'MM Audit • Toque zona evt', 'MM Audit • Zona→Destino evt', 'MM Audit • Zona→Invalidação evt', 'MM Audit • Ambíguo evt', 'MM Audit • Sweep reclaim evt']
-CONTEXT_TF = {'15m': '1h', '1h': '4h', '4h': '1d', '1d': '1w'}
+CONTEXT_TF = {'15m': '1h', '1h': '4h', '4h': '1d', '1d': '1w', '3d': '3d', '1w': '1w'}
+DAY_LEVEL_TFS = {'15m', '1h', '4h', '1d'}
+WEEK_LEVEL_TFS = set(CONTEXT_TF)
 
 @dataclass(frozen=True)
 class Candle:
@@ -148,6 +150,12 @@ def bucket(times: Sequence[int], t: int):
     cur = bisect.bisect_right(times, t) - 1
     return (None, None) if cur < 0 else (cur, cur - 1 if cur else None)
 
+
+def context_index(times: Sequence[int], t: int, *, self_context: bool) -> int | None:
+    """Match Pine f_sec(): current value on self-TF, prior confirmed value on HTF."""
+    cur, prev = bucket(times, t)
+    return cur if self_context else prev
+
 def push_sample(a: list[float], x: float | None):
     if x is not None and PULLBACK_MIN_DEPTH <= x <= PULLBACK_MAX_DEPTH:
         a.append(x)
@@ -189,6 +197,9 @@ class Kernel:
         self.w = list(weekly)
         self.tf = timeframe
         self.tick = tick
+        self.self_context = CONTEXT_TF[timeframe] == timeframe
+        self.day_levels_allowed = timeframe in DAY_LEVEL_TFS
+        self.week_levels_allowed = timeframe in WEEK_LEVEL_TFS
         closes = [x.c for x in self.x]
         highs = [x.h for x in self.x]
         lows = [x.l for x in self.x]
@@ -237,7 +248,7 @@ class Kernel:
             a = self.a[i]
             mid = self.mid[i]
             slow = self.slow[i]
-            _, cp = bucket(self.ct, x.t)
+            cp = context_index(self.ct, x.t, self_context=self.self_context)
             cclose = self.ctx[cp].c if cp is not None else None
             cm = self.cm[cp] if cp is not None else None
             cs = self.cs[cp] if cp is not None else None
@@ -320,10 +331,10 @@ class Kernel:
             if prev_wb is not None and wb != prev_wb:
                 pwhs = pwls = False
             prev_db, prev_wb = (db, wb)
-            pdh = self.d[dp].h if dp is not None else None
-            pdl = self.d[dp].l if dp is not None else None
-            pwh = self.w[wp].h if wp is not None else None
-            pwl = self.w[wp].l if wp is not None else None
+            pdh = self.d[dp].h if self.day_levels_allowed and dp is not None else None
+            pdl = self.d[dp].l if self.day_levels_allowed and dp is not None else None
+            pwh = self.w[wp].h if self.week_levels_allowed and wp is not None else None
+            pwl = self.w[wp].l if self.week_levels_allowed and wp is not None else None
             if pdh is not None and (not pdhs) and (x.h > pdh + self.tick):
                 if x.c < pdh and (rec_a is None or pdh < rec_a):
                     rec_a = pdh
