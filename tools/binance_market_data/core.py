@@ -175,13 +175,6 @@ def parse_kline_row(row: Sequence[str], *, source_file: str) -> dict:
         raise DataValidationError(f"{source_file}: OHLC values outside [low, high]")
     if values["low"] > values["high"]:
         raise DataValidationError(f"{source_file}: low > high")
-    if close_us < open_us:
-        raise DataValidationError(
-            f"{source_file}: close_time precedes open_time: "
-            f"open_raw={open_raw} close_raw={close_raw} "
-            f"open_us={open_us} close_us={close_us} delta_us={close_us - open_us}"
-        )
-
     return {
         "open_time_raw": open_raw,
         "open_time_us": open_us,
@@ -216,6 +209,8 @@ def validate_candle_duration(record: dict, timeframe: str) -> str:
     boundary = record["open_time_us"] + expected
     close_time = record["close_time_us"]
 
+    if close_time < record["open_time_us"]:
+        return "pre_open"
     if close_time == boundary - unit_tick:
         return "boundary_minus_tick"
     if close_time == boundary:
