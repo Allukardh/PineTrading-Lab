@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** STABLE  
-**Active product front:** Execution evidence research  
+**Checkpoint state:** PREPARED  
+**Active product front:** Execution evidence research — branch reconciliation + pre-registered Binance evidence block  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -111,25 +111,28 @@ Important contracts:
 
 ## 4. Exact next atomic work
 
-When work resumes, the **first durable action** must be a new PREPARED checkpoint here.
+This block is now **PREPARED**.
 
-Then:
-
+Intended durable sequence:
 1. reconcile PR #12 / `research/execution-engine-design` with current `main`;
-2. read:
-   - `docs/testing/EXECUTION_EVIDENCE_RESEARCH_PLAN.md`
-   - `docs/design/EXECUTION_ENGINE_DESIGN.md`
-   - `docs/design/RUNTIME_TOPOLOGY.md`
-   - `docs/design/SUITE_INTEGRATION_CONTRACT.md`
-   - MTE-A / RSE-A / PSE-A reference implementations and tests;
-3. run the **pre-registered historical evidence plan** against the accepted Binance datasets with candidate defaults unchanged;
-4. classify the evidence using the pre-registered outcomes:
-   - KEEP
-   - REFINE
-   - REMOVE
-   - INSUFFICIENT EVIDENCE
-5. retune only if a specific semantic/evidence defect justifies it;
-6. create production `execution.pine` only after that evidence gate closes.
+2. verify the branch still satisfies its semantic/static test contracts after reconciliation;
+3. reread the pre-registered Execution evidence plan and candidate implementations;
+4. run the plan against the accepted Binance datasets with candidate defaults unchanged;
+5. classify MTE-A / RSE-A / PSE-A as KEEP / REFINE / REMOVE / INSUFFICIENT EVIDENCE from the pre-registered questions;
+6. retune only if a specific semantic/evidence defect is demonstrated;
+7. keep production `execution.pine` blocked until this evidence gate closes.
+
+Expected durable outputs:
+- reconciled PR #12 head and green static/semantic checks;
+- machine-readable historical evidence;
+- concise research worklog with counts/distributions/cross-engine overlap;
+- updated Issue #11 / PR #12 state;
+- STABLE handoff pointing to the next evidence discriminant.
+
+Recovery if interrupted:
+- compare this PREPARED checkpoint with the actual PR #12 head / workflow runs;
+- inspect only the delta created after this checkpoint;
+- do not redo Market Map work or reread old chats.
 
 No operator TradingView work is needed before the offline Execution evidence is reviewed.
 
