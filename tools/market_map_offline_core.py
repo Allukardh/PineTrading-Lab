@@ -1,0 +1,432 @@
+from __future__ import annotations
+import bisect, math
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from typing import Sequence
+AUDIT_SCHEMA = 2
+MID_LEN = 50
+SLOW_LEN = 200
+ATR_LEN = 14
+PIVOT_LEN = 3
+POOL_MAX = 24
+FAIL_MAX_BARS = 6
+PULLBACK_SAMPLE_MAX = 24
+PULLBACK_MIN_SAMPLES = 5
+ACCEPTANCE_BINS = 20
+ACCEPTANCE_MAX_BARS = 240
+EQ_TOL_ATR = 0.12
+FAIL_TOL_ATR = 0.08
+INVALID_TOL_ATR = 0.12
+TARGET_MERGE_ATR = 0.1
+PULLBACK_MIN_DEPTH = 0.12
+PULLBACK_MAX_DEPTH = 0.9
+AUDIT_HEADER = ['Time', 'Open', 'High', 'Low', 'Close', 'MM Audit • Schema', 'MM Audit • Confirmado', 'MM Audit • MapDir', 'MM Audit • ATR', 'MM Audit • Modelo', 'MM Audit • Amostras adaptativas', 'MM Audit • Correção topo', 'MM Audit • Correção fundo', 'MM Audit • Destino 1', 'MM Audit • Invalidação', 'MM Audit • Confluências', 'MM Audit • Nova tese evt', 'MM Audit • Toque zona evt', 'MM Audit • Zona→Destino evt', 'MM Audit • Zona→Invalidação evt', 'MM Audit • Ambíguo evt', 'MM Audit • Sweep reclaim evt']
+CONTEXT_TF = {'15m': '1h', '1h': '4h', '4h': '1d', '1d': '1w'}
+
+@dataclass(frozen=True)
+class Candle:
+    t: int
+    o: float
+    h: float
+    l: float
+    c: float
+    v: float
+
+    @property
+    def hlc3(self):
+        return (self.h + self.l + self.c) / 3
+
+@dataclass
+class Pool:
+    level: float
+    swept: bool
+    bar: int
+
+@dataclass
+class Tracker:
+    key: int | None = None
+    direction: int = 0
+    target: float | None = None
+    touch_bar: int | None = None
+    touched: bool = False
+    target_hit: bool = False
+    invalidated: bool = False
+    resolved: bool = False
+    superseded: int = 0
+
+    def start(self, key: int, direction: int):
+        if self.touched and (not self.resolved):
+            self.superseded += 1
+        self.key = key
+        self.direction = direction
+        self.target = None
+        self.touch_bar = None
+        self.touched = self.target_hit = self.invalidated = self.resolved = False
+
+    def touch(self, bar: int, target: float | None):
+        self.touched = True
+        self.touch_bar = bar
+        self.target = target
+
+    def resolve(self, bar: int, hi: float, lo: float, thesis_invalidated: bool):
+        d = self.touched and (not self.target_hit) and (self.target is not None) and (self.direction == 1 and hi >= self.target or (self.direction == -1 and lo <= self.target))
+        inv = self.touched and thesis_invalidated and (not self.invalidated)
+        amb = not self.resolved and (self.touch_bar == bar and (d or inv) or (d and inv))
+        de = d and (not amb) and (not self.resolved)
+        ie = inv and (not amb) and (not self.resolved)
+        if amb:
+            self.resolved = True
+        if d:
+            self.target_hit = True
+        if inv:
+            self.invalidated = True
+        if de or ie:
+            self.resolved = True
+        return (bool(de), bool(ie), bool(amb))
+
+def ema(xs: Sequence[float], n: int):
+    a = 2 / (n + 1)
+    out = []
+    p = None
+    for x in xs:
+        p = x if p is None else a * x + (1 - a) * p
+        out.append(p)
+    return out
+
+def rma(xs: Sequence[float], n: int):
+    out = [None] * len(xs)
+    if len(xs) < n:
+        return out
+    p = sum(xs[:n]) / n
+    out[n - 1] = p
+    for i in range(n, len(xs)):
+        p = (p * (n - 1) + xs[i]) / n
+        out[i] = p
+    return out
+
+def atr(cs: Sequence[Candle], n: int=ATR_LEN):
+    tr = []
+    for i, x in enumerate(cs):
+        tr.append(x.h - x.l if i == 0 else max(x.h - x.l, abs(x.h - cs[i - 1].c), abs(x.l - cs[i - 1].c)))
+    return rma(tr, n)
+
+def quantile(xs: Sequence[float], q: float):
+    if not xs:
+        return None
+    a = sorted(xs)
+    p = (len(a) - 1) * q
+    lo = math.floor(p)
+    hi = math.ceil(p)
+    return a[lo] if lo == hi else a[lo] + (a[hi] - a[lo]) * (p - lo)
+
+def adaptive(xs: Sequence[float]):
+    if len(xs) < PULLBACK_MIN_SAMPLES:
+        return (False, 0.5, 0.618)
+    q1, m, q3 = (quantile(xs, 0.25), quantile(xs, 0.5), quantile(xs, 0.75))
+    half = max(0.045, min(0.11, (q3 - q1) * 0.45))
+    shallow = max(0.236, min(0.786, m - half))
+    deep = max(shallow + 0.04, min(0.886, m + half))
+    return (True, shallow, deep)
+
+def phigh(xs: Sequence[float], i: int, n: int=PIVOT_LEN):
+    c = i - n
+    left = c - n
+    if left < 0:
+        return None
+    v = xs[c]
+    return v if all((v >= xs[j] for j in range(left, c))) and all((v > xs[j] for j in range(c + 1, i + 1))) else None
+
+def plow(xs: Sequence[float], i: int, n: int=PIVOT_LEN):
+    c = i - n
+    left = c - n
+    if left < 0:
+        return None
+    v = xs[c]
+    return v if all((v <= xs[j] for j in range(left, c))) and all((v < xs[j] for j in range(c + 1, i + 1))) else None
+
+def bucket(times: Sequence[int], t: int):
+    cur = bisect.bisect_right(times, t) - 1
+    return (None, None) if cur < 0 else (cur, cur - 1 if cur else None)
+
+def push_sample(a: list[float], x: float | None):
+    if x is not None and PULLBACK_MIN_DEPTH <= x <= PULLBACK_MAX_DEPTH:
+        a.append(x)
+        if len(a) > PULLBACK_SAMPLE_MAX:
+            a.pop(0)
+
+def in_zone(x, top, bottom, tol):
+    return x is not None and top is not None and (bottom is not None) and (bottom - tol <= x <= top + tol)
+
+def acceptance(cs: Sequence[Candle], cur: int, start: int | None, end: int | None, lo, hi, tick):
+    if start is None or end is None or lo is None or (hi is None) or (hi - lo <= tick):
+        return (None, None, 0)
+    bins = [0.0] * ACCEPTANCE_BINS
+    pv = vol = 0.0
+    count = 0
+    for j in range(min(cur, end), max(0, cur - ACCEPTANCE_MAX_BARS + 1, start) - 1, -1):
+        x = cs[j]
+        if x.v <= 0:
+            continue
+        p = x.hlc3
+        pv += p * x.v
+        vol += x.v
+        count += 1
+        k = int(math.floor(max(0, min(0.999999, (p - lo) / (hi - lo))) * ACCEPTANCE_BINS))
+        bins[k] += x.v
+    if vol <= 0:
+        return (None, None, count)
+    k = max(range(ACCEPTANCE_BINS), key=bins.__getitem__)
+    return (pv / vol, lo + (k + 0.5) * (hi - lo) / ACCEPTANCE_BINS, count)
+
+class Kernel:
+
+    def __init__(self, chart, context, daily, weekly, timeframe, tick=0.01):
+        if timeframe not in CONTEXT_TF:
+            raise ValueError(timeframe)
+        self.x = list(chart)
+        self.ctx = list(context)
+        self.d = list(daily)
+        self.w = list(weekly)
+        self.tf = timeframe
+        self.tick = tick
+        closes = [x.c for x in self.x]
+        highs = [x.h for x in self.x]
+        lows = [x.l for x in self.x]
+        self.mid = ema(closes, MID_LEN)
+        self.slow = ema(closes, SLOW_LEN)
+        self.a = atr(self.x)
+        self.ph = [phigh(highs, i) for i in range(len(self.x))]
+        self.pl = [plow(lows, i) for i in range(len(self.x))]
+        cc = [x.c for x in self.ctx]
+        self.cm = ema(cc, MID_LEN)
+        self.cs = ema(cc, SLOW_LEN)
+        self.ct = [x.t for x in self.ctx]
+        self.dt = [x.t for x in self.d]
+        self.wt = [x.t for x in self.w]
+
+    def run(self):
+        rows = []
+        hp = []
+        lp = []
+        bulls = []
+        bears = []
+        tr = Tracker()
+        lsh = psh = None
+        lshb = pshb = None
+        lht = '—'
+        lsl = psl = None
+        lslb = pslb = None
+        llt = '—'
+        sdir = 0
+        break_level = None
+        break_dir = 0
+        break_bar = None
+        pre_sdir = 0
+        live_dir = 0
+        live_lo = live_hi = None
+        live_start = live_break = None
+        pdhs = pdls = pwhs = pwls = False
+        prev_db = prev_wb = None
+        invalid_key = None
+        prev_close = prev_lsh = prev_lsl = None
+        prev_map = 0
+        prev_dest = None
+        highs = [x.h for x in self.x]
+        lows = [x.l for x in self.x]
+        for i, x in enumerate(self.x):
+            a = self.a[i]
+            mid = self.mid[i]
+            slow = self.slow[i]
+            _, cp = bucket(self.ct, x.t)
+            cclose = self.ctx[cp].c if cp is not None else None
+            cm = self.cm[cp] if cp is not None else None
+            cs = self.cs[cp] if cp is not None else None
+            s3 = self.slow[i - 3] if i >= 3 else None
+            lb = mid is not None and slow is not None and (s3 is not None) and (mid > slow) and (slow >= s3)
+            lr = mid is not None and slow is not None and (s3 is not None) and (mid < slow) and (slow <= s3)
+            cb = cm is not None and cs is not None and (cclose is not None) and (cm > cs) and (cclose > cs)
+            cr = cm is not None and cs is not None and (cclose is not None) and (cm < cs) and (cclose < cs)
+            regime = 1 if lb and cb else -1 if lr and cr else 0
+            ph = self.ph[i]
+            pl = self.pl[i]
+            pbar = i - PIVOT_LEN
+            if pl is not None and lht == 'HH' and (lslb is not None) and (lshb is not None) and (lslb < lshb < pbar):
+                r = lsh - lsl
+                push_sample(bulls, (lsh - pl) / r if r > self.tick else None)
+            if ph is not None and llt == 'LL' and (lshb is not None) and (lslb is not None) and (lshb < lslb < pbar):
+                r = lsh - lsl
+                push_sample(bears, (ph - lsl) / r if r > self.tick else None)
+            if ph is not None:
+                psh, pshb = (lsh, lshb)
+                lsh, lshb = (ph, pbar)
+                lht = 'H' if psh is None else 'HH' if ph > psh else 'LH'
+                hp.append(Pool(ph, max(highs[max(0, i - 2):i + 1]) > ph + self.tick, pbar))
+                hp = hp[-POOL_MAX:]
+            if pl is not None:
+                psl, pslb = (lsl, lslb)
+                lsl, lslb = (pl, pbar)
+                llt = 'L' if psl is None else 'HL' if pl > psl else 'LL'
+                lp.append(Pool(pl, min(lows[max(0, i - 2):i + 1]) < pl - self.tick, pbar))
+                lp = lp[-POOL_MAX:]
+            rec_a = rec_b = None
+            for p in hp:
+                if not p.swept and x.h > p.level + self.tick:
+                    if x.c < p.level and (rec_a is None or p.level < rec_a):
+                        rec_a = p.level
+                    p.swept = True
+            for p in lp:
+                if not p.swept and x.l < p.level - self.tick:
+                    if x.c > p.level and (rec_b is None or p.level > rec_b):
+                        rec_b = p.level
+                    p.swept = True
+            bu = lsh is not None and prev_close is not None and (prev_lsh is not None) and (x.c > lsh) and (prev_close <= prev_lsh)
+            bd = lsl is not None and prev_close is not None and (prev_lsl is not None) and (x.c < lsl) and (prev_close >= prev_lsl)
+            if bu:
+                pre_sdir = sdir
+                sdir = 1
+                break_level = lsh
+                break_dir = 1
+                break_bar = i
+                live_dir = 1
+                live_lo = lsl
+                live_hi = x.h
+                live_start = lslb
+                live_break = i
+            if bd:
+                pre_sdir = sdir
+                sdir = -1
+                break_level = lsl
+                break_dir = -1
+                break_bar = i
+                live_dir = -1
+                live_hi = lsh
+                live_lo = x.l
+                live_start = lshb
+                live_break = i
+            if live_dir == 1 and live_hi is not None:
+                live_hi = max(live_hi, x.h)
+            if live_dir == -1 and live_lo is not None:
+                live_lo = min(live_lo, x.l)
+            fu = break_dir == 1 and break_bar is not None and (a is not None) and (i > break_bar) and (i - break_bar <= FAIL_MAX_BARS) and (x.c < break_level - a * FAIL_TOL_ATR)
+            fd = break_dir == -1 and break_bar is not None and (a is not None) and (i > break_bar) and (i - break_bar <= FAIL_MAX_BARS) and (x.c > break_level + a * FAIL_TOL_ATR)
+            if fu or fd:
+                sdir = pre_sdir
+                break_dir = 0
+                live_dir = 0
+            db, dp = bucket(self.dt, x.t)
+            wb, wp = bucket(self.wt, x.t)
+            if prev_db is not None and db != prev_db:
+                pdhs = pdls = False
+            if prev_wb is not None and wb != prev_wb:
+                pwhs = pwls = False
+            prev_db, prev_wb = (db, wb)
+            pdh = self.d[dp].h if dp is not None else None
+            pdl = self.d[dp].l if dp is not None else None
+            pwh = self.w[wp].h if wp is not None else None
+            pwl = self.w[wp].l if wp is not None else None
+            if pdh is not None and (not pdhs) and (x.h > pdh + self.tick):
+                if x.c < pdh and (rec_a is None or pdh < rec_a):
+                    rec_a = pdh
+                pdhs = True
+            if pdl is not None and (not pdls) and (x.l < pdl - self.tick):
+                if x.c > pdl and (rec_b is None or pdl > rec_b):
+                    rec_b = pdl
+                pdls = True
+            if pwh is not None and (not pwhs) and (x.h > pwh + self.tick):
+                if x.c < pwh and (rec_a is None or pwh < rec_a):
+                    rec_a = pwh
+                pwhs = True
+            if pwl is not None and (not pwls) and (x.l < pwl - self.tick):
+                if x.c > pwl and (rec_b is None or pwl > rec_b):
+                    rec_b = pwl
+                pwls = True
+            above = [p.level for p in hp if not p.swept and p.level > x.c]
+            below = [p.level for p in lp if not p.swept and p.level < x.c]
+            if pdh is not None and (not pdhs) and (pdh > x.c):
+                above.append(pdh)
+            if pwh is not None and (not pwhs) and (pwh > x.c):
+                above.append(pwh)
+            if pdl is not None and (not pdls) and (pdl < x.c):
+                below.append(pdl)
+            if pwl is not None and (not pwls) and (pwl < x.c):
+                below.append(pwl)
+            la = min(above) if above else None
+            lbv = max(below) if below else None
+            conflict = regime and sdir and (regime != sdir)
+            mdir = 0 if conflict else regime if regime else sdir
+            rel_rec = rec_b if mdir == 1 else rec_a if mdir == -1 else None
+            reclaim_evt = mdir if rel_rec is not None else 0
+            dest = la if mdir == 1 else lbv if mdir == -1 else None
+            ilo = ihi = None
+            istart = iend = None
+            if mdir == 1 and lsh is not None and (lshb is not None):
+                if lslb is not None and lslb < lshb:
+                    ilo, istart = (lsl, lslb)
+                elif pslb is not None and pslb < lshb:
+                    ilo, istart = (psl, pslb)
+                ihi, iend = (lsh, lshb)
+            if mdir == -1 and lsl is not None and (lslb is not None):
+                if lshb is not None and lshb < lslb:
+                    ihi, istart = (lsh, lshb)
+                elif pshb is not None and pshb < lslb:
+                    ihi, istart = (psh, pshb)
+                ilo, iend = (lsl, lslb)
+            use_live = False
+            newer = iend is None or (live_break is not None and live_break > iend)
+            if mdir == 1 and live_dir == 1 and (live_start is not None) and (live_lo is not None) and (live_hi is not None) and newer:
+                ilo, ihi, istart, iend, use_live = (live_lo, live_hi, live_start, i, True)
+            if mdir == -1 and live_dir == -1 and (live_start is not None) and (live_lo is not None) and (live_hi is not None) and newer:
+                ilo, ihi, istart, iend, use_live = (live_lo, live_hi, live_start, i, True)
+            rng = ihi - ilo if ihi is not None and ilo is not None else None
+            ready = rng is not None and rng > self.tick * 20 and (iend is not None)
+            samples = len(bulls) if mdir == 1 else len(bears) if mdir == -1 else 0
+            emp, shallow, deep = adaptive(bulls if mdir == 1 else bears if mdir == -1 else [])
+            top = bot = fibt = fibb = None
+            model = 0
+            if ready:
+                if mdir == 1:
+                    a1 = ihi - rng * shallow
+                    a2 = ihi - rng * deep
+                    f1 = ihi - rng * 0.5
+                    f2 = ihi - rng * 0.618
+                else:
+                    a1 = ilo + rng * shallow
+                    a2 = ilo + rng * deep
+                    f1 = ilo + rng * 0.5
+                    f2 = ilo + rng * 0.618
+                top, bot = (max(a1, a2), min(a1, a2))
+                fibt, fibb = (max(f1, f2), min(f1, f2))
+                model = 4 if use_live and emp else 3 if use_live else 2 if emp else 1
+            inval = key = None
+            if ready and a is not None:
+                inval = ilo - a * INVALID_TOL_ATR if mdir == 1 else ihi + a * INVALID_TOL_ATR
+                key = istart * 3 + (mdir + 1)
+                broken = x.c < inval if mdir == 1 else x.c > inval
+                if broken:
+                    invalid_key = key
+            thesis_inv = ready and key is not None and (invalid_key == key)
+            active = ready and (not thesis_inv)
+            new = ready and key is not None and (key != tr.key)
+            if new:
+                tr.start(key, mdir)
+            touch = bool(active and (not tr.touched) and (top is not None) and (x.h >= bot) and (x.l <= top))
+            tv = tn = None
+            tb = 0
+            if touch:
+                tv, tn, tb = acceptance(self.x, i, istart, iend, ilo, ihi, self.tick)
+                tr.touch(i, prev_dest if prev_map == mdir and prev_dest is not None else dest)
+            de, ie, amb = tr.resolve(i, x.h, x.l, thesis_inv)
+            tol = (a or 0) * 0.15
+            fib = ready and top is not None and (top >= fibb) and (bot <= fibt)
+            conf = (1 if active else 0) + int(fib) + int(in_zone(mid, top, bot, tol)) + int(in_zone(break_level, top, bot, tol))
+            reaction = rel_rec if rel_rec is not None else lbv if mdir == 1 else la if mdir == -1 else None
+            conf += int(in_zone(reaction, top, bot, tol))
+            conf += int(tb >= 8 and tv is not None and (in_zone(tv, top, bot, tol) or in_zone(tn, top, bot, tol)))
+            ts = datetime.fromtimestamp(x.t / 1000000.0, tz=timezone.utc).isoformat().replace('+00:00', 'Z')
+            rows.append(dict(zip(AUDIT_HEADER, [ts, x.o, x.h, x.l, x.c, AUDIT_SCHEMA, 1, mdir, a, model, samples, top if active else None, bot if active else None, None if thesis_inv else dest, inval if ready else None, conf, int(new), int(touch),int(de),int(ie),int(amb), reclaim_evt])))
+            prev_close = x.c
+            prev_lsh = lsh
+            prev_lsl = lsl
+            prev_map = mdir
+            prev_dest = dest
+        return rows

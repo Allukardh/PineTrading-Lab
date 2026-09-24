@@ -22,3 +22,5 @@ jobs:
         run: python tools/check_repo_integrity.py
       - name: Test Market Map export analyzer
         run: python tools/test_analyze_market_map_export.py
+      - name: Test offline Market Map kernel
+        run: python tools/test_market_map_offline.py
