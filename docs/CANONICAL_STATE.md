@@ -3,7 +3,7 @@
 **Date:** 2026-09-24  
 **Phase:** Trading Suite Architecture v1 — Market Map foundation  
 **Main baseline:** SignalGate Dashboard 0.1.0 accepted on `main`  
-**Active architecture:** Market Map + Execution + Decision Panel
+**Active architecture:** two runtime indicators — Market Map (with embedded Decision Panel) + Execution
 
 ## Continuity navigation
 
@@ -80,7 +80,7 @@ The historical lab is evidence infrastructure only. It does not promote or alter
 
 The project no longer assumes that the six legacy core scripts remain six independent end-user indicators.
 
-Approved final suite:
+Approved logical architecture, delivered through **two runtime indicators**:
 
 1. **Market Map**
    - trend/regime
@@ -88,6 +88,7 @@ Approved final suite:
    - structural liquidity
    - correction/retest zones
    - targets and invalidation
+   - embedded semantic Decision Panel
 
 2. **Execution**
    - momentum
@@ -95,9 +96,7 @@ Approved final suite:
    - volume participation
    - entry confirmation
 
-3. **Decision Panel**
-   - concise semantic synthesis
-   - no requirement for the operator to interpret opaque internal gate scores
+The **Decision Panel** remains a logical synthesis layer, not a third mandatory script. It is embedded in Market Map and may incorporate validated Execution state without resurrecting SignalGate as a separate final product.
 
 Canonical design:
 - `docs/TRADING_SYSTEM_DESIGN.md`
