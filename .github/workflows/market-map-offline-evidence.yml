@@ -18,8 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      DATA_DIR: ${{ runner.temp }}/btc-production
-      OUT_DIR: ${{ runner.temp }}/mm0-evidence
+      DATA_DIR: /tmp/btc-production
+      OUT_DIR: /tmp/mm0-evidence
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout candidate
@@ -82,7 +82,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: mm0-offline-evidence.json
-          path: ${{ runner.temp }}/mm0-evidence/mm0-evidence.json
+          path: /tmp/mm0-evidence/mm0-evidence.json
           archive: false
           retention-days: 30
 
@@ -90,6 +90,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: mm0-offline-materialization.json
-          path: ${{ runner.temp }}/mm0-evidence/mm0-materialization.json
+          path: /tmp/mm0-evidence/mm0-materialization.json
           archive: false
           retention-days: 30
