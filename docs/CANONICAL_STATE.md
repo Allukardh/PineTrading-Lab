@@ -5,6 +5,14 @@
 **Main baseline:** SignalGate Dashboard 0.1.0 accepted on `main`  
 **Active architecture:** Market Map + Execution + Decision Panel
 
+## Continuity navigation
+
+For resuming the project after a chat interruption:
+- `docs/CONTINUITY_LOG.md` — permanent causal history and interaction methodology
+- `docs/CHAT_HANDOFF.md` — exact current continuation point, including unmerged active branches/PRs
+
+This document remains authoritative for **accepted/promoted main state**. The handoff may reference newer unmerged candidates and must keep that distinction explicit.
+
 ## Evidence baseline
 
 The immutable TradingView extraction remains under `archive/`:

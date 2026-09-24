@@ -36,6 +36,23 @@ See:
 - `docs/DEFAULTS_AND_PROFILES.md`
 - `docs/audit/2026-09-22-initial-audit.md`.
 
+
+
+## Continuity after a chat interruption
+
+The repository contains an explicit continuation system so a future chat does not need to reconstruct the project from old transcripts.
+
+Resume in this order:
+
+1. `README.md`
+2. `docs/CANONICAL_STATE.md`
+3. `docs/CONTINUITY_LOG.md`
+4. `docs/CHAT_HANDOFF.md`
+5. the active PR/branch documents named by the handoff
+
+`docs/CONTINUITY_LOG.md` preserves project reasoning and interaction methodology.  
+`docs/CHAT_HANDOFF.md` is the exact volatile resume point and must be updated whenever the active branch/gate/next discriminant changes.
+
 ## Repository layout
 
 - `archive/raw/` — immutable TradingView JSON export
