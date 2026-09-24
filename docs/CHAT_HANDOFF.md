@@ -10,69 +10,93 @@
 
 ## 0. Durable write-ahead checkpoint — schema v2
 
-**Checkpoint state:** PREPARED  
-**Product work currently in flight:** continuity-standard canonization + MM-0 lifecycle diagnostic consumption  
+**Checkpoint state:** STABLE  
+**Product work currently in flight:** none  
 **Continuity protocol:** WRITE-AHEAD + COMMIT-RESULT  
 **Continuity hardening promoted:** PR #16 → `3f9e5a73d3aa94c9bfae6d984f1c25a83e60bf42`  
+**Reusable continuity standard:** `docs/PROJECT_CONTINUITY_STANDARD.md`  
 **Operator evidence required right now:** none
 
 ### Last verified active refs
 
 ```text
 PR #10  feat/market-map-0.1.0-mm0
-head    c8912c14a99cf10650886891425b5776a3924178
+head    7d77fa09f9309c5b419d2723553d1b8537300352
 
 PR #12  research/execution-engine-design
 head    bfd4cad9c35eddf5acdd4df2bf52ba47bddba2f0
 ```
 
-The previous handoff recorded PR #10 at `31b9096179a2b5b3173a6ab8a03452636536fae0`. PR #10 advanced after that checkpoint by two lifecycle-diagnostic commits:
+### Durable result of the completed MM-0 lifecycle block
 
-1. `7909d3a7436b4764f4fa5fdb410f2a06a86afd5e` — diagnose ambiguity timing, supersession transitions/models and bars from touch to supersession;
-2. `c8912c14a99cf10650886891425b5776a3924178` — deterministic tests for SAME_TOUCH vs POST_TOUCH_BOTH_BOUNDS and supersession classifications.
+The lifecycle investigation found a real defect in **historical audit semantics**, not evidence that the visible Market Map destination/correction engine should be retuned.
 
-No Market Map Pine trading semantics changed in those two commits.
+The audit had two problems:
 
-Current-head automated evidence:
-- Static integrity: PASS — run `36040517726`;
-- Pine compile: PASS — run `36040517753`.
+1. on first correction-zone touch it could freeze the previous bar's destination even after LIVE/adaptive geometry moved that level inside or behind the current correction zone;
+2. it treated every same-touch destination as ambiguous even when candle open + zone/target topology proved the zone had to be touched before the target.
+
+Pine telemetry and the offline kernel were corrected in parity.
+
+Key evidence:
+- corrected six-timeframe offline run: `36068967348` — PASS;
+- evidence commit: `151518a5965fd07cd1051917a355e1df1f29164c`;
+- Pine audit-parity fix: `26e7e821706ecdb687d9b6d23e53b70632ace8b2`;
+- Pine compile: `36068992937` — PASS;
+- final branch Static integrity: `36069246767` — PASS;
+- structural pathologies: none;
+- touch accounting: 100%.
+
+Corrected six-timeframe accounting:
+- theses: 45,694;
+- touches: 32,550;
+- destination outcomes: 8,208;
+- invalidation outcomes: 1,055;
+- non-ambiguous resolved: 9,263;
+- ambiguous: 1,121;
+- superseded/censored: 22,163;
+- open: 3.
+
+All-touch shares:
+- destination: 25.22%;
+- invalidation: 3.24%;
+- ambiguous: 3.44%;
+- superseded/censored: 68.09%;
+- open: 0.01%.
+
+The old 4,574 ambiguity count was materially overstated:
+- 2,553 same-touch cases were safely zone-first-target by open/topology;
+- 769 used a frozen target inside the current zone;
+- 108 used a frozen target behind the current zone;
+- after correction, 1,108 genuinely unordered same-touch target cases remain, plus only 3 post-touch both-boundary cases and a small unreconstructible remainder.
+
+Representative supersession cases do **not** demonstrate a LIVE→confirmed identity bug. Thesis identity remains anchored to impulse origin + direction; same-direction replacement generally reflects a new structural origin or a later reactivation after map geometry became inactive.
+
+Decision:
+- do not tune correction ratios, pivot length, ATR tolerances, LIVE rules or destination rules from these lifecycle percentages;
+- no product/trading semantic change is justified from supersession aggregates;
+- the proven audit defect is fixed.
 
 ### Exact next atomic product action
 
-1. Canonize the continuity protocol as a reusable project standard/template without duplicating per-commit noise.
-2. Then consume MM-0 lifecycle-diagnostic evidence and isolate representative ambiguity/supersession cases.
+Before asking the operator for any new TradingView evidence:
 
-Do **not** tune MM-0 and do **not** ask the operator for TradingView evidence yet.
+1. reconcile PR #10 with the current `main` so the candidate contains the promoted data/continuity state without losing its unmerged Market Map work;
+2. verify merge/static/compile integrity after reconciliation;
+3. define the **smallest targeted TradingView visual/reload parity set** still needed for MM-0 promotion;
+4. only then ask the operator for that batched evidence.
 
-Resume by consuming the lifecycle-diagnostic evidence and isolating representative cases for:
+Do not reopen historical-data plumbing and do not start production `execution.pine`.
 
-- LIVE/ADAPT ambiguous first touches;
-- post-touch both-bounds ambiguity;
-- touched theses superseded before outcome, separated by same-direction vs opposite-direction transition and by model;
-- bars from touch to supersession.
+### Recovery algorithm
 
-Then decide whether the observed patterns are:
+If interruption occurs after the next PREPARED checkpoint:
 
-1. honest developing-impulse/OHLC observability and censorship, or
-2. a thesis lifecycle/identity semantic defect.
-
-Only if a semantic defect is demonstrated should Market Map Pine logic change.
-
-### Prepared-block expectation
-
-Expected durable outputs from this block:
-- one concise reusable continuity-standard document referenced by project continuity docs;
-- no product-semantic change unless the MM-0 diagnostic evidence proves a lifecycle defect;
-- if product branch changes, new PR #10 head/workflow evidence must be recorded here before returning to STABLE.
-
-### Recovery algorithm if interruption occurs after this WRITE-AHEAD checkpoint
-
-1. compare actual PR #10 / PR #12 heads with the heads recorded in this section;
-2. inspect only commits newer than the recorded heads;
-3. inspect workflow runs/artifacts newer than the checkpoint when the planned block expected them;
-4. if the head is unchanged, resume the recorded atomic action;
-5. if the head advanced, reconstruct what completed from the GitHub delta and continue from there;
-6. do not reread old chats unless repository documents contain an unresolved contradiction that the repo itself cannot explain.
+1. compare actual PR #10 / PR #12 heads with the refs recorded here;
+2. inspect only commits/runs/artifacts newer than the checkpoint;
+3. if refs did not move, execute the recorded atomic action;
+4. if refs moved, reconstruct completed work from the GitHub delta and continue;
+5. old chat transcripts are fallback only for an unresolved contradiction that canonical project evidence cannot explain.
 
 ---
 
