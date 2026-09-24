@@ -23,11 +23,11 @@ Private engineering lab for TradingView/Pine Script indicators used as decision-
 
 ## Product architecture
 
-The reboot now targets a three-part suite instead of six independent end-user indicators:
+The reboot now reduces the six legacy end-user indicators to **two runtime indicators carrying three logical layers**:
 
-- **Market Map** — trend/regime, structure, structural liquidity, correction/retest zones, targets and invalidation.
-- **Execution** — momentum, RSI/exhaustion, volume participation and entry confirmation.
-- **Decision Panel** — concise semantic synthesis of Market Map + Execution.
+- **Market Map** — chart overlay for trend/regime, structure, structural liquidity, correction/retest zones, targets and invalidation; it also owns the embedded semantic Decision Panel.
+- **Execution** — lower-pane timing engine for momentum, RSI/exhaustion, volume participation and entry confirmation.
+- **Decision Panel** — a logical synthesis layer embedded in Market Map, **not a third mandatory indicator/script**.
 
 SignalGate Dashboard 0.1.0 is the accepted timing-safe synthesis baseline. The active product focus is **Market Map**. Legacy MA 6x, Fibonacci and the other archived scripts are research evidence/donors, not compatibility requirements; the project is free to change periods, visual language and correction logic when evidence supports a better design. The exact unmerged candidate checkpoint lives in `docs/CHAT_HANDOFF.md`.
 
