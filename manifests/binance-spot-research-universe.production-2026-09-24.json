@@ -1,0 +1,344 @@
+{
+  "materialization_date_utc": "2026-09-24",
+  "market": "spot",
+  "timeframes": [
+    "15m",
+    "1h",
+    "4h",
+    "1d",
+    "3d",
+    "1w"
+  ],
+  "pipeline_version": "0.2.0",
+  "schema_version": "binance-spot-kline-v1",
+  "production_run": {
+    "id": 36012752615,
+    "source_head": "3162bb959b83c67ad41bf505f6e3342b1895ac26"
+  },
+  "reproducibility_run": {
+    "id": 36013237779,
+    "source_head": "8de7b73cc90e7ea49f9a96dde343c7a03ea7c22b"
+  },
+  "ci_validation": {
+    "run_id": 36013237831,
+    "tests_passed": 20,
+    "tests_failed": 0,
+    "static_integrity_run_id": 36013237821
+  },
+  "totals": {
+    "symbols": 14,
+    "datasets": 84,
+    "candles": 4429685,
+    "source_files": 6852,
+    "verified_checksums": 6852,
+    "checksum_missing": 0,
+    "checksum_mismatch": 0,
+    "exact_duplicates_deduplicated": 1,
+    "parquet_bytes": 373013524,
+    "raw_bundle_bytes": 218849280
+  },
+  "combined_with_btc": {
+    "symbols": 15,
+    "datasets": 90,
+    "candles": 4849829,
+    "verified_checksums": 7503,
+    "parquet_bytes": 415087647,
+    "raw_bundle_bytes": 243927040
+  },
+  "symbols": [
+    {
+      "symbol": "AAVEUSDT",
+      "resolved_start_month": "2020-10",
+      "candles": 273501,
+      "source_files": 423,
+      "verified_checksums": 423,
+      "duplicates": 0,
+      "parquet_bytes": 23199758,
+      "missing_archives": [
+        "AAVEUSDT-3d-2026-08.zip",
+        "AAVEUSDT-1w-2026-07.zip",
+        "AAVEUSDT-1w-2026-08.zip"
+      ],
+      "drive_folders": {
+        "root": "1648IvyfmKp7BkPIl8D_DV8VYHbylAaTR",
+        "raw": "10E0Hu976vCjOz-zSvz2GLftD1vTzdkCY",
+        "consolidated": "1Ahjo4n8QQRZW54ICzt9PyCiR-gk-Pbve",
+        "manifests": "17WXB2IVA9cIgRIzx0cLENdRWwAraX7DC",
+        "reports": "13nKmU_f9endkv3HbvD8QDoGwLwHnmj7h"
+      }
+    },
+    {
+      "symbol": "ADAUSDT",
+      "resolved_start_month": "2018-04",
+      "candles": 389389,
+      "source_files": 603,
+      "verified_checksums": 603,
+      "duplicates": 0,
+      "parquet_bytes": 31563480,
+      "missing_archives": [
+        "ADAUSDT-3d-2026-08.zip",
+        "ADAUSDT-1w-2026-07.zip",
+        "ADAUSDT-1w-2026-08.zip"
+      ],
+      "drive_folders": {
+        "root": "1ienuA44ZV-bjVEIff4UvWPmAIVQjyhCW",
+        "raw": "11P0wldw0xbAz1h2NkoGx_4Jz3DrAhw1i",
+        "consolidated": "11_m8n1x-19mKatV-b7b01WrDEIO3UFax",
+        "manifests": "1XEr93HJR9mFLqS2d9Al-lBV6AbwfQqgt",
+        "reports": "1evSknHQUkHEW75SUSwYMLl7-U8TI2use"
+      }
+    },
+    {
+      "symbol": "AVAXUSDT",
+      "resolved_start_month": "2020-09",
+      "candles": 276413,
+      "source_files": 429,
+      "verified_checksums": 429,
+      "duplicates": 1,
+      "parquet_bytes": 22781891,
+      "missing_archives": [
+        "AVAXUSDT-3d-2026-08.zip",
+        "AVAXUSDT-1w-2026-07.zip",
+        "AVAXUSDT-1w-2026-08.zip"
+      ],
+      "drive_folders": {
+        "root": "1SwWVsx_Yks6iXBNFtq9B_e1ZoBhvvEmj",
+        "raw": "1Y2vI1XG6YTMyI7WUppq0f6K3_hluTQIr",
+        "consolidated": "1GTUdPDL5AzonMyoDyl6q5Xiqk5fLtKlq",
+        "manifests": "1szYnekNeJFjfu2PaiU__ESyY4MIzN7Ny",
+        "reports": "1E-BSVDPvfFUB7wBWRMxrnLE-EIY0OZFi"
+      }
+    },
+    {
+      "symbol": "DOGEUSDT",
+      "resolved_start_month": "2019-07",
+      "candles": 332977,
+      "source_files": 513,
+      "verified_checksums": 513,
+      "duplicates": 0,
+      "parquet_bytes": 28460273,
+      "missing_archives": [
+        "DOGEUSDT-3d-2026-08.zip",
+        "DOGEUSDT-1w-2026-07.zip",
+        "DOGEUSDT-1w-2026-08.zip"
+      ],
+      "drive_folders": {
+        "root": "1Cr9dimw7_OaIQPzaHbu4GxB8f7mEbG66",
+        "raw": "1NhrDEwaqu4_e7L7LU8ZyzxFpoHY1WRwz",
+        "consolidated": "1KmwkDUvYGb5QsF_3m5Q3ycQZcYHda_7_",
+        "manifests": "1-DL9CUy5To9SVoTuypknbRMtiTkp5zdu",
+        "reports": "1t7Zstg3BEAbo0PaZH6ky9BUu35dVvd7l"
+      }
+    },
+    {
+      "symbol": "DOTUSDT",
+      "resolved_start_month": "2020-08",
+      "candles": 280784,
+      "source_files": 435,
+      "verified_checksums": 435,
+      "duplicates": 0,
+      "parquet_bytes": 23295470,
+      "missing_archives": [
+        "DOTUSDT-3d-2026-08.zip",
+        "DOTUSDT-1w-2026-07.zip",
+        "DOTUSDT-1w-2026-08.zip"
+      ],
+      "drive_folders": {
+        "root": "1HEIntHrjXQSdzRajyp3R-M2NhOK28Zyu",
+        "raw": "1zw4e3iX7HlFr9c78MtI1tq9cH1QdC-q1",
+        "consolidated": "107wh3MA9dDrVtrjZlN8eM07hio3BBuJu",
+        "manifests": "1yTTSPGNZOOCFodY7Tp_37MXYQmBbheKh",
+        "reports": "1_u_0IFMo1E_CGqxb1OyjvyXGDXtcKvJt"
+      }
+    },
+    {
+      "symbol": "ETHUSDT",
+      "resolved_start_month": "2017-08",
+      "candles": 420144,
+      "source_files": 651,
+      "verified_checksums": 651,
+      "duplicates": 0,
+      "parquet_bytes": 39767643,
+      "missing_archives": [
+        "ETHUSDT-3d-2026-08.zip",
+        "ETHUSDT-1w-2026-07.zip",
+        "ETHUSDT-1w-2026-08.zip"
+      ],
+      "drive_folders": {
+        "root": "1irpsCP96I-ObGdYzBv2_7z4amMULIGfn",
+        "raw": "1O4euDMrVN25GiTS4k_xcZ8-DXlRiyByh",
+        "consolidated": "1WuLEIbS4-zkoy9RqpK1q4hPNTNnbQsYr",
+        "manifests": "1i6YfFElKoejr5rGIWny0zcywLty9sDpL",
+        "reports": "1AhLwEjDhniTUlDRq8BfQDNVAemVEf0w1"
+      }
+    },
+    {
+      "symbol": "HBARUSDT",
+      "resolved_start_month": "2019-09",
+      "candles": 322093,
+      "source_files": 501,
+      "verified_checksums": 501,
+      "duplicates": 0,
+      "parquet_bytes": 25890830,
+      "missing_archives": [
+        "HBARUSDT-3d-2026-08.zip",
+        "HBARUSDT-1w-2026-07.zip",
+        "HBARUSDT-1w-2026-08.zip"
+      ],
+      "drive_folders": {
+        "root": "1Y1e6TnkruvJgOe_OdJSkqahqKSCKmAhQ",
+        "raw": "1h90dyC-ZjQYAknocaj938fUBd2_S1_4Y",
+        "consolidated": "1r-0PkzrB2XVkEd0rUzAoyzZ2bhItK05z",
+        "manifests": "1JBebn-H1A237G4usY2_jMcwQXTbgXlOo",
+        "reports": "1NqQoJ3BkzDF7EX5k6UN6M-LR4Gdjx2HN"
+      }
+    },
+    {
+      "symbol": "LINKUSDT",
+      "resolved_start_month": "2019-01",
+      "candles": 354578,
+      "source_files": 549,
+      "verified_checksums": 549,
+      "duplicates": 0,
+      "parquet_bytes": 29682060,
+      "missing_archives": [
+        "LINKUSDT-3d-2026-08.zip",
+        "LINKUSDT-1w-2026-07.zip",
+        "LINKUSDT-1w-2026-08.zip"
+      ],
+      "drive_folders": {
+        "root": "1Q-Gk-JaFovj6Y7L1N4AGHtCbD5aZO_kx",
+        "raw": "1yGnPmCWdRqMzRTS8RBXaBDRwjcY26LTA",
+        "consolidated": "1hTa4VO6yr0_EPsoJPviI7E8oaBvg3c2u",
+        "manifests": "1H8aOG-3ikWX0GZ0KZuq7hVSjpGdnZ2fx",
+        "reports": "1ijMNeNAMrtbtsZt2Z_bdz5ryLtHJHM33"
+      }
+    },
+    {
+      "symbol": "LTCUSDT",
+      "resolved_start_month": "2017-12",
+      "candles": 405138,
+      "source_files": 627,
+      "verified_checksums": 627,
+      "duplicates": 0,
+      "parquet_bytes": 31537061,
+      "missing_archives": [
+        "LTCUSDT-3d-2026-08.zip",
+        "LTCUSDT-1w-2026-07.zip",
+        "LTCUSDT-1w-2026-08.zip"
+      ],
+      "drive_folders": {
+        "root": "1GbpKpgBuy1NeD0PwhZ9lHrM97m1rtqsV",
+        "raw": "161PR8W6yeNLct95065EVYgUO2YubdxOu",
+        "consolidated": "1sU_tdYDhp8vrlhc7VwZwYlXhv7pymo2Q",
+        "manifests": "1rtGcX12vTTAW0yU1vxrllkZGbAOo6jCi",
+        "reports": "1WtQN_cf5PxEfOFOooiHVxoat7nYAOZP8"
+      }
+    },
+    {
+      "symbol": "NEARUSDT",
+      "resolved_start_month": "2020-10",
+      "candles": 273614,
+      "source_files": 423,
+      "verified_checksums": 423,
+      "duplicates": 0,
+      "parquet_bytes": 22524973,
+      "missing_archives": [
+        "NEARUSDT-3d-2026-08.zip",
+        "NEARUSDT-1w-2026-07.zip",
+        "NEARUSDT-1w-2026-08.zip"
+      ],
+      "drive_folders": {
+        "root": "17A5JcQkJo-hcZe1iEedYHaqV58hLK2St",
+        "raw": "1-PfjhgMYal9u5whfFgg4BONNehTCR82f",
+        "consolidated": "1S_pEYuDSNctdJiNPNtVn9eqL80k5o0H1",
+        "manifests": "1xyTxukfFjhmqFicld4vyryk-1DTUvMzl",
+        "reports": "1qA8wcB2G6l2HEpey71rGPc88-X06NjMN"
+      }
+    },
+    {
+      "symbol": "SOLUSDT",
+      "resolved_start_month": "2020-08",
+      "candles": 281767,
+      "source_files": 435,
+      "verified_checksums": 435,
+      "duplicates": 0,
+      "parquet_bytes": 24361499,
+      "missing_archives": [
+        "SOLUSDT-3d-2026-08.zip",
+        "SOLUSDT-1w-2026-07.zip",
+        "SOLUSDT-1w-2026-08.zip"
+      ],
+      "drive_folders": {
+        "root": "1e10JFyC5X62Ulq0M_mUl5TkJmvCDsLio",
+        "raw": "1Dmc6nraBkIjnfqy15QNRSYMOZsUrbEkO",
+        "consolidated": "11IZx-rsqho3uGgT7Lv2SIOtY3IMYue5y",
+        "manifests": "1EzWnraw4GG3gEPaNp9slQOGh2vIpMxJZ",
+        "reports": "122T_YpicNa4D9_YcvFjEG9tmja0WWdI3"
+      }
+    },
+    {
+      "symbol": "SUIUSDT",
+      "resolved_start_month": "2023-05",
+      "candles": 155024,
+      "source_files": 237,
+      "verified_checksums": 237,
+      "duplicates": 0,
+      "parquet_bytes": 14277759,
+      "missing_archives": [
+        "SUIUSDT-3d-2026-08.zip",
+        "SUIUSDT-1w-2026-07.zip",
+        "SUIUSDT-1w-2026-08.zip"
+      ],
+      "drive_folders": {
+        "root": "11kxnzUBKmTUvqRch9gIRb6fBiCrNXL-i",
+        "raw": "1T9NdyLzoi699ExQAKYe49knwtLFMctkK",
+        "consolidated": "1HTN_MeHdqgE-SEnm7rw6FUOBTj9xKI0Z",
+        "manifests": "1t-Yq7lKAOoxXjNc9WxfkSDP51mzHky47",
+        "reports": "1r447UigzvO7fhrWDquwnebTmP2P7nJoE"
+      }
+    },
+    {
+      "symbol": "UNIUSDT",
+      "resolved_start_month": "2020-09",
+      "candles": 277066,
+      "source_files": 429,
+      "verified_checksums": 429,
+      "duplicates": 0,
+      "parquet_bytes": 23094232,
+      "missing_archives": [
+        "UNIUSDT-3d-2026-08.zip",
+        "UNIUSDT-1w-2026-07.zip",
+        "UNIUSDT-1w-2026-08.zip"
+      ],
+      "drive_folders": {
+        "root": "1cPJBNapdwCU0uyV1nyzhzNPJCYSAmMxG",
+        "raw": "1D7YFfF5ANMMdYg7f84JJueAj3PN41Pmx",
+        "consolidated": "166RxG6_k1jXxUN5G0PgNcTrExOVYlJ0D",
+        "manifests": "1U4IIClZoKE2CNFIKxrj9fqjvy7aiojE9",
+        "reports": "1pEitho8TdkBSfXmQ5M1W-Nlc1S-wC7eE"
+      }
+    },
+    {
+      "symbol": "XRPUSDT",
+      "resolved_start_month": "2018-05",
+      "candles": 387197,
+      "source_files": 597,
+      "verified_checksums": 597,
+      "duplicates": 0,
+      "parquet_bytes": 32576595,
+      "missing_archives": [
+        "XRPUSDT-3d-2026-08.zip",
+        "XRPUSDT-1w-2026-07.zip",
+        "XRPUSDT-1w-2026-08.zip"
+      ],
+      "drive_folders": {
+        "root": "1tV3m_jOq6uGQsrGO8r_Sj80XsVLAK24j",
+        "raw": "1vquOn9nD9S21zo71pMoHqYnkVgRO0rxw",
+        "consolidated": "1MhtC-Cz2-iMa74HIbotPVnx1N8n9SsXV",
+        "manifests": "11Qje1F38gHaXRpi0inAK56WmMX7hCDDp",
+        "reports": "1Ugjo_F0QaiolCcIERhlfIa8grO6O-07h"
+      }
+    }
+  ]
+}

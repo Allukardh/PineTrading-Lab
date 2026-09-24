@@ -1,0 +1,190 @@
+{
+  "source_base_url": "https://data.binance.vision",
+  "market": "spot",
+  "discovery_start_month": "2017-01",
+  "discovery_timeframe": "1d",
+  "symbols": [
+    {
+      "symbol": "ETHUSDT",
+      "start_month": "auto",
+      "end_month": "auto",
+      "timeframes": [
+        "15m",
+        "1h",
+        "4h",
+        "1d",
+        "3d",
+        "1w"
+      ]
+    },
+    {
+      "symbol": "AVAXUSDT",
+      "start_month": "auto",
+      "end_month": "auto",
+      "timeframes": [
+        "15m",
+        "1h",
+        "4h",
+        "1d",
+        "3d",
+        "1w"
+      ]
+    },
+    {
+      "symbol": "DOGEUSDT",
+      "start_month": "auto",
+      "end_month": "auto",
+      "timeframes": [
+        "15m",
+        "1h",
+        "4h",
+        "1d",
+        "3d",
+        "1w"
+      ]
+    },
+    {
+      "symbol": "DOTUSDT",
+      "start_month": "auto",
+      "end_month": "auto",
+      "timeframes": [
+        "15m",
+        "1h",
+        "4h",
+        "1d",
+        "3d",
+        "1w"
+      ]
+    },
+    {
+      "symbol": "ADAUSDT",
+      "start_month": "auto",
+      "end_month": "auto",
+      "timeframes": [
+        "15m",
+        "1h",
+        "4h",
+        "1d",
+        "3d",
+        "1w"
+      ]
+    },
+    {
+      "symbol": "XRPUSDT",
+      "start_month": "auto",
+      "end_month": "auto",
+      "timeframes": [
+        "15m",
+        "1h",
+        "4h",
+        "1d",
+        "3d",
+        "1w"
+      ]
+    },
+    {
+      "symbol": "SOLUSDT",
+      "start_month": "auto",
+      "end_month": "auto",
+      "timeframes": [
+        "15m",
+        "1h",
+        "4h",
+        "1d",
+        "3d",
+        "1w"
+      ]
+    },
+    {
+      "symbol": "UNIUSDT",
+      "start_month": "auto",
+      "end_month": "auto",
+      "timeframes": [
+        "15m",
+        "1h",
+        "4h",
+        "1d",
+        "3d",
+        "1w"
+      ]
+    },
+    {
+      "symbol": "NEARUSDT",
+      "start_month": "auto",
+      "end_month": "auto",
+      "timeframes": [
+        "15m",
+        "1h",
+        "4h",
+        "1d",
+        "3d",
+        "1w"
+      ]
+    },
+    {
+      "symbol": "AAVEUSDT",
+      "start_month": "auto",
+      "end_month": "auto",
+      "timeframes": [
+        "15m",
+        "1h",
+        "4h",
+        "1d",
+        "3d",
+        "1w"
+      ]
+    },
+    {
+      "symbol": "HBARUSDT",
+      "start_month": "auto",
+      "end_month": "auto",
+      "timeframes": [
+        "15m",
+        "1h",
+        "4h",
+        "1d",
+        "3d",
+        "1w"
+      ]
+    },
+    {
+      "symbol": "LINKUSDT",
+      "start_month": "auto",
+      "end_month": "auto",
+      "timeframes": [
+        "15m",
+        "1h",
+        "4h",
+        "1d",
+        "3d",
+        "1w"
+      ]
+    },
+    {
+      "symbol": "SUIUSDT",
+      "start_month": "auto",
+      "end_month": "auto",
+      "timeframes": [
+        "15m",
+        "1h",
+        "4h",
+        "1d",
+        "3d",
+        "1w"
+      ]
+    },
+    {
+      "symbol": "LTCUSDT",
+      "start_month": "auto",
+      "end_month": "auto",
+      "timeframes": [
+        "15m",
+        "1h",
+        "4h",
+        "1d",
+        "3d",
+        "1w"
+      ]
+    }
+  ]
+}
