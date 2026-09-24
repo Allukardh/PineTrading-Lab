@@ -96,8 +96,11 @@ class AnalyzerTests(unittest.TestCase):
             self.assertEqual(report["ambiguous_timing_by_model"]["FIB"], {"SAME_TOUCH": 1})
             amb = report["lifecycle_examples"]["ambiguity"]["SAME_TOUCH|FIB|LONG"][0]
             self.assertEqual(amb["reason_from_visible_row"], "TARGET")
+            self.assertEqual(amb["same_touch_order_class"], "UNORDERED_TARGET")
             self.assertEqual(amb["frozen_target"], 108)
             self.assertEqual(amb["bars_from_touch"], 0)
+            self.assertEqual(report["ambiguous_reasons"], {"TARGET": 1})
+            self.assertEqual(report["same_touch_order"], {"UNORDERED_TARGET": 1})
             self.assertAlmostEqual(report["rates"]["zone_to_destination_pct_resolved"], 50.0)
             self.assertAlmostEqual(report["rates"]["resolved_non_ambiguous_pct_of_touches"], 200.0 / 3.0)
             self.assertAlmostEqual(report["rates"]["destination_pct_of_touches"], 100.0 / 3.0)
@@ -152,6 +155,8 @@ class AnalyzerTests(unittest.TestCase):
             self.assertEqual(sup["transition"], "LONG->LONG")
             self.assertEqual(sup["prior_model"], "LIVE/ADAPT")
             self.assertEqual(sup["bars_touch_to_supersession"], 1)
+            self.assertEqual(report["supersession_speed"], {"LE3": 1})
+            self.assertEqual(report["supersession_transition_speed"], {"LONG->LONG": {"LE3": 1}})
             self.assertEqual(sup["touch"]["time"], "2026-01-01 01:00")
             self.assertEqual(sup["new_thesis"]["time"], "2026-01-01 02:00")
             self.assertEqual(report["pathologies"], {})
@@ -175,6 +180,7 @@ class AnalyzerTests(unittest.TestCase):
             self.assertEqual(amb["bars_from_touch"], 1)
             self.assertEqual(amb["touch"]["time"], "2026-01-01 01:00")
             self.assertEqual(amb["event"]["time"], "2026-01-01 02:00")
+            self.assertIsNone(amb["same_touch_order_class"])
 
     def test_reload_compare_pass_and_fail(self):
         with tempfile.TemporaryDirectory() as td:
