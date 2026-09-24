@@ -6,6 +6,7 @@ import csv
 import importlib.util
 import tempfile
 import unittest
+import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -14,6 +15,7 @@ SPEC = importlib.util.spec_from_file_location(
 )
 assert SPEC and SPEC.loader
 mm = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = mm
 SPEC.loader.exec_module(mm)
 
 HEADER = [
