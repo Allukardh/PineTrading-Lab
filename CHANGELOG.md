@@ -8,6 +8,8 @@ All notable project changes are documented here.
 - Approved three-product suite architecture: **Market Map**, **Execution**, and **Decision Panel**.
 - Market Map 0.1.0 / MM-0 prototype with integrated regime, structure, structural liquidity and Correction Engine.
 - Market Map liquidity ranking now includes confirmed PDH/PDL/PWH/PWL candidates and source labels.
+- Market Map adds a confirmed sweep/reclaim phase and preserves reclaimed liquidity as correction confluence.
+- Market Map CSV audit schema v2 exports confirmation state and reclaim direction.
 - Market Map failed-breakout state restores pre-break structure when a CHoCH fails.
 - Market Map adds a directional destination ladder using the nearest and next distinct intact liquidity pools, with proximity disclosure.
 - Market Map Correction Engine now adapts its primary zone from recent completed pullback depths, with Fibonacci fallback when sample history is insufficient.
