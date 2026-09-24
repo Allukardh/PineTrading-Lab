@@ -167,11 +167,11 @@ Logical suite:
    - semantic synthesis of Market Map + Execution
    - no opaque gate score
 
-The current Execution research candidate further proposes **two runtime indicators for three logical layers**:
+The final runtime topology is **two indicators for three logical layers**:
 - Market Map overlay + embedded Decision Panel
 - Execution lower pane
 
-That topology is not promoted on `main` until its research PR is accepted.
+This topology is now canonical on `main`. Decision Panel remains a logical synthesis layer, not a third mandatory Pine artifact.
 
 ---
 
@@ -515,19 +515,55 @@ Causal consequence:
 - next work is branch reconciliation plus a minimal targeted TradingView visual/reload parity gate before MM-0 promotion.
 
 
+### 2026-09-24 — Market Map 0.1.0 promoted; two-indicator topology canonized
+
+The final operator TradingView gate supplied BTCUSDT 4H before/after reload plus BTCUSDT 1D post-reload evidence.
+
+Observed parity:
+- 4H semantic state was stable through reload: ALTA / TRANSIÇÃO ESTRUTURAL / BAIXA • LH/LL, with matching liquidity context;
+- 1D remained ALTA / PULLBACK / ALTA • MISTA with the same correction zone, PDH destination, PDL downside liquidity, structural invalidation and W confirmed context;
+- only normal live price/EMA drift changed between captures.
+
+Together with the corrected six-timeframe offline lifecycle evidence, Pine compile and static integrity, this closed the MM-0 promotion gate.
+
+Promotion:
+- PR #10 merged to `main`;
+- merge commit: `0eeb0d37b256a950cfb38f627fa3521bb213d380`;
+- Issue #9 closed as completed.
+
+Architecture clarification promoted at the same boundary:
+- 53 archived scripts remain source material/evidence;
+- six legacy core scripts are donors, not six final products;
+- there are three logical responsibilities but **two final runtime indicators**;
+- Market Map owns the embedded Decision Panel;
+- Execution owns the lower pane;
+- SignalGate 0.1.0 remains an engineering/timing donor and accepted historical baseline, not a third final product.
+
+Repository-hygiene decision:
+- merged historical branches are not defects and are not deleted merely for aesthetics;
+- the old SignalGate field-observation Issue #4 was closed as superseded because keeping an open legacy-event checklist falsely suggested active product work;
+- the non-merged MA Shift branch remains preserved because its research is donor material for Execution;
+- the active product tracker is now Issue #11 / PR #12 for Execution research.
+
+Causal consequence:
+- Market Map foundation is no longer the active gate;
+- the prior Execution implementation hold is released;
+- next work must run the pre-registered Execution evidence plan against accepted Binance datasets before production `execution.pine` exists or candidate defaults are retuned.
+
+---
+
 ## 9. Current continuation checkpoint
 
 The exact volatile checkpoint belongs in:
 
 `docs/CHAT_HANDOFF.md`
 
-At the time this continuity system was introduced:
-- accepted `main` baseline remained SignalGate Dashboard 0.1.0;
-- Market Map MM-0 was compile/static green; the original TradingView CSV path was later replaced as the primary historical route by the delegated Binance offline lab because Essential cannot export those CSVs;
-- Execution remained design/research only;
-- MTE-A / RSE-A / PSE-A candidates and their executable reference tests were added after the initial continuity checkpoint;
-- Issue #14 / PR #15 historical-data infrastructure is accepted on `main`;
-- the initial MM-0 offline historical structural gate is complete on unmerged PR #10; its active blocker is LIVE/supersession lifecycle parity diagnosis;
-- production `execution.pine` remains intentionally blocked until historical evidence challenges the candidate formulas.
+Current durable macro state:
+- Market Map 0.1.0 is accepted on `main`;
+- final runtime topology is Market Map + embedded Decision Panel, plus Execution lower pane;
+- SignalGate is a preserved engineering donor/baseline, not a final runtime product;
+- Binance historical-data infrastructure is accepted and available for evidence work;
+- Execution Issue #11 / PR #12 is the only active product research front;
+- production `execution.pine` remains blocked on the pre-registered historical evidence gate.
 
-Future chats must read `CHAT_HANDOFF.md` rather than relying on this paragraph to stay current.
+Future chats must read `CHAT_HANDOFF.md` for exact refs and next atomic work rather than relying on this slow-memory section.
