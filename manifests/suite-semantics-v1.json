@@ -4,9 +4,9 @@
   "execution_audit_schema_planned": 1,
   "semantics": {
     "map_dir": {
-      "-1": "BAIXA",
       "0": "NEUTRO_TRANSICAO",
-      "1": "ALTA"
+      "1": "ALTA",
+      "-1": "BAIXA"
     },
     "location": {
       "0": "OUTSIDE",
@@ -17,30 +17,30 @@
       "5": "DESTINATION_NEAR"
     },
     "momentum": {
-      "-3": "DOWN_DECEL",
-      "-2": "DOWN_ACCEL",
-      "-1": "TURN_DOWN",
       "0": "NEUTRAL",
       "1": "TURN_UP",
       "2": "UP_ACCEL",
-      "3": "UP_DECEL"
+      "3": "UP_DECEL",
+      "-3": "DOWN_DECEL",
+      "-2": "DOWN_ACCEL",
+      "-1": "TURN_DOWN"
     },
     "rsi_state": {
-      "-4": "EXTREME_OVERSOLD",
-      "-3": "FADING_OVERSOLD",
-      "-2": "FADING_OVERBOUGHT",
-      "-1": "BEAR",
       "0": "NEUTRAL",
       "1": "BULL",
       "2": "RECOVERING_OVERSOLD",
       "3": "RECOVERING_OVERBOUGHT",
-      "4": "EXTREME_OVERBOUGHT"
+      "4": "EXTREME_OVERBOUGHT",
+      "-4": "EXTREME_OVERSOLD",
+      "-3": "FADING_OVERSOLD",
+      "-2": "FADING_OVERBOUGHT",
+      "-1": "BEAR"
     },
     "participation": {
-      "-1": "CONTRARY",
       "0": "NEUTRAL",
       "1": "CONFIRM",
-      "2": "WEAK"
+      "2": "WEAK",
+      "-1": "CONTRARY"
     },
     "readiness": {
       "0": "WAIT",
@@ -54,6 +54,11 @@
       "1": "FADING",
       "2": "EXHAUSTED",
       "3": "REACTION_RISK"
+    },
+    "rsi_context_dir": {
+      "0": "NEUTRAL",
+      "1": "BULL",
+      "-1": "BEAR"
     }
   },
   "operator_labels_pt_br": {
