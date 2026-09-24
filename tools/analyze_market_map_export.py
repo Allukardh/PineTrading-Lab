@@ -16,7 +16,6 @@ import argparse
 import csv
 import json
 import math
-import statistics
 import sys
 import unicodedata
 from collections import Counter, defaultdict
@@ -34,6 +33,8 @@ MODEL_NAMES = {
 }
 
 AUDIT_NEEDLES = {
+    "schema": ("mm audit • schema", "audit • schema"),
+    "confirmed": ("mm audit • confirmado", "audit • confirmado"),
     "map_dir": ("mm audit • mapdir", "audit • mapdir"),
     "atr": ("mm audit • atr", "audit • atr"),
     "model": ("mm audit • modelo", "audit • modelo"),
@@ -225,11 +226,28 @@ def analyze(path: Path) -> dict:
 
     pathology = Counter()
 
+    schema_values = {
+        _intish(_value(data, row, "schema"))
+        for row in data.rows
+        if _value(data, row, "schema") is not None
+    }
+    if schema_values != {1}:
+        raise ValueError(f"{path}: unsupported or mixed Market Map audit schema: {sorted(schema_values)}")
+
     active: dict | None = None
     start_time = _cell(data, data.rows[0], "time") if data.rows else None
     end_time = _cell(data, data.rows[-1], "time") if data.rows else None
 
+    confirmed_rows = 0
+    provisional_rows = 0
+
     for idx, row in enumerate(data.rows):
+        confirmed = _flag(_value(data, row, "confirmed"))
+        if confirmed:
+            confirmed_rows += 1
+        else:
+            provisional_rows += 1
+
         close = _value(data, row, "close")
         map_dir = _intish(_value(data, row, "map_dir")) or 0
         atr = _value(data, row, "atr")
@@ -247,30 +265,31 @@ def analyze(path: Path) -> dict:
         zone_to_inv = _flag(_value(data, row, "zone_to_inv"))
         ambiguous_evt = _flag(_value(data, row, "ambiguous"))
 
-        if corr_top is not None and corr_bottom is not None:
-            if corr_top < corr_bottom:
-                pathology["inverted_correction_zone"] += 1
-            if atr and atr > 0:
-                zone_width_atr.append((corr_top - corr_bottom) / atr)
+        if confirmed:
+            if corr_top is not None and corr_bottom is not None:
+                if corr_top < corr_bottom:
+                    pathology["inverted_correction_zone"] += 1
+                if atr and atr > 0:
+                    zone_width_atr.append((corr_top - corr_bottom) / atr)
 
-        if destination is not None and close is not None:
-            if map_dir == 1 and destination <= close:
-                pathology["bull_destination_not_above_close"] += 1
-            elif map_dir == -1 and destination >= close:
-                pathology["bear_destination_not_below_close"] += 1
-            if atr and atr > 0:
-                dest_distance_atr.append(abs(destination - close) / atr)
+            if destination is not None and close is not None:
+                if map_dir == 1 and destination <= close:
+                    pathology["bull_destination_not_above_close"] += 1
+                elif map_dir == -1 and destination >= close:
+                    pathology["bear_destination_not_below_close"] += 1
+                if atr and atr > 0:
+                    dest_distance_atr.append(abs(destination - close) / atr)
 
-        if invalidation is not None and close is not None and atr and atr > 0:
-            signed = close - invalidation if map_dir == 1 else invalidation - close if map_dir == -1 else None
-            if signed is not None:
-                invalidation_distance_atr.append(signed / atr)
+            if invalidation is not None and close is not None and atr and atr > 0:
+                signed = close - invalidation if map_dir == 1 else invalidation - close if map_dir == -1 else None
+                if signed is not None:
+                    invalidation_distance_atr.append(signed / atr)
 
-        if invalidation is not None and corr_bottom is not None and corr_top is not None:
-            if map_dir == 1 and invalidation >= corr_bottom:
-                pathology["bull_invalidation_inside_or_above_zone"] += 1
-            elif map_dir == -1 and invalidation <= corr_top:
-                pathology["bear_invalidation_inside_or_below_zone"] += 1
+            if invalidation is not None and corr_bottom is not None and corr_top is not None:
+                if map_dir == 1 and invalidation >= corr_bottom:
+                    pathology["bull_invalidation_inside_or_above_zone"] += 1
+                elif map_dir == -1 and invalidation <= corr_top:
+                    pathology["bear_invalidation_inside_or_below_zone"] += 1
 
         if new_thesis:
             if active and active.get("touched") and not active.get("resolved"):
@@ -347,6 +366,9 @@ def analyze(path: Path) -> dict:
     return {
         "file": str(path),
         "rows": len(data.rows),
+        "confirmed_rows": confirmed_rows,
+        "provisional_rows": provisional_rows,
+        "audit_schema": 1,
         "start": start_time,
         "end": end_time,
         "counts": {
@@ -385,7 +407,7 @@ def compare_reload(before: Path, after: Path) -> dict:
     b = _read_csv(after)
 
     compare_keys = [
-        "map_dir", "model", "samples", "corr_top", "corr_bottom", "destination",
+        "schema", "map_dir", "model", "samples", "corr_top", "corr_bottom", "destination",
         "invalidation", "confluence", "new_thesis", "zone_touch",
         "zone_to_dest", "zone_to_inv", "ambiguous",
     ]
@@ -395,11 +417,11 @@ def compare_reload(before: Path, after: Path) -> dict:
 
     ma = row_map(a)
     mb = row_map(b)
-    common = sorted(set(ma) & set(mb))
-    if len(common) > 1:
-        # Exclude the newest common bar by default because it may have been
-        # unconfirmed during one of the exports.
-        common = common[:-1]
+    common_all = sorted(set(ma) & set(mb))
+    common = [
+        t for t in common_all
+        if _flag(_value(a, ma[t], "confirmed")) and _flag(_value(b, mb[t], "confirmed"))
+    ]
 
     mismatches = Counter()
     examples: dict[str, list[dict]] = defaultdict(list)
@@ -433,7 +455,11 @@ def print_report(report: dict) -> None:
     counts = report["counts"]
     rates = report["rates"]
     print(f"\n=== {report['file']} ===")
-    print(f"Rows: {report['rows']} | {report['start']} -> {report['end']}")
+    print(
+        f"Rows: {report['rows']} "
+        f"(confirmed={report['confirmed_rows']}, provisional={report['provisional_rows']}) "
+        f"| schema={report['audit_schema']} | {report['start']} -> {report['end']}"
+    )
     print(
         "Theses: {theses} | zone touches: {zone_touches} ({touch}) | "
         "resolved: {resolved_non_ambiguous} | ambiguous: {ambiguous} | "
