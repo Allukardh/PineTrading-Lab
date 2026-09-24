@@ -420,3 +420,46 @@ Final operator parity gate is deliberately small:
 2. BTCUSDT 1D — one post-reload screenshot, same defaults, to inspect LIVE/developing-impulse presentation and destination/correction semantics.
 
 No threshold changes are allowed from this visual gate. It is a parity/usefulness check, not tuning.
+
+
+## Final TradingView visual/reload parity gate — PASS
+
+Operator evidence received on 2026-09-24 using the latest MM-0 candidate with defaults.
+
+### BTCUSDT 4H — before vs after reload
+
+Both screenshots preserved the same semantic state:
+- REGIME: **ALTA**
+- FASE: **TRANSIÇÃO ESTRUTURAL**
+- ESTRUTURA: **BAIXA • LH/LL**
+- CORREÇÃO: absent
+- DESTINO: absent
+- LIQ ↑: **82728.54 • EQH**
+- LIQ ↓: **82874.93 • SWING**
+- INVALIDA: absent
+- CONTEXTO: **D • HTF CONF**
+
+Only normal live-market price/EMA drift changed between captures. No reload/state mismatch or material rendering defect was observed.
+
+### BTCUSDT 1D — post-reload state
+
+The daily screenshots preserved:
+- REGIME: **ALTA**
+- FASE: **PULLBACK**
+- ESTRUTURA: **ALTA • MISTA**
+- CORREÇÃO: **78791.09–81525.19 • 4-star confluence**
+- DESTINO: **87278.54 • PDH**
+- LIQ ↑: **87278.54 • PDH**
+- LIQ ↓: **83500.01 • PDL**
+- INVALIDA: **74667.14**
+- CONTEXTO: **W • HTF CONF • ADAPT 24**
+
+The correction zone, destination, liquidity and invalidation were visually coherent and stable through reload. No additional manual test cycle is justified without a concrete defect.
+
+### Gate decision
+
+**PASS — MM-0 final TradingView visual/reload parity gate is closed.**
+
+This visual gate confirms runtime parity/UX stability only. It does not convert historical engineering statistics into trade win rates or profitability claims.
+
+With compile/static, six-timeframe offline lifecycle evidence and TradingView parity all green, MM-0 is ready for promotion as the first accepted Market Map 0.1.0 baseline.
