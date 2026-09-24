@@ -10,8 +10,8 @@
 
 ## 0. Durable write-ahead checkpoint — schema v2
 
-**Checkpoint state:** STABLE  
-**Product work currently in flight:** none  
+**Checkpoint state:** PREPARED  
+**Product work currently in flight:** reconcile PR #10 with current main and define final TradingView parity gate  
 **Continuity protocol:** WRITE-AHEAD + COMMIT-RESULT  
 **Continuity hardening promoted:** PR #16 → `3f9e5a73d3aa94c9bfae6d984f1c25a83e60bf42`  
 **Reusable continuity standard:** `docs/PROJECT_CONTINUITY_STANDARD.md`  
@@ -79,12 +79,13 @@ Decision:
 
 ### Exact next atomic product action
 
-Before asking the operator for any new TradingView evidence:
+Reconcile PR #10 with the current `main` as the next durable action, then verify static/compile integrity and define the **smallest targeted TradingView visual/reload parity set** still needed for MM-0 promotion.
 
-1. reconcile PR #10 with the current `main` so the candidate contains the promoted data/continuity state without losing its unmerged Market Map work;
-2. verify merge/static/compile integrity after reconciliation;
-3. define the **smallest targeted TradingView visual/reload parity set** still needed for MM-0 promotion;
-4. only then ask the operator for that batched evidence.
+Expected evidence from this block:
+- PR #10 contains current main without losing its unmerged MM-0 work;
+- post-reconciliation Static integrity PASS;
+- Pine compile PASS for the reconciled head (or explicit proof Pine source is unchanged from a passing compile);
+- one concise operator parity request, only for states that offline evidence cannot prove.
 
 Do not reopen historical-data plumbing and do not start production `execution.pine`.
 
