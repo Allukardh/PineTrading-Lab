@@ -137,6 +137,22 @@ def _fmt_num(v: float | None, digits: int = 2) -> str:
     return "n/a" if v is None else f"{v:.{digits}f}"
 
 
+def _append_example(store: dict[str, list[dict]], key: str, example: dict, limit: int = 2) -> None:
+    bucket = store.setdefault(key, [])
+    if len(bucket) < limit:
+        bucket.append(example)
+
+
+def _speed_bucket(bars: int | None) -> str:
+    if bars is None:
+        return "UNKNOWN"
+    if bars <= 3:
+        return "LE3"
+    if bars <= 10:
+        return "4_10"
+    return "GT10"
+
+
 @dataclass
 class LoadedCsv:
     path: Path
@@ -218,6 +234,8 @@ def analyze(path: Path) -> dict:
     ambiguous_timing_by_model: dict[str, Counter[str]] = defaultdict(Counter)
     supersession_transitions: Counter[str] = Counter()
     superseded_touch_models: Counter[str] = Counter()
+    ambiguity_examples: dict[str, list[dict]] = {}
+    supersession_examples: dict[str, list[dict]] = {}
 
     thesis_count = 0
     touch_count = 0
@@ -253,6 +271,8 @@ def analyze(path: Path) -> dict:
 
     confirmed_rows = 0
     provisional_rows = 0
+    prev_map_dir: int | None = None
+    prev_destination: float | None = None
 
     for idx, row in enumerate(data.rows):
         confirmed = _flag(_value(data, row, "confirmed"))
@@ -271,6 +291,31 @@ def analyze(path: Path) -> dict:
         destination = _value(data, row, "destination")
         invalidation = _value(data, row, "invalidation")
         confluence = _intish(_value(data, row, "confluence"))
+        time_value = _cell(data, row, "time")
+        open_value = _value(data, row, "open")
+        high_value = _value(data, row, "high")
+        low_value = _value(data, row, "low")
+        close_value = close
+        samples = _intish(_value(data, row, "samples"))
+        row_snapshot = {
+            "index": idx,
+            "time": time_value,
+            "direction": "LONG" if map_dir == 1 else "SHORT" if map_dir == -1 else "NONE",
+            "model": model_name,
+            "samples": samples,
+            "ohlc": {
+                "open": open_value,
+                "high": high_value,
+                "low": low_value,
+                "close": close_value,
+            },
+            "atr": atr,
+            "correction_top": corr_top,
+            "correction_bottom": corr_bottom,
+            "destination": destination,
+            "invalidation": invalidation,
+            "confluence": confluence,
+        }
 
         if confirmed:
             if map_dir not in {-1, 0, 1}:
@@ -331,11 +376,27 @@ def analyze(path: Path) -> dict:
                 superseded_after_touch += 1
                 prior_direction = active.get("direction", "NONE")
                 prior_model = active.get("model", "NONE")
-                supersession_transitions[f"{prior_direction}->{direction}"] += 1
+                transition = f"{prior_direction}->{direction}"
+                supersession_transitions[transition] += 1
                 superseded_touch_models[prior_model] += 1
                 touch_index = active.get("touch_index")
-                if touch_index is not None:
-                    bars_touch_to_supersession.append(idx - touch_index)
+                bars_since_touch = idx - touch_index if touch_index is not None else None
+                if bars_since_touch is not None:
+                    bars_touch_to_supersession.append(bars_since_touch)
+                example_key = f"{transition}|{prior_model}|{_speed_bucket(bars_since_touch)}"
+                _append_example(
+                    supersession_examples,
+                    example_key,
+                    {
+                        "transition": transition,
+                        "prior_model": prior_model,
+                        "bars_touch_to_supersession": bars_since_touch,
+                        "prior_thesis_time": active.get("new_time"),
+                        "touch": active.get("touch_snapshot"),
+                        "prior_last": active.get("latest_snapshot"),
+                        "new_thesis": row_snapshot,
+                    },
+                )
             thesis_count += 1
             direction_counts[direction] += 1
             active = {
@@ -345,6 +406,10 @@ def analyze(path: Path) -> dict:
                 "resolved": False,
                 "touch_index": None,
                 "confluence": None,
+                "new_time": time_value,
+                "touch_snapshot": None,
+                "frozen_target": None,
+                "latest_snapshot": None,
             }
 
         # Be tolerant if an export starts after a thesis was already active.
@@ -357,6 +422,10 @@ def analyze(path: Path) -> dict:
                 "resolved": False,
                 "touch_index": None,
                 "confluence": None,
+                "new_time": None,
+                "touch_snapshot": None,
+                "frozen_target": None,
+                "latest_snapshot": None,
             }
 
         if zone_touch:
@@ -364,10 +433,19 @@ def analyze(path: Path) -> dict:
             if reclaim_dir != 0:
                 zone_touch_with_reclaim += 1
             if active is not None:
+                frozen_target = (
+                    prev_destination
+                    if prev_map_dir == map_dir and prev_destination is not None
+                    else destination
+                )
+                touch_snapshot = dict(row_snapshot)
+                touch_snapshot["frozen_target"] = frozen_target
                 active["touched"] = True
                 active["touch_index"] = idx
                 active["model"] = model_name
                 active["confluence"] = confluence
+                active["touch_snapshot"] = touch_snapshot
+                active["frozen_target"] = frozen_target
                 model_touch_counts[model_name] += 1
                 if confluence is not None:
                     confluence_touch_counts[str(confluence)] += 1
@@ -400,12 +478,59 @@ def analyze(path: Path) -> dict:
             ambiguity_class = "SAME_TOUCH" if zone_touch else "POST_TOUCH_BOTH_BOUNDS"
             ambiguous_timing[ambiguity_class] += 1
             ambiguity_model = active.get("model", model_name) if active is not None else model_name
+            ambiguity_direction = active.get("direction", row_snapshot["direction"]) if active is not None else row_snapshot["direction"]
             ambiguous_timing_by_model[ambiguity_model][ambiguity_class] += 1
+            frozen_target = active.get("frozen_target") if active is not None else None
+            target_hit = bool(
+                frozen_target is not None
+                and (
+                    (ambiguity_direction == "LONG" and high_value is not None and high_value >= frozen_target)
+                    or (ambiguity_direction == "SHORT" and low_value is not None and low_value <= frozen_target)
+                )
+            )
+            invalidation_hit = bool(
+                invalidation is not None
+                and close_value is not None
+                and (
+                    (ambiguity_direction == "LONG" and close_value < invalidation)
+                    or (ambiguity_direction == "SHORT" and close_value > invalidation)
+                )
+            )
+            reason = (
+                "TARGET_AND_INVALIDATION"
+                if target_hit and invalidation_hit
+                else "TARGET"
+                if target_hit
+                else "INVALIDATION"
+                if invalidation_hit
+                else "UNRESOLVED_FROM_VISIBLE_ROW"
+            )
+            touch_index = active.get("touch_index") if active is not None else None
+            example_key = f"{ambiguity_class}|{ambiguity_model}|{ambiguity_direction}"
+            _append_example(
+                ambiguity_examples,
+                example_key,
+                {
+                    "class": ambiguity_class,
+                    "model": ambiguity_model,
+                    "direction": ambiguity_direction,
+                    "reason_from_visible_row": reason,
+                    "bars_from_touch": idx - touch_index if touch_index is not None else None,
+                    "touch": active.get("touch_snapshot") if active is not None else None,
+                    "event": row_snapshot,
+                    "frozen_target": frozen_target,
+                },
+            )
             resolve("AMB")
         elif zone_to_dest:
             resolve("DEST")
         elif zone_to_inv:
             resolve("INV")
+
+        if active is not None:
+            active["latest_snapshot"] = row_snapshot
+        prev_map_dir = map_dir
+        prev_destination = destination
 
     open_at_end = 1 if active and active.get("touched") and not active.get("resolved") else 0
     resolved = dest_outcomes + inv_outcomes
@@ -456,6 +581,10 @@ def analyze(path: Path) -> dict:
         "ambiguous_timing_by_model": {k: dict(v) for k, v in ambiguous_timing_by_model.items()},
         "supersession_transitions": dict(supersession_transitions),
         "superseded_touch_models": dict(superseded_touch_models),
+        "lifecycle_examples": {
+            "ambiguity": ambiguity_examples,
+            "supersession": supersession_examples,
+        },
         "distributions": {
             "zone_width_atr": _quantiles(zone_width_atr),
             "destination_distance_atr": _quantiles(dest_distance_atr),
