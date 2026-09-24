@@ -28,3 +28,5 @@ jobs:
         run: python -m unittest tools/test_momentum_turn_reference.py
       - name: Validate suite semantic contract
         run: python tools/check_suite_semantics.py
+      - name: Validate Execution research defaults
+        run: python tools/check_execution_research_defaults.py
