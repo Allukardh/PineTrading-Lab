@@ -85,7 +85,7 @@ overbought               70
 oversold                 30
 extended overbought      80
 extended oversold        20
-step lookback            2 bars
+zone/recovery memory     2 confirmed bars
 minimum directional step 0.25 RSI point
 ```
 
@@ -104,6 +104,15 @@ above 1D      -> chart/self context unless a later rule is justified
 ```
 
 HTF state is confirmed.
+
+Detailed RSE-A semantics:
+`docs/design/RSI_STATE_ENGINE.md`
+
+RSE-A produces:
+- a local categorical RSI state
+- a separate confirmed HTF context direction (-1/0/+1)
+
+A valid local recovery can proceed when HTF is neutral, but an opposing confirmed HTF RSI context blocks ARMADO/CONFIRMA.
 
 ## 4. Participation defaults
 
