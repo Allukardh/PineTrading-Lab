@@ -671,6 +671,7 @@ bool nearInvalidation = correctionActive and not invalidationBrokenNow and not n
 var int diagTrackedKey = na
 var int diagTrackedDir = 0
 var float diagTrackedDestination = na
+var int diagZoneTouchBar = na
 var bool diagZoneTouched = false
 var bool diagDestinationHit = false
 var bool diagInvalidated = false
@@ -683,12 +684,15 @@ var int diagInvalidations = 0
 var int diagZoneToDestination = 0
 var int diagZoneToInvalidation = 0
 var int diagAmbiguousOutcomes = 0
+var int diagOutcomeBarsSum = 0
+var int diagOutcomeBarsCount = 0
 
 bool diagNewThesis = barstate.isconfirmed and correctionReady and not na(impulseKey) and impulseKey != diagTrackedKey
 if diagNewThesis
     diagTrackedKey := impulseKey
     diagTrackedDir := mapDir
-    diagTrackedDestination := destination1
+    diagTrackedDestination := na
+    diagZoneTouchBar := na
     diagZoneTouched := false
     diagDestinationHit := false
     diagInvalidated := false
@@ -696,20 +700,27 @@ if diagNewThesis
     diagTheses += 1
 
 bool diagZoneTouchNow = barstate.isconfirmed and correctionActive and not diagZoneTouched and high >= primaryBottom and low <= primaryTop
-bool diagDestinationCondition = barstate.isconfirmed and not diagDestinationHit and not na(diagTrackedDestination) and
+
+if diagZoneTouchNow
+    diagZoneTouched := true
+    diagZoneTouchBar := bar_index
+    // Freeze the target that was actionable entering the touch candle whenever
+    // possible. This avoids using a new ladder level created by a same-bar sweep.
+    bool prevTargetUsable = mapDir[1] == mapDir and not na(destination1[1])
+    diagTrackedDestination := prevTargetUsable ? destination1[1] : destination1
+    diagZoneTouches += 1
+
+bool diagDestinationCondition = barstate.isconfirmed and diagZoneTouched and not diagDestinationHit and not na(diagTrackedDestination) and
      ((diagTrackedDir == 1 and high >= diagTrackedDestination) or (diagTrackedDir == -1 and low <= diagTrackedDestination))
-bool diagInvalidationCondition = barstate.isconfirmed and thesisInvalidated and not diagInvalidated
+bool diagInvalidationCondition = barstate.isconfirmed and diagZoneTouched and thesisInvalidated and not diagInvalidated
 
 // OHLC does not reveal intrabar ordering. If the first zone touch and an
 // outcome happen on the same candle, or both outcome boundaries are crossed
 // on one candle, exclude that case from directional zone-outcome statistics.
+bool diagSameBarAsTouch = diagZoneTouched and not na(diagZoneTouchBar) and bar_index == diagZoneTouchBar
 bool diagAmbiguousNow = not diagOutcomeResolved and
-     ((diagZoneTouchNow and (diagDestinationCondition or diagInvalidationCondition)) or
-      (diagZoneTouched and diagDestinationCondition and diagInvalidationCondition))
-
-if diagZoneTouchNow
-    diagZoneTouched := true
-    diagZoneTouches += 1
+     ((diagSameBarAsTouch and (diagDestinationCondition or diagInvalidationCondition)) or
+      (diagDestinationCondition and diagInvalidationCondition))
 
 if diagAmbiguousNow
     diagAmbiguousOutcomes += 1
@@ -718,19 +729,25 @@ if diagAmbiguousNow
 if diagDestinationCondition
     diagDestinationHit := true
     diagDestinationHits += 1
-    if diagZoneTouched and not diagOutcomeResolved
+    if not diagOutcomeResolved
         diagZoneToDestination += 1
         diagOutcomeResolved := true
+        diagOutcomeBarsSum += bar_index - diagZoneTouchBar
+        diagOutcomeBarsCount += 1
 
 if diagInvalidationCondition
     diagInvalidated := true
     diagInvalidations += 1
-    if diagZoneTouched and not diagOutcomeResolved
+    if not diagOutcomeResolved
         diagZoneToInvalidation += 1
         diagOutcomeResolved := true
+        diagOutcomeBarsSum += bar_index - diagZoneTouchBar
+        diagOutcomeBarsCount += 1
 
 float diagResolvedAfterZone = diagZoneToDestination + diagZoneToInvalidation
 float diagOpenAfterZone = math.max(0, diagZoneTouches - diagResolvedAfterZone - diagAmbiguousOutcomes)
+float diagZoneTouchPct = diagTheses > 0 ? 100.0 * diagZoneTouches / diagTheses : na
+float diagAvgBarsToOutcome = diagOutcomeBarsCount > 0 ? 1.0 * diagOutcomeBarsSum / diagOutcomeBarsCount : na
 float diagZoneReactionPct = diagResolvedAfterZone > 0 ? 100.0 * diagZoneToDestination / diagResolvedAfterZone : na
 
 bool inT1 = correctionActive and close <= t1Top and close >= t1Bottom
@@ -740,13 +757,14 @@ bool inT3 = correctionActive and close <= t3Top and close >= t3Bottom
 float zoneTol = atr * 0.15
 bool fibCoreOverlap = correctionReady and primaryTop >= fibT2Bottom and primaryBottom <= fibT2Top
 bool acceptanceReady = acceptanceBars >= 8 and not na(impulseVwap)
+bool acceptanceEvidenceReady = acceptanceReady and barstate.isconfirmed
 
 int correctionConfluence = correctionActive ? 1 : 0
 correctionConfluence += fibCoreOverlap ? 1 : 0
 correctionConfluence += f_in_zone(emaMid, primaryTop, primaryBottom, zoneTol) ? 1 : 0
 correctionConfluence += f_in_zone(lastBreakLevel, primaryTop, primaryBottom, zoneTol) ? 1 : 0
 correctionConfluence += f_in_zone(mapDir == 1 ? liqBelow : liqAbove, primaryTop, primaryBottom, zoneTol) ? 1 : 0
-correctionConfluence += acceptanceReady and (f_in_zone(impulseVwap, primaryTop, primaryBottom, zoneTol) or f_in_zone(impulseVNode, primaryTop, primaryBottom, zoneTol)) ? 1 : 0
+correctionConfluence += acceptanceEvidenceReady and (f_in_zone(impulseVwap, primaryTop, primaryBottom, zoneTol) or f_in_zone(impulseVNode, primaryTop, primaryBottom, zoneTol)) ? 1 : 0
 
 // ---------------------------------------------------------------------------
 // Phase classifier
@@ -884,12 +902,14 @@ if barstate.islast
 // Historical diagnostics are intentionally hidden from the chart/status line.
 plot(diagTheses, "MM Hist • Teses", color=color.new(color.white, 100), display=display.data_window)
 plot(diagZoneTouches, "MM Hist • Toques correção", color=color.new(color.white, 100), display=display.data_window)
-plot(diagDestinationHits, "MM Hist • Destinos atingidos", color=color.new(color.white, 100), display=display.data_window)
+plot(diagZoneTouchPct, "MM Hist • Teses com toque %", color=color.new(color.white, 100), display=display.data_window)
+plot(diagDestinationHits, "MM Hist • Destinos pós-toque atingidos", color=color.new(color.white, 100), display=display.data_window)
 plot(diagInvalidations, "MM Hist • Invalidações", color=color.new(color.white, 100), display=display.data_window)
 plot(diagZoneToDestination, "MM Hist • Zona→Destino", color=color.new(color.white, 100), display=display.data_window)
 plot(diagZoneToInvalidation, "MM Hist • Zona→Invalidação", color=color.new(color.white, 100), display=display.data_window)
 plot(diagAmbiguousOutcomes, "MM Hist • Resultados ambíguos", color=color.new(color.white, 100), display=display.data_window)
 plot(diagOpenAfterZone, "MM Hist • Zona sem desfecho", color=color.new(color.white, 100), display=display.data_window)
+plot(diagAvgBarsToOutcome, "MM Hist • Barras toque→desfecho", color=color.new(color.white, 100), display=display.data_window)
 plot(diagZoneReactionPct, "MM Hist • Zona→Destino % (engenharia)", color=color.new(color.white, 100), display=display.data_window)
 
 // ---------------------------------------------------------------------------
