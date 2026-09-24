@@ -406,3 +406,25 @@ The diagnostics therefore **exclude ambiguous outcome ordering** when:
 Those cases are counted separately as `Resultados ambíguos` and do not enter `Zona→Destino % (engenharia)`.
 
 `Zona sem desfecho` also exposes censored/open historical cases instead of silently treating them as wins or losses.
+
+
+## Offline CSV validation harness
+
+MM-0 now exposes a versioned, Data-Window-only audit schema specifically for TradingView CSV export.
+
+Added:
+- `MM Audit • Schema = 1`
+- explicit confirmed/provisional bar state
+- per-bar geometry/state audit series
+- per-bar semantic event series
+- deterministic Python analyzer: `tools/analyze_market_map_export.py`
+- analyzer unit tests wired into Static Integrity CI
+- reload-parity comparison mode
+
+Historical outcome tracking was tightened so the directional target is frozen when the primary correction zone is first touched, not when the thesis first exists. This makes the validation question match the actual decision-time map.
+
+The current unconfirmed candle is excluded from deterministic pathology/reload checks through the exported confirmation state.
+
+Volume-acceptance evidence can add correction confluence only after bar confirmation.
+
+This converts the remaining historical-sanity gate from screenshot inspection into a reproducible CSV evidence workflow.
