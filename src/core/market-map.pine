@@ -634,11 +634,27 @@ int correctionModelCode = not correctionReady ? 0 : useLiveImpulse ? (empiricalR
 // Current-impulse volume acceptance. This is a bar-volume approximation:
 // VWAP is exact for the selected bars; VNode bins each bar's hlc3 volume into
 // the impulse range and is intentionally NOT labeled as exchange POC.
+//
+// On an open realtime bar, acceptance intentionally stops at the previous
+// confirmed bar and uses the previous confirmed LIVE extreme. This prevents a
+// volume-confluence star from flashing only at candle close and disappearing
+// again as soon as the next candle opens.
 float impulseVwap = na
 float impulseVNode = na
 int acceptanceBars = 0
-if barstate.islast and correctionReady
-    [calcVwap, calcVNode, calcBars] = f_impulse_acceptance(impulseStartBar, impulseEndBar, impulseLow, impulseHigh)
+int acceptanceEndBar = impulseEndBar
+float acceptanceLow = impulseLow
+float acceptanceHigh = impulseHigh
+
+if barstate.islast and correctionReady and not barstate.isconfirmed and useLiveImpulse
+    acceptanceEndBar := bar_index - 1
+    if mapDir == 1
+        acceptanceHigh := nz(liveImpulseHigh[1], impulseHigh)
+    if mapDir == -1
+        acceptanceLow := nz(liveImpulseLow[1], impulseLow)
+
+if barstate.islast and correctionReady and acceptanceEndBar >= impulseStartBar
+    [calcVwap, calcVNode, calcBars] = f_impulse_acceptance(impulseStartBar, acceptanceEndBar, acceptanceLow, acceptanceHigh)
     impulseVwap := calcVwap
     impulseVNode := calcVNode
     acceptanceBars := calcBars
@@ -703,6 +719,19 @@ if diagNewThesis
 
 bool diagZoneTouchNow = barstate.isconfirmed and correctionActive and not diagZoneTouched and high >= primaryBottom and low <= primaryTop
 
+// Historical bars are not the chart's last bar, so the normal live acceptance
+// calculation is intentionally absent there. Recompute it only on the first
+// correction-zone touch so historical confluence-at-touch remains faithful
+// without paying a 240-bar scan on every historical candle.
+float diagTouchVwap = na
+float diagTouchVNode = na
+int diagTouchAcceptanceBars = 0
+if diagZoneTouchNow
+    [touchVwap, touchVNode, touchBars] = f_impulse_acceptance(impulseStartBar, impulseEndBar, impulseLow, impulseHigh)
+    diagTouchVwap := touchVwap
+    diagTouchVNode := touchVNode
+    diagTouchAcceptanceBars := touchBars
+
 if diagZoneTouchNow
     diagZoneTouched := true
     diagZoneTouchBar := bar_index
@@ -761,15 +790,18 @@ bool inT3 = correctionActive and close <= t3Top and close >= t3Bottom
 
 float zoneTol = atr * 0.15
 bool fibCoreOverlap = correctionReady and primaryTop >= fibT2Bottom and primaryBottom <= fibT2Top
-bool acceptanceReady = acceptanceBars >= 8 and not na(impulseVwap)
-bool acceptanceEvidenceReady = acceptanceReady and barstate.isconfirmed
+
+float acceptanceEvidenceVwap = diagZoneTouchNow ? diagTouchVwap : impulseVwap
+float acceptanceEvidenceVNode = diagZoneTouchNow ? diagTouchVNode : impulseVNode
+int acceptanceEvidenceBars = diagZoneTouchNow ? diagTouchAcceptanceBars : acceptanceBars
+bool acceptanceEvidenceReady = acceptanceEvidenceBars >= 8 and not na(acceptanceEvidenceVwap)
 
 int correctionConfluence = correctionActive ? 1 : 0
 correctionConfluence += fibCoreOverlap ? 1 : 0
 correctionConfluence += f_in_zone(emaMid, primaryTop, primaryBottom, zoneTol) ? 1 : 0
 correctionConfluence += f_in_zone(lastBreakLevel, primaryTop, primaryBottom, zoneTol) ? 1 : 0
 correctionConfluence += f_in_zone(mapDir == 1 ? liqBelow : liqAbove, primaryTop, primaryBottom, zoneTol) ? 1 : 0
-correctionConfluence += acceptanceEvidenceReady and (f_in_zone(impulseVwap, primaryTop, primaryBottom, zoneTol) or f_in_zone(impulseVNode, primaryTop, primaryBottom, zoneTol)) ? 1 : 0
+correctionConfluence += acceptanceEvidenceReady and (f_in_zone(acceptanceEvidenceVwap, primaryTop, primaryBottom, zoneTol) or f_in_zone(acceptanceEvidenceVNode, primaryTop, primaryBottom, zoneTol)) ? 1 : 0
 
 // ---------------------------------------------------------------------------
 // Phase classifier
