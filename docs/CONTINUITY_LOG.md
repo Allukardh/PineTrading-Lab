@@ -343,6 +343,58 @@ Causal consequence for the product work:
 
 ---
 
+### 2026-09-24 — MM-0 offline historical structural gate completed on PR #10
+
+This is **unmerged candidate evidence** on PR #10 / `feat/market-map-0.1.0-mm0`; it does not promote Market Map semantics to `main`.
+
+The project implemented a deterministic offline Market Map audit kernel that emits the same Audit Schema v2 consumed by the existing analyzer.
+
+Evidence source:
+- exact SHA-256-verified BTCUSDT production Parquets from the accepted PR #15 historical-data lab;
+- primary matrix: 15m / 1h / 4h / 1d;
+- robustness extension: 3d / 1w;
+- 3d/1w context semantics explicitly match Pine: self-context above 1D, PDH/PDL disabled above 1D, PWH/PWL retained through 1W.
+
+Final six-timeframe robustness run:
+
+`36039959727`
+
+Candidate head after documentation/gates:
+
+`31b9096179a2b5b3173a6ab8a03452636536fae0`
+
+Automated gates:
+- Pine compile: PASS — run `36040202039`;
+- Static integrity: PASS — run `36040202044`;
+- six-timeframe offline pathology gate: PASS.
+
+Six-timeframe historical accounting:
+- 45,694 theses;
+- 32,550 first correction-zone touches;
+- 5,428 destination outcomes;
+- 1,041 invalidation outcomes;
+- 4,574 ambiguous OHLC-order outcomes;
+- 21,504 superseded/censored touched theses;
+- 3 open at export end;
+- outcome accounting = 100%;
+- structural pathologies = none.
+
+Interpretation decision:
+- the ~83.9% destination share among non-ambiguous resolved cases is conditional and must **not** be called a trade win rate or unconditional map success rate;
+- only ~19.87% of touched theses resolve destination/invalidation non-ambiguously before replacement;
+- ~66.06% are superseded/censored before that resolution;
+- LIVE/ADAPT produces far more same-candle OHLC ambiguity than confirmed ADAPT.
+
+The 1W extension has only 8 non-ambiguous resolved cases and is explicitly a small sample. It is robustness evidence only and cannot drive tuning.
+
+Causal consequence:
+- historical structural sanity is no longer the active MM-0 blocker;
+- do not tune correction ratios, pivot length, ATR tolerances, LIVE rules or target rules from aggregate percentages;
+- the next discriminant is lifecycle/parity diagnosis of representative LIVE/ADAPT ambiguous first-touch cases and superseded touched theses;
+- only after those representative cases are understood should targeted TradingView screenshots/reload checks be requested.
+
+---
+
 ## 9. Current continuation checkpoint
 
 The exact volatile checkpoint belongs in:
@@ -355,7 +407,7 @@ At the time this continuity system was introduced:
 - Execution remained design/research only;
 - MTE-A / RSE-A / PSE-A candidates and their executable reference tests were added after the initial continuity checkpoint;
 - Issue #14 / PR #15 historical-data infrastructure is accepted on `main`;
-- the offline historical evidence gate is now active for Market Map and the Execution candidates;
+- the initial MM-0 offline historical structural gate is complete on unmerged PR #10; its active blocker is LIVE/supersession lifecycle parity diagnosis;
 - production `execution.pine` remains intentionally blocked until historical evidence challenges the candidate formulas.
 
 Future chats must read `CHAT_HANDOFF.md` rather than relying on this paragraph to stay current.
