@@ -6,6 +6,7 @@ import unittest
 
 from tools.execution_state_reference import Momentum
 from tools.momentum_turn_reference import (
+    ACCEL_EPS,
     ACTIVITY_LEN,
     ATR_LEN,
     FAST_EMA,
@@ -94,6 +95,7 @@ class MomentumTurnReferenceTests(unittest.TestCase):
         self.assertAlmostEqual(NEUTRAL_FACTOR, 0.15)
         self.assertAlmostEqual(TURN_FACTOR, 0.50)
         self.assertAlmostEqual(TURN_FLOOR, 0.02)
+        self.assertAlmostEqual(ACCEL_EPS, 1e-9)
 
     def test_scale_invariance(self):
         bars = reversal_bars()
