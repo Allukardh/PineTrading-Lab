@@ -106,7 +106,7 @@ def run_dataset(*, cfg: dict, symbol_cfg: dict, timeframe: str, data_root: Path,
         })
         zip_paths.append(result.zip_path)
 
-    fingerprint = source_fingerprint(source_files)
+    fingerprint = source_fingerprint(source_files, missing_files=missing_files)
     if source_files and manifest_is_current(manifest_path, parquet_path, fingerprint):
         return json.loads(manifest_path.read_text(encoding="utf-8")) | {"idempotent_skip": True}
 
