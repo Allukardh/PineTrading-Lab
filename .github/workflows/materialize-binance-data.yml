@@ -1,0 +1,117 @@
+name: Materialize BTCUSDT market data
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["infra/binance-market-data"]
+    paths:
+      - ".github/workflows/materialize-binance-data.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements-market-data.txt
+
+      - name: Materialize official Binance history
+        run: |
+          python -m tools.binance_market_data run \
+            --config configs/binance-spot-btcusdt.json \
+            --data-root "$RUNNER_TEMP/Binance"
+
+      - name: Emit canonical inventory and manifests
+        run: |
+          echo "=== INVENTORY ==="
+          cat "$RUNNER_TEMP/Binance/spot/BTCUSDT/manifests/BTCUSDT_inventory.json"
+          echo
+          echo "=== DATASET MANIFESTS ==="
+          for f in "$RUNNER_TEMP"/Binance/spot/BTCUSDT/manifests/BTCUSDT_*.manifest.json; do
+            echo "--- $(basename "$f") ---"
+            cat "$f"
+            echo
+          done
+
+      - name: Bundle raw provenance
+        run: tar -cf "$RUNNER_TEMP/BTCUSDT_raw_monthly.tar" -C "$RUNNER_TEMP/Binance/spot/BTCUSDT" raw
+
+      - name: Bundle manifests
+        run: tar -cf "$RUNNER_TEMP/BTCUSDT_manifests.tar" -C "$RUNNER_TEMP/Binance/spot/BTCUSDT" manifests
+
+      - name: Bundle reports
+        run: tar -cf "$RUNNER_TEMP/BTCUSDT_reports.tar" -C "$RUNNER_TEMP/Binance/spot/BTCUSDT" reports
+
+      - name: Upload BTCUSDT 15m Parquet
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ runner.temp }}/Binance/spot/BTCUSDT/consolidated/BTCUSDT_15m.parquet
+          archive: false
+          retention-days: 7
+
+      - name: Upload BTCUSDT 1h Parquet
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ runner.temp }}/Binance/spot/BTCUSDT/consolidated/BTCUSDT_1h.parquet
+          archive: false
+          retention-days: 7
+
+      - name: Upload BTCUSDT 4h Parquet
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ runner.temp }}/Binance/spot/BTCUSDT/consolidated/BTCUSDT_4h.parquet
+          archive: false
+          retention-days: 7
+
+      - name: Upload BTCUSDT 1d Parquet
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ runner.temp }}/Binance/spot/BTCUSDT/consolidated/BTCUSDT_1d.parquet
+          archive: false
+          retention-days: 7
+
+      - name: Upload BTCUSDT 3d Parquet
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ runner.temp }}/Binance/spot/BTCUSDT/consolidated/BTCUSDT_3d.parquet
+          archive: false
+          retention-days: 7
+
+      - name: Upload BTCUSDT 1w Parquet
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ runner.temp }}/Binance/spot/BTCUSDT/consolidated/BTCUSDT_1w.parquet
+          archive: false
+          retention-days: 7
+
+      - name: Upload raw provenance bundle
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ runner.temp }}/BTCUSDT_raw_monthly.tar
+          archive: false
+          retention-days: 7
+
+      - name: Upload manifest bundle
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ runner.temp }}/BTCUSDT_manifests.tar
+          archive: false
+          retention-days: 7
+
+      - name: Upload report bundle
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ runner.temp }}/BTCUSDT_reports.tar
+          archive: false
+          retention-days: 7
