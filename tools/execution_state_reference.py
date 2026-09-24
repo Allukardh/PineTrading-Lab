@@ -72,7 +72,8 @@ class Evidence:
     location: Location
     momentum: Momentum
     rsi: RsiState
-    participation: Participation
+    rsi_context_dir: int = 0
+    participation: Participation = Participation.NEUTRAL
     bar_confirmed: bool = True
     thesis_invalidated: bool = False
     structural_conflict: bool = False
@@ -146,36 +147,48 @@ def _momentum_strongly_opposes(direction: int, momentum: Momentum) -> bool:
     return True
 
 
-def _rsi_supportive(direction: int, rsi: RsiState) -> bool:
+def _rsi_supportive(direction: int, rsi: RsiState, context_dir: int = 0) -> bool:
+    if context_dir not in (-1, 0, 1):
+        raise ValueError(f"rsi_context_dir must be -1/0/+1, got {context_dir}")
+
     if direction == 1:
-        return rsi in {
+        local = rsi in {
             RsiState.BULL,
             RsiState.RECOVERING_OVERSOLD,
             RsiState.RECOVERING_OVERBOUGHT,
         }
-    if direction == -1:
-        return rsi in {
+    elif direction == -1:
+        local = rsi in {
             RsiState.BEAR,
             RsiState.FADING_OVERBOUGHT,
             RsiState.FADING_OVERSOLD,
         }
-    return False
+    else:
+        return False
+
+    return local and context_dir != -direction
 
 
-def _rsi_opposes(direction: int, rsi: RsiState) -> bool:
+def _rsi_opposes(direction: int, rsi: RsiState, context_dir: int = 0) -> bool:
+    if context_dir not in (-1, 0, 1):
+        raise ValueError(f"rsi_context_dir must be -1/0/+1, got {context_dir}")
+
     if direction == 1:
-        return rsi in {
+        local = rsi in {
             RsiState.BEAR,
             RsiState.FADING_OVERBOUGHT,
             RsiState.EXTREME_OVERBOUGHT,
         }
-    if direction == -1:
-        return rsi in {
+    elif direction == -1:
+        local = rsi in {
             RsiState.BULL,
             RsiState.RECOVERING_OVERSOLD,
             RsiState.EXTREME_OVERSOLD,
         }
-    return True
+    else:
+        return True
+
+    return local or context_dir == -direction
 
 
 def _momentum_deteriorates(direction: int, momentum: Momentum) -> bool:
@@ -230,6 +243,10 @@ def step(previous: State, evidence: Evidence) -> Result:
     """Advance exactly one chart update/bar through the semantic contract."""
     if evidence.map_dir not in (-1, 0, 1):
         raise ValueError(f"map_dir must be -1/0/+1, got {evidence.map_dir}")
+    if evidence.rsi_context_dir not in (-1, 0, 1):
+        raise ValueError(
+            f"rsi_context_dir must be -1/0/+1, got {evidence.rsi_context_dir}"
+        )
 
     coherent_map = (
         _valid_dir(evidence.map_dir)
@@ -292,7 +309,11 @@ def step(previous: State, evidence: Evidence) -> Result:
 
         if (
             _momentum_aligned(direction, evidence.momentum)
-            and _rsi_supportive(direction, evidence.rsi)
+            and _rsi_supportive(
+                direction,
+                evidence.rsi,
+                evidence.rsi_context_dir,
+            )
         ):
             return Result(
                 State(Readiness.ARMED, direction, strength),
@@ -311,7 +332,11 @@ def step(previous: State, evidence: Evidence) -> Result:
         if (
             evidence.location not in RELEVANT_LOCATIONS
             or _momentum_strongly_opposes(direction, evidence.momentum)
-            or _rsi_opposes(direction, evidence.rsi)
+            or _rsi_opposes(
+                direction,
+                evidence.rsi,
+                evidence.rsi_context_dir,
+            )
             or evidence.participation == Participation.CONTRARY
         ):
             return Result(
@@ -322,7 +347,11 @@ def step(previous: State, evidence: Evidence) -> Result:
         if (
             evidence.bar_confirmed
             and _momentum_aligned(direction, evidence.momentum)
-            and _rsi_supportive(direction, evidence.rsi)
+            and _rsi_supportive(
+                direction,
+                evidence.rsi,
+                evidence.rsi_context_dir,
+            )
             and evidence.participation == Participation.CONFIRM
         ):
             return Result(
@@ -348,7 +377,11 @@ def step(previous: State, evidence: Evidence) -> Result:
         # Require two independent opposing families.
         confirmed_opposition = (
             _momentum_strongly_opposes(direction, evidence.momentum)
-            and _rsi_opposes(direction, evidence.rsi)
+            and _rsi_opposes(
+                direction,
+                evidence.rsi,
+                evidence.rsi_context_dir,
+            )
         )
         if confirmed_opposition:
             return Result(
