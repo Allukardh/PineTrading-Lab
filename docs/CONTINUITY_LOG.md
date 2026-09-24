@@ -12,8 +12,8 @@ Read in this order:
 
 1. `README.md` — project identity and repository rules.
 2. `docs/CANONICAL_STATE.md` — accepted/promoted truth on `main`.
-3. `docs/CHAT_HANDOFF.md` — exact active continuation point, including unmerged branches/PRs.
-4. `docs/CONTINUITY_LOG.md` — causal history and locked interaction methodology.
+3. `docs/CONTINUITY_LOG.md` — causal history, product rationale and locked interaction methodology.
+4. `docs/CHAT_HANDOFF.md` — exact active continuation point, including unmerged branches/PRs and write-ahead recovery state.
 5. The active PR/branch documents named in `CHAT_HANDOFF.md`.
 6. Detailed worklogs/audits only when they are relevant to the active gate.
 
@@ -29,26 +29,69 @@ If documents disagree, never silently average them. Identify which evidence leve
 
 ---
 
-## 2. Continuity update rule
+## 2. Continuity durability protocol — WRITE-AHEAD + COMMIT-RESULT
 
-Whenever one of these changes materially, continuity must be updated in the same engineering step:
+The old rule of updating continuity only **after** something materially changed left a dangerous window: the chat could die while analysis, tooling, commits or workflow evidence were in progress, after the previous handoff but before the next one.
 
-- suite architecture or runtime topology;
-- a product/engine semantic contract;
-- a meaningful implementation becomes compile/static green;
-- a TradingView visual/history/reload gate passes or fails;
-- an old route/design is retired or deliberately deferred;
-- the active PR, branch, gate or exact next discriminant changes;
-- operator interaction methodology changes.
+The project therefore uses a two-phase durability protocol.
 
-Update sequence:
+### What counts as a substantial block
 
-1. update the authoritative implementation/design/worklog first;
-2. update `docs/CHAT_HANDOFF.md` if the exact resume point changed;
-3. append/update this continuity log when the causal project history changed;
-4. do not create a new continuity file merely because the chat changed.
+Use the protocol before work that meets any of these conditions:
 
-The project may create detailed dated worklogs for engineering evidence, but continuity itself remains stable.
+- more than one meaningful repository/workflow/tool action is likely;
+- commits, workflow runs or artifacts may be created;
+- analysis is long enough that losing it would force meaningful reconstruction;
+- the active discriminant may change;
+- a product/engine semantic decision may be made.
+
+Do **not** create checkpoint noise for a trivial read, a one-line factual lookup or a purely conversational response.
+
+### Phase A — WRITE-AHEAD / PREPARED
+
+Before substantial work begins, update `docs/CHAT_HANDOFF.md` on `main` as the **first durable engineering action**.
+
+Record:
+
+- checkpoint state = `PREPARED`;
+- current active PR/branch heads;
+- last verified durable result;
+- exact next atomic action;
+- working hypothesis/discriminant when one exists;
+- expected commit/workflow/artifact/evidence;
+- whether operator evidence is required;
+- recovery algorithm if interruption happens before completion.
+
+This write-ahead update is not a request for permission and should not interrupt the engineering rhythm. It exists so a new chat can recover the *intent* of the work even if the original chat dies before producing a result.
+
+### Phase B — COMMIT-RESULT / STABLE
+
+After each meaningful milestone:
+
+1. commit or otherwise persist the actual engineering result first;
+2. update `docs/CHAT_HANDOFF.md` with the new refs/runs/artifacts and the new exact next discriminant;
+3. mark the checkpoint `STABLE` when no product work remains in flight;
+4. update this `CONTINUITY_LOG.md` only if causal history, product direction, methodology or a retired route changed.
+
+### Recovery if the chat dies between A and B
+
+A future chat must:
+
+1. read the canonical resume sequence;
+2. compare the recorded PR/branch heads with the actual GitHub heads;
+3. inspect only commits newer than the recorded checkpoint;
+4. inspect workflow runs/artifacts newer than the checkpoint when relevant;
+5. if refs did not move, resume the recorded next atomic action;
+6. if refs moved, infer what actually completed from GitHub evidence and continue from there;
+7. never redo a completed analysis merely because the prior conversational explanation was lost.
+
+This makes the GitHub delta itself the recovery mechanism for work that completed after the write-ahead checkpoint.
+
+### File responsibilities
+
+- `CHAT_HANDOFF.md` is intentionally volatile and may be updated frequently.
+- `CONTINUITY_LOG.md` is intentionally slow and should stay readable as causal memory.
+- `CANONICAL_STATE.md` remains accepted/promoted truth on `main`, not a scratchpad for unmerged work.
 
 ---
 
@@ -70,6 +113,24 @@ The expected working style is:
 - distinguish implementation correctness from actual market usefulness;
 - do not promote something because it merely looks good in one screenshot;
 - document decisions, rejected routes and evidence before moving on.
+
+### Product-first interaction contract — essence of Chat 01
+
+The project exists to help the operator **read the market more objectively and reduce mechanical chart interpretation**, not to preserve six legacy scripts or maximize engineering ceremony.
+
+Preserve this interaction model across chats:
+
+- product usefulness to real trading decisions comes before preserving legacy code, UI, terminology or roadmap order;
+- the assistant is an autonomous engineering partner, not a project manager waiting for permission at every micro-step;
+- when the operator says “continue”, advance autonomously to the next meaningful evidence boundary unless unique operator input is actually required;
+- prefer doing the repeatable engineering silently and returning with a substantive result, decision or discovered defect;
+- communicate the important outcome, why it matters and what changed — do not turn the conversation into a running report of every commit/tool call;
+- ask the operator primarily for evidence the assistant cannot obtain itself: TradingView visual/realtime behavior, operator usefulness, or an actual product choice;
+- reduce operator cognitive load: hidden engine complexity is acceptable only when the visible output becomes clearer and more useful;
+- “surprise me” means freedom to depart from familiar scripts/periods/visuals when a better evidenced design exists, not freedom to add novelty for its own sake;
+- if professional process starts to dominate the product conversation, pull the focus back to the question: **does this make the chart more useful for the operator's decision?**
+
+The GitHub discipline exists to support this rhythm, not replace it.
 
 The operator contributes the evidence the assistant cannot obtain directly:
 - TradingView visual behavior;
@@ -392,6 +453,27 @@ Causal consequence:
 - do not tune correction ratios, pivot length, ATR tolerances, LIVE rules or target rules from aggregate percentages;
 - the next discriminant is lifecycle/parity diagnosis of representative LIVE/ADAPT ambiguous first-touch cases and superseded touched theses;
 - only after those representative cases are understood should targeted TradingView screenshots/reload checks be requested.
+
+---
+
+### 2026-09-24 — Continuity protocol v2 closes the mid-task interruption gap
+
+Audit of the continuity mechanism found that it was functioning but not interruption-safe enough:
+
+- `CONTINUITY_LOG.md` had been updated through the MM-0 offline structural gate;
+- `CHAT_HANDOFF.md` had correctly advanced to the lifecycle/parity gate;
+- PR #10 then advanced beyond the handoff to lifecycle diagnostic commits before the next handoff update;
+- the previous protocol therefore preserved the last completed milestone but could lose the intent/results of work performed in the interval before the next checkpoint;
+- resume-order wording also disagreed between documents.
+
+Decision:
+
+- unify the resume order as `README -> CANONICAL_STATE -> CONTINUITY_LOG -> CHAT_HANDOFF -> active PR/branch`;
+- preserve the Chat-01 product-first/autonomous interaction contract explicitly;
+- use the two-phase WRITE-AHEAD + COMMIT-RESULT protocol in `CHAT_HANDOFF.md`;
+- keep `CONTINUITY_LOG.md` slow and causal rather than turning it into a per-commit diary.
+
+This protocol is now part of the locked working methodology.
 
 ---
 

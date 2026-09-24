@@ -1,12 +1,69 @@
 # PineTrading-Lab — Chat Continuation Checkpoint
 
 **Status:** CANONICAL CHAT HANDOFF  
-**Date:** 2026-09-24 15:20 BRT  
+**Date:** 2026-09-24 — continuity protocol v2  
 **Repository:** `Allukardh/PineTrading-Lab`  
 **Accepted main baseline:** SignalGate Dashboard 0.1.0  
 **Primary active candidate:** Market Map MM-0  
 **Parallel research:** Execution architecture  
 **Rule:** do not reconstruct the project from old chat transcripts first.
+
+## 0. Durable write-ahead checkpoint — schema v2
+
+**Checkpoint state:** STABLE  
+**Product work currently in flight:** none  
+**Continuity protocol:** WRITE-AHEAD + COMMIT-RESULT  
+**Operator evidence required right now:** none
+
+### Last verified active refs
+
+```text
+PR #10  feat/market-map-0.1.0-mm0
+head    c8912c14a99cf10650886891425b5776a3924178
+
+PR #12  research/execution-engine-design
+head    bfd4cad9c35eddf5acdd4df2bf52ba47bddba2f0
+```
+
+The previous handoff recorded PR #10 at `31b9096179a2b5b3173a6ab8a03452636536fae0`. PR #10 advanced after that checkpoint by two lifecycle-diagnostic commits:
+
+1. `7909d3a7436b4764f4fa5fdb410f2a06a86afd5e` — diagnose ambiguity timing, supersession transitions/models and bars from touch to supersession;
+2. `c8912c14a99cf10650886891425b5776a3924178` — deterministic tests for SAME_TOUCH vs POST_TOUCH_BOTH_BOUNDS and supersession classifications.
+
+No Market Map Pine trading semantics changed in those two commits.
+
+Current-head automated evidence:
+- Static integrity: PASS — run `36040517726`;
+- Pine compile: PASS — run `36040517753`.
+
+### Exact next atomic product action
+
+Do **not** tune MM-0 and do **not** ask the operator for TradingView evidence yet.
+
+Resume by consuming the lifecycle-diagnostic evidence and isolating representative cases for:
+
+- LIVE/ADAPT ambiguous first touches;
+- post-touch both-bounds ambiguity;
+- touched theses superseded before outcome, separated by same-direction vs opposite-direction transition and by model;
+- bars from touch to supersession.
+
+Then decide whether the observed patterns are:
+
+1. honest developing-impulse/OHLC observability and censorship, or
+2. a thesis lifecycle/identity semantic defect.
+
+Only if a semantic defect is demonstrated should Market Map Pine logic change.
+
+### Recovery algorithm if interruption occurs after the next WRITE-AHEAD checkpoint
+
+1. compare actual PR #10 / PR #12 heads with the heads recorded in this section;
+2. inspect only commits newer than the recorded heads;
+3. inspect workflow runs/artifacts newer than the checkpoint when the planned block expected them;
+4. if the head is unchanged, resume the recorded atomic action;
+5. if the head advanced, reconstruct what completed from the GitHub delta and continue from there;
+6. do not reread old chats unless repository documents contain an unresolved contradiction that the repo itself cannot explain.
+
+---
 
 ## 1. Resume in this exact order
 
@@ -35,13 +92,15 @@ Maintain:
 
 - broad assistant engineering freedom;
 - professional GitHub-first workflow;
-- aggressive documentation of rationale/decisions;
+- durable but proportionate documentation of rationale/decisions, without narrating every micro-step;
 - minimal user-facing settings;
 - no legacy UI preservation merely from habit;
 - no repeated trivial TradingView tests;
 - batch operator validation into meaningful gates;
 - distinguish compile/static PASS from market/TradingView PASS;
 - keep moving while user evidence is not yet needed;
+- when the operator says “continue”, advance autonomously to the next meaningful evidence boundary;
+- keep product/trading usefulness ahead of process ceremony;
 - do not lose project focus by over-discussing continuity itself.
 
 If a future chat begins with a request to continue this project, resume engineering from the checkpoint below rather than re-planning the suite.
@@ -72,18 +131,20 @@ Do not treat unmerged MM-0/Execution research as already promoted to main.
 
 **Branch:** `feat/market-map-0.1.0-mm0`  
 **PR:** #10 — Market Map 0.1.0 MM-0: integrated structure, liquidity and correction map  
-**Head at this checkpoint:** `31b9096179a2b5b3173a6ab8a03452636536fae0`  
+**Head at this checkpoint:** `c8912c14a99cf10650886891425b5776a3924178`  
 **PR state:** Draft / mergeable
 
 Latest automated evidence at this checkpoint:
 
 ```text
-Pine compile                 PASS  run 36040202039
-Static integrity             PASS  run 36040202044
+Pine compile                 PASS  run 36040517753
+Static integrity             PASS  run 36040517726
 BTC 6-timeframe offline gate PASS  run 36039959727
 ```
 
 The offline gate uses exact SHA-256-verified BTCUSDT production Parquets promoted by PR #15.
+
+After the prior handoff checkpoint, PR #10 added lifecycle-diagnostic tooling and tests at `7909d3a...` and `c8912c1...`. These commits diagnose ambiguity/supersession behavior; they do not change Market Map Pine trading semantics.
 
 ### Current MM-0 candidate semantics
 
