@@ -135,6 +135,10 @@ The exact clean-room formula and defaults are implementation decisions to valida
 
 ## 6. RSI State Engine
 
+The first clean-room candidate is **RSE-A**, documented in `RSI_STATE_ENGINE.md`.
+
+It separates local RSI semantics from confirmed HTF context rather than flattening both into a four-row table.
+
 Base research:
 - RSI 14
 - centerline behavior
@@ -249,7 +253,8 @@ This is **attention**, not confirmation.
 Enter from PREPARANDO when:
 
 - momentum has turned/aligned in thesis direction
-- RSI state supports recovery/continuation
+- local RSI state supports recovery/continuation
+- confirmed RSI context is not opposite the thesis
 - participation is not actively contradictory
 - location remains valid
 
@@ -265,7 +270,8 @@ Requires:
 - chart bar confirmed
 - ARMADO was valid
 - directional momentum remains aligned/accelerating
-- RSI remains compatible
+- local RSI remains compatible
+- confirmed RSI context remains non-opposing
 - reload-safe participation confirms or is sufficiently constructive
 - Market Map thesis/location has not invalidated
 
