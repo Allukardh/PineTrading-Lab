@@ -172,3 +172,16 @@ For the live last bar, volume acceptance uses **confirmed data only**:
 - at a confirmed zone-touch bar in history, acceptance is recomputed specifically for that event
 
 This prevents volume confluence from flashing at candle close and disappearing on the next open, while avoiding an expensive 240-bar scan on every historical candle.
+
+
+## Superseded outcomes
+
+A touched correction thesis can be replaced by a newer structural thesis before either its frozen destination or invalidation resolves.
+
+That case is **censored**, not open forever and not counted as a destination/invalidation result.
+
+MM-0 therefore tracks:
+- `Zona supersedida` — touched thesis replaced by a new thesis before resolution
+- `Zona sem desfecho` — only the currently unresolved remainder after resolved, ambiguous and superseded cases are removed
+
+The post-touch invalidation counter is labeled explicitly as `Invalidações pós-toque` so cumulative telemetry does not imply it counts every invalidation in the chart.
