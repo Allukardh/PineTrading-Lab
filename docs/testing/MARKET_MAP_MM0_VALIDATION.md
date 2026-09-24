@@ -71,7 +71,7 @@ TradingView exports OHLC plus numeric plot results from active indicators. MM-0 
 Current schema:
 
 ```text
-MM Audit • Schema = 1
+MM Audit • Schema = 2
 ```
 
 Important audit series include:
@@ -88,6 +88,7 @@ Important audit series include:
 - zone→destination event
 - zone→invalidation event
 - ambiguous-ordering event
+- sweep/reclaim event direction
 
 ### One-file analysis
 
@@ -145,3 +146,29 @@ The target used for zone-outcome validation is frozen at the **first correction-
 This avoids a subtle look-ahead-like distortion where a same-bar liquidity sweep could advance the destination ladder before the validator records what the operator actually had available entering that candle.
 
 Volume-acceptance confluence is also allowed to add a star only on a confirmed bar. LIVE price geometry may move intrabar, but confirmed confluence evidence is not granted by unfinished volume.
+
+
+### Sweep/reclaim semantics
+
+MM-0 now distinguishes a consumed liquidity level from a **confirmed sweep/reclaim**:
+
+- bullish reclaim: price trades below intact lower liquidity and closes back above it
+- bearish reclaim: price trades above intact upper liquidity and closes back below it
+
+Only a previously unswept pool can create the event.
+
+The relevant reclaim:
+- can become the current `FASE = SWEEP / RECLAIM`
+- preserves the just-consumed level as correction confluence even though it has disappeared from the unswept-liquidity list
+- is exported as `MM Audit • Sweep reclaim evt`: +1 bullish, -1 bearish, 0 none
+
+The offline analyzer reports reclaim events and how often a first correction-zone touch coincides with one.
+
+### Volume-acceptance timing
+
+For the live last bar, volume acceptance uses **confirmed data only**:
+- on an open candle, the scan stops at the previous confirmed bar
+- a LIVE impulse uses the previous confirmed extreme for the acceptance range
+- at a confirmed zone-touch bar in history, acceptance is recomputed specifically for that event
+
+This prevents volume confluence from flashing at candle close and disappearing on the next open, while avoiding an expensive 240-bar scan on every historical candle.
