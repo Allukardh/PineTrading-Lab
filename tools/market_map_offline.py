@@ -37,7 +37,14 @@ def main():
     ap.add_argument('--json', type=Path)
     ap.add_argument('--tick-size', type=float, default=0.01)
     a = ap.parse_args()
-    specs = [('15m', '1h'), ('1h', '4h'), ('4h', '1d'), ('1d', '1w')]
+    specs = [
+        ('15m', '1h'),
+        ('1h', '4h'),
+        ('4h', '1d'),
+        ('1d', '1w'),
+        ('3d', '3d'),
+        ('1w', '1w'),
+    ]
     d = load(a.data_root / 'BTCUSDT_1d.parquet')
     w = load(a.data_root / 'BTCUSDT_1w.parquet')
     rep = []
