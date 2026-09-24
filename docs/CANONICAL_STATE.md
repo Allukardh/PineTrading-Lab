@@ -1,10 +1,17 @@
 # Canonical State
 
-**Date:** 2026-09-23  
+**Date:** 2026-09-24  
 **Phase:** Trading Suite Architecture v1 — Market Map foundation  
 **Main baseline:** SignalGate Dashboard 0.1.0 accepted on `main`  
-**Active architecture:** Market Map + Execution + Decision Panel  
-**Active development branch:** `feat/market-map-0.1.0-mm0`
+**Active architecture:** Market Map + Execution + Decision Panel
+
+## Continuity navigation
+
+For resuming the project after a chat interruption:
+- `docs/CONTINUITY_LOG.md` — permanent causal history and interaction methodology
+- `docs/CHAT_HANDOFF.md` — exact current continuation point, including unmerged active branches/PRs
+
+This document remains authoritative for **accepted/promoted main state**. The handoff may reference newer unmerged candidates and must keep that distinction explicit.
 
 ## Evidence baseline
 
@@ -17,6 +24,57 @@ The immutable TradingView extraction remains under `archive/`:
 - mode: `pine-facade / read-only`
 
 Never edit archived Pine files to represent new behavior.
+
+## Accepted historical market-data lab
+
+PR #15 / Issue #14 is **PROMOTED TO `main`** as the canonical offline historical-data infrastructure.
+
+Promotion merge:
+
+`bf132cf715aade528aa89b1b327566a964015609`
+
+Scope:
+- official Binance Public Data SPOT monthly klines only;
+- 15 symbols:
+  - BTCUSDT
+  - ETHUSDT
+  - AVAXUSDT
+  - DOGEUSDT
+  - DOTUSDT
+  - ADAUSDT
+  - XRPUSDT
+  - SOLUSDT
+  - UNIUSDT
+  - NEARUSDT
+  - AAVEUSDT
+  - HBARUSDT
+  - LINKUSDT
+  - SUIUSDT
+  - LTCUSDT
+- timeframes: 15m / 1h / 4h / 1d / 3d / 1w;
+- 90 consolidated Parquet datasets;
+- 4,849,829 candles;
+- 7,503 available official checksums verified;
+- 0 checksum mismatches;
+- one exact AVAXUSDT duplicate deterministically deduplicated and reported;
+- expected-but-missing Binance monthly objects remain explicit findings; no candles are synthesized.
+
+Final PR gate:
+- Market data pipeline: PASS — 21/21 tests;
+- Static integrity: PASS;
+- timestamp precision transition regression: PASS;
+- missing-archive idempotency regression: PASS.
+
+Canonical repository artifacts:
+- `configs/binance-spot-research-universe.json`
+- `docs/data/BINANCE_MARKET_DATA_PIPELINE.md`
+- `docs/data/GOOGLE_DRIVE_LAYOUT.md`
+- `manifests/binance-spot-btcusdt.production-2026-09-24.json`
+- `manifests/binance-spot-research-universe.production-2026-09-24.json`
+- `reports/binance-spot-btcusdt-materialization-2026-09-24.md`
+- `reports/binance-spot-research-universe-materialization-2026-09-24.md`
+
+The historical lab is evidence infrastructure only. It does not promote or alter Market Map / Execution trading semantics by itself.
 
 ## Accepted product direction
 
@@ -73,14 +131,14 @@ The most relied-upon legacy workflow was:
 - **MA 6x** for moving-average/trend reading
 - **Fibonacci retracement** for pullback/correction context
 
-This is treated as evidence of useful concepts, **not a constraint on the new product**.
+This is evidence about what helped the operator, **not a compatibility contract**.
 
 Therefore:
-- MA 6x is a Market Map donor, not a mandatory six-line UI
-- the new Market Map may change MA count/periods/type when a cleaner or stronger design is preferable
-- Fibonacci is available to the Correction Engine, but its implementation may differ from the prior manual workflow
-- final defaults are selected by engineering judgment and validation
-- low-level configuration is not delegated back to the operator
+- moving-average context remains valuable, but the project may change the count, periods and presentation;
+- retracement/correction context remains valuable, but Fibonacci may be combined with or subordinated to adaptive/statistical correction logic;
+- legacy scripts are donors/research material, not product specifications;
+- low-level configuration is not delegated back to the operator;
+- the assistant may replace familiar mechanics when a clearer or better-evidenced design exists.
 
 ## Liquidity decision
 
@@ -99,16 +157,13 @@ Actual leveraged liquidation clusters require external derivatives/order-book/op
 
 Normal operation is **Auto-first with engineered defaults**.
 
-A profile selector is used only where it adds genuine value; it is not mandatory across the suite.
-
-Normal user-facing settings should be limited primarily to:
-- visual density
-- colors/styles
-- alert families
-- rare true operator preferences
-- profile only when materially justified
-
-Engineering thresholds belong under profiles or Advanced/Diagnostics, not in the normal workflow.
+- No profile selector is mandatory.
+- Profiles exist only when they represent genuinely useful operating behaviors.
+- Timeframe behavior should be automatic where safe.
+- The normal user-facing surface should remain minimal.
+- Colors/styles, alert families and rare true operator preferences may remain configurable.
+- Engineering thresholds belong inside the engine or Advanced/Diagnostics, not in the normal workflow.
+- “Optimized default” means a project-recommended, validated default; it must not be presented as universally optimal without evidence.
 
 ## Development state
 
@@ -116,41 +171,20 @@ Engineering thresholds belong under profiles or Advanced/Diagnostics, not in the
 Accepted timing-safe baseline.
 
 ### Moving Average Shift MAS-0
-Existing draft work is preserved but **paused as a standalone-product reboot**. Its useful logic will be integrated under Execution after Market Map foundations are established.
+Existing draft work is preserved but **paused as a standalone-product reboot**. Its useful logic is donor material for Execution.
 
-### Market Map MM-0
+### Market Map
+Primary active product candidate. Exact unmerged semantics, evidence, branch head and next discriminant belong in `docs/CHAT_HANDOFF.md` / PR #10 and must not be inferred from older legacy-donor wording in this file.
 
-Path: `src/core/market-map.pine`
+### Execution
+Parallel research only. Production `execution.pine` remains intentionally blocked until the pre-registered historical evidence work challenges the candidate engines.
 
-Status: **COMPILE/STATIC PASS; visual validation pending**
-
-Current prototype:
-- minimal 3-control UI
-- one semantic panel; no Compact/Full variants
-- EMA 21/50/200 trend layer
-- automatic confirmed HTF context
-- HH/HL/LH/LL + BOS/CHoCH
-- structural-liquidity pools + PDH/PDL/PWH/PWL ranking
-- confirmed sweep/reclaim phase with reclaimed-level correction confluence
-- directional destination ladder: nearest + next distinct intact liquidity
-- target proximity disclosure without automatic trade instruction
-- failed-breakout/fakeout state
-- adaptive Correction Engine: empirical pullback depth with Fib fallback
-- impulse volume-acceptance confluence (VWAP + VNode, not labeled POC)
-- full profile-style POC is deferred from MM-0 unless later evidence shows incremental value
-- current-map-only primary correction zone; T1/T3 are Advanced detail
-
-### Next implementation target
-**Market Map foundation**
-
-Order:
-1. MA 6x trend/regime layer
-2. deterministic structure engine
-3. structural-liquidity engine
-4. breakout/retest state
-5. Correction Engine + Fibonacci
-6. validated volume-acceptance confluence
-7. target/invalidation rendering
+### Current product sequence
+1. close the Market Map MM-0 lifecycle/parity evidence gate;
+2. promote MM-0 only if the remaining evidence supports it;
+3. run the pre-registered Execution evidence tests before numeric retuning;
+4. create production Execution only after evidence justifies the candidate semantics;
+5. evolve the Decision Panel as the concise semantic synthesis of the validated engines.
 
 ## Version lineage
 
