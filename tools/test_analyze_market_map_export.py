@@ -93,6 +93,11 @@ class AnalyzerTests(unittest.TestCase):
             self.assertEqual(report["counts"]["resolved_non_ambiguous"], 2)
             self.assertEqual(report["counts"]["ambiguous"], 1)
             self.assertAlmostEqual(report["rates"]["zone_to_destination_pct_resolved"], 50.0)
+            self.assertAlmostEqual(report["rates"]["resolved_non_ambiguous_pct_of_touches"], 200.0 / 3.0)
+            self.assertAlmostEqual(report["rates"]["destination_pct_of_touches"], 100.0 / 3.0)
+            self.assertAlmostEqual(report["rates"]["invalidation_pct_of_touches"], 100.0 / 3.0)
+            self.assertAlmostEqual(report["rates"]["ambiguous_pct_of_touches"], 100.0 / 3.0)
+            self.assertAlmostEqual(report["rates"]["superseded_pct_of_touches"], 0.0)
             self.assertEqual(report["direction_theses"], {"LONG": 2, "SHORT": 1})
             self.assertEqual(report["touch_models"], {"LIVE/ADAPT": 1, "ADAPT": 1, "FIB": 1})
             self.assertEqual(report["reclaim_events"], {"BULL_RECLAIM": 2, "BEAR_RECLAIM": 1})
@@ -113,8 +118,28 @@ class AnalyzerTests(unittest.TestCase):
             self.assertEqual(agg["counts"]["theses"], 6)
             self.assertEqual(agg["counts"]["zone_touches"], 6)
             self.assertAlmostEqual(agg["zone_to_destination_pct_resolved"], 50.0)
+            self.assertAlmostEqual(agg["touch_outcome_accounting"]["destination_pct"], 100.0 / 3.0)
+            self.assertAlmostEqual(agg["touch_outcome_accounting"]["invalidation_pct"], 100.0 / 3.0)
+            self.assertAlmostEqual(agg["touch_outcome_accounting"]["ambiguous_pct"], 100.0 / 3.0)
+            self.assertAlmostEqual(agg["touch_outcome_accounting"]["superseded_pct"], 0.0)
+            self.assertAlmostEqual(agg["touch_outcome_accounting"]["accounted_pct"], 100.0)
             self.assertTrue(agg["hard_pass"])
             self.assertEqual(agg["pathologies"], {})
+
+    def test_superseded_touch_is_accounted_as_censored(self):
+        rows = [
+            row("2026-01-01 00:00", 100, 104, 99, 103, 1, 5, 4, 12, 100, 95, 110, 90, 4, new=1),
+            row("2026-01-01 01:00", 103, 103, 97, 99, 1, 5, 4, 12, 100, 95, 110, 90, 4, touch=1),
+            row("2026-01-01 02:00", 99, 102, 98, 101, 1, 5, 4, 12, 100, 95, 111, 90, 4, new=1),
+        ]
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "superseded.csv"
+            self.write_csv(p, rows)
+            report = mm.analyze(p)
+            self.assertEqual(report["counts"]["zone_touches"], 1)
+            self.assertEqual(report["counts"]["superseded_after_touch"], 1)
+            self.assertAlmostEqual(report["rates"]["superseded_pct_of_touches"], 100.0)
+            self.assertEqual(report["pathologies"], {})
 
     def test_reload_compare_pass_and_fail(self):
         with tempfile.TemporaryDirectory() as td:
