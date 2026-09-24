@@ -296,7 +296,36 @@ The goal is a normalized momentum-turn formula that:
 
 ---
 
-## 6. Do not resurrect
+## 6. Delegated market-data infrastructure
+
+A separate chat/thread may own the historical data plumbing so the main Pine engineering thread remains focused.
+
+**Tracker:** Issue #14 — `Infra: Binance historical market-data pipeline + Google Drive dataset store`
+
+Expected branch:
+
+`infra/binance-market-data`
+
+Scope:
+- official Binance public spot klines
+- BTCUSDT first
+- 15m / 1h / 4h / 1d / 3d / 1w
+- monthly archives preferred
+- automated download/checksum/normalization/gap detection
+- consolidated Parquet outputs
+- Google Drive for large/raw/consolidated data
+- GitHub only for code/manifests/tests/docs/reports
+
+The delegated thread must not modify Market Map/Execution semantics.
+
+If this main chat is active while Issue #14 is being handled elsewhere:
+- continue Momentum Turn / Execution research here
+- consume the data-pipeline PR/artifacts only when they are ready
+- do not duplicate the downloader work in this thread
+
+---
+
+## 7. Do not resurrect
 
 Without new evidence, do not return to:
 
@@ -315,7 +344,7 @@ Without new evidence, do not return to:
 
 ---
 
-## 7. If this chat dies before the CSV gate
+## 8. If this chat dies before the CSV gate
 
 Resume like this:
 
