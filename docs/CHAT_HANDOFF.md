@@ -1,7 +1,7 @@
 # PineTrading-Lab — Chat Continuation Checkpoint
 
 **Status:** CANONICAL CHAT HANDOFF  
-**Date:** 2026-09-24 14:39 BRT  
+**Date:** 2026-09-24 15:20 BRT  
 **Repository:** `Allukardh/PineTrading-Lab`  
 **Accepted main baseline:** SignalGate Dashboard 0.1.0  
 **Primary active candidate:** Market Map MM-0  
@@ -72,15 +72,18 @@ Do not treat unmerged MM-0/Execution research as already promoted to main.
 
 **Branch:** `feat/market-map-0.1.0-mm0`  
 **PR:** #10 — Market Map 0.1.0 MM-0: integrated structure, liquidity and correction map  
-**Head at this checkpoint:** `317e8c6c5a0a2afbe1f8efa2e20eb3bd377d9359`  
+**Head at this checkpoint:** `31b9096179a2b5b3173a6ab8a03452636536fae0`  
 **PR state:** Draft / mergeable
 
 Latest automated evidence at this checkpoint:
 
 ```text
-Pine compile     PASS  run 35938558117
-Static integrity PASS  run 35938558111
+Pine compile                 PASS  run 36040202039
+Static integrity             PASS  run 36040202044
+BTC 6-timeframe offline gate PASS  run 36039959727
 ```
+
+The offline gate uses exact SHA-256-verified BTCUSDT production Parquets promoted by PR #15.
 
 ### Current MM-0 candidate semantics
 
@@ -110,35 +113,49 @@ Static integrity PASS  run 35938558111
 
 ### MM-0 promotion blockers
 
-The operator uses TradingView Essential, which does **not** allow the required CSV export workflow without upgrading. Do not ask the operator to buy Premium merely for validation.
+The primary offline historical gate is now complete.
 
-Revised evidence path:
+Completed:
+1. deterministic Audit Schema v2 offline kernel;
+2. exact-production BTCUSDT historical matrix on 15m / 1H / 4H / 1D;
+3. 3D / 1W robustness using Pine's self-context rule above 1D;
+4. full touch-outcome accounting with no structural pathology.
 
-1. final TradingView visual sanity with current DESTINO / invalidation / sweep-reclaim semantics;
-2. historical offline sanity using official Binance BTCUSDT data from delegated Issue #14:
-   - 15m
-   - 1H
-   - 4H
-   - 1D
-   - 3D / 1W as higher-timeframe robustness where useful
-3. implement/validate a deterministic offline Market Map equivalent or audit kernel against the Pine semantics;
-4. targeted TradingView reload/visual parity on representative confirmed states instead of full-history CSV parity.
+Six-timeframe result:
+- 45,694 theses;
+- 32,550 first correction-zone touches;
+- 5,428 destination outcomes;
+- 1,041 invalidation outcomes;
+- 4,574 ambiguous OHLC-order outcomes;
+- 21,504 superseded/censored touched theses;
+- 3 open at export end;
+- touch accounting = 100%;
+- structural pathology gate = PASS.
 
-The existing TradingView CSV audit/analyzer remains useful infrastructure if export access becomes available later, but it is no longer the primary promotion path.
+Interpretation lock:
+- the ~83.9% destination share among non-ambiguous resolved cases is **not** a win rate;
+- only ~19.87% of touched theses resolve destination/invalidation non-ambiguously before replacement;
+- ~66.06% of touched theses are superseded/censored;
+- LIVE/ADAPT has much higher same-candle OHLC ambiguity than confirmed ADAPT and must be diagnosed before any tuning.
+
+Remaining promotion work:
+1. isolate representative LIVE/ADAPT ambiguous first-touch cases;
+2. isolate representative touched theses superseded before outcome;
+3. determine whether those are honest developing-impulse/OHLC observability effects or a thesis-lifecycle/identity defect;
+4. only if a semantic defect is proven, change MM-0 logic;
+5. then perform a small targeted TradingView visual/reload parity set for the representative states that cannot be proven offline.
+
+Do not tune correction ratios, pivot length, ATR tolerances, LIVE rules or target rules from the aggregate percentages.
 
 ### Next operator evidence request
 
-None right now.
+**None right now.**
 
-The Binance historical-data infrastructure is now promoted on `main` via PR #15 / Issue #14.
+The assistant should first finish the offline lifecycle/parity diagnosis using the already accepted datasets and the MM-0 candidate.
 
-Next:
-- consume the canonical production manifests/reports and Drive datasets;
-- build/validate the deterministic offline Market Map audit kernel against MM-0 semantics;
-- run historical sanity on BTCUSDT 15m / 1H / 4H / 1D first, then use 3D / 1W for higher-timeframe robustness where useful;
-- only after offline evidence identifies representative states, ask for a small number of targeted TradingView screenshots/reload checks if Pine/runtime parity still needs confirmation.
+Only after representative cases are isolated should the operator be asked for a small number of targeted TradingView screenshots/reload checks.
 
-Do not ask the operator for thousands of Binance files or a TradingView plan upgrade.
+Do not ask for historical CSV export, a TradingView plan upgrade, or manual Binance downloads.
 
 ### Important MM-0 files on PR #10
 
@@ -148,8 +165,13 @@ docs/CANONICAL_STATE.md
 docs/TRADING_SYSTEM_DESIGN.md
 docs/testing/MARKET_MAP_MM0_VALIDATION.md
 docs/worklog/2026-09-23-market-map-mm0.md
+docs/worklog/2026-09-24-market-map-offline-evidence.md
 tools/analyze_market_map_export.py
 tools/test_analyze_market_map_export.py
+tools/market_map_offline_core.py
+tools/market_map_offline.py
+tools/test_market_map_offline.py
+.github/workflows/market-map-offline-evidence.yml
 ```
 
 ---
@@ -158,15 +180,14 @@ tools/test_analyze_market_map_export.py
 
 **Branch:** `research/execution-engine-design`  
 **PR:** #12 — Research: Execution Engine architecture  
-**Head at this checkpoint:** `cb7beeedab3ce59451c788af9c61c77d86ac276e`  
+**Head at this checkpoint:** `bfd4cad9c35eddf5acdd4df2bf52ba47bddba2f0`  
 **PR state:** Draft / mergeable  
 **Production `execution.pine`: NOT CREATED intentionally**
 
-Latest automated evidence:
+Latest automated evidence at the current Execution research head:
 
 ```text
-Integrated Execution research CI
-PASS  run 35948868686
+Static integrity PASS  run 35949566301
 ```
 
 ### Candidate runtime topology
@@ -388,16 +409,18 @@ Without new evidence, do not return to:
 
 ---
 
-## 8. If this chat dies during the offline evidence gate
+## 8. If this chat dies during the MM-0 lifecycle/parity gate
 
 Resume like this:
 
 1. verify PR #10 and PR #12 heads/status;
 2. read any commits newer than the SHAs recorded above;
 3. treat PR #15 / Issue #14 infrastructure as accepted `main` state;
-4. prioritize offline MM-0 historical validation using the accepted Binance production datasets;
-5. run the pre-registered Execution evidence tests before retuning MTE-A / RSE-A / PSE-A;
-6. do not create production Execution Pine until MM-0 and the evidence candidates have enough historical validation;
-7. update this handoff whenever the exact next discriminant changes.
+4. treat the six-timeframe MM-0 structural historical gate as completed candidate evidence, not promoted product truth;
+5. continue the LIVE/ADAPT ambiguity + superseded-thesis lifecycle diagnosis before any numeric tuning;
+6. only after representative cases are isolated, request a small targeted TradingView parity set if still needed;
+7. run the pre-registered Execution evidence tests before retuning MTE-A / RSE-A / PSE-A;
+8. do not create production Execution Pine until MM-0 and the evidence candidates have enough historical validation;
+9. update this handoff whenever the exact next discriminant changes.
 
 The project should continue from here without requiring the operator to re-explain the methodology, product goal or prior decisions.
