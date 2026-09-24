@@ -10,7 +10,7 @@ from . import PIPELINE_VERSION, SCHEMA_VERSION
 from .core import INTERVAL_US, expected_timestamp_unit_for_us, iso_utc_from_us, sha256_file, sha256_json
 
 
-def source_fingerprint(source_files: Sequence[dict]) -> str:
+def source_fingerprint(source_files: Sequence[dict], *, missing_files: Sequence[str] = ()) -> str:
     minimal = [
         {
             "filename": x["filename"],
@@ -20,7 +20,12 @@ def source_fingerprint(source_files: Sequence[dict]) -> str:
         }
         for x in sorted(source_files, key=lambda y: y["filename"])
     ]
-    return sha256_json(minimal)
+    if not missing_files:
+        return sha256_json(minimal)
+    return sha256_json({
+        "source_files": minimal,
+        "missing_files": sorted(set(missing_files)),
+    })
 
 
 def manifest_is_current(manifest_path: Path, parquet_path: Path, fingerprint: str) -> bool:
