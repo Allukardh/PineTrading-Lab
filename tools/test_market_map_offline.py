@@ -31,6 +31,22 @@ class T(unittest.TestCase):
         self.assertEqual(mm.bucket([0, 60, 120], 60), (1, 0))
         self.assertEqual(mm.bucket([0, 60, 120], 119), (1, 0))
 
+    def test_context_index_matches_pine_f_sec_contract(self):
+        times = [0, 60, 120]
+        self.assertIsNone(mm.context_index(times, 0, self_context=False))
+        self.assertEqual(mm.context_index(times, 60, self_context=False), 0)
+        self.assertEqual(mm.context_index(times, 60, self_context=True), 1)
+        self.assertEqual(mm.context_index(times, 119, self_context=True), 1)
+
+    def test_high_timeframe_level_policy(self):
+        self.assertIn('1d', mm.DAY_LEVEL_TFS)
+        self.assertNotIn('3d', mm.DAY_LEVEL_TFS)
+        self.assertNotIn('1w', mm.DAY_LEVEL_TFS)
+        self.assertIn('3d', mm.WEEK_LEVEL_TFS)
+        self.assertIn('1w', mm.WEEK_LEVEL_TFS)
+        self.assertEqual(mm.CONTEXT_TF['3d'], '3d')
+        self.assertEqual(mm.CONTEXT_TF['1w'], '1w')
+
     def test_ambiguous_touch(self):
         t = mm.Tracker()
         t.start(1, 1)
