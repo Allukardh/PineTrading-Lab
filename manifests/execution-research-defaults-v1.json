@@ -22,8 +22,8 @@
     "oversold": 30,
     "extended_overbought": 80,
     "extended_oversold": 20,
-    "step_lookback": 2,
-    "minimum_directional_step": 0.25
+    "minimum_directional_step": 0.25,
+    "zone_memory_bars": 2
   },
   "participation": {
     "baseline": "ema",
