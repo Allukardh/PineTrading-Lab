@@ -20,3 +20,5 @@ jobs:
           python-version: "3.12"
       - name: Validate archive and reboot invariants
         run: python tools/check_repo_integrity.py
+      - name: Test Execution semantic reference model
+        run: python -m unittest tools/test_execution_state_reference.py
