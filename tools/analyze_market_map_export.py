@@ -153,6 +153,75 @@ def _speed_bucket(bars: int | None) -> str:
     return "GT10"
 
 
+def _classify_same_touch_order(
+    *,
+    direction: str,
+    reason: str,
+    open_value: float | None,
+    correction_top: float | None,
+    correction_bottom: float | None,
+    frozen_target: float | None,
+    invalidation: float | None,
+) -> str:
+    """Classify what OHLC topology can and cannot prove on the touch bar."""
+
+    if reason == "TARGET_AND_INVALIDATION":
+        return "BOTH_TARGET_INVALIDATION"
+
+    if open_value is None or correction_top is None or correction_bottom is None:
+        return "UNKNOWN_GEOMETRY"
+
+    if reason == "TARGET":
+        if frozen_target is None:
+            return "UNKNOWN_TARGET"
+
+        if direction == "LONG":
+            if correction_bottom <= frozen_target <= correction_top:
+                return "TARGET_INSIDE_ZONE"
+            if frozen_target < correction_bottom:
+                return "TARGET_BEHIND_ZONE"
+            if open_value <= correction_top:
+                return "ZONE_FIRST_TARGET_INFERABLE"
+            if open_value >= frozen_target:
+                return "TARGET_FIRST_AT_OPEN"
+            return "UNORDERED_TARGET"
+
+        if direction == "SHORT":
+            if correction_bottom <= frozen_target <= correction_top:
+                return "TARGET_INSIDE_ZONE"
+            if frozen_target > correction_top:
+                return "TARGET_BEHIND_ZONE"
+            if open_value >= correction_bottom:
+                return "ZONE_FIRST_TARGET_INFERABLE"
+            if open_value <= frozen_target:
+                return "TARGET_FIRST_AT_OPEN"
+            return "UNORDERED_TARGET"
+
+    if reason == "INVALIDATION":
+        if invalidation is None:
+            return "UNKNOWN_INVALIDATION"
+
+        if direction == "LONG":
+            if invalidation >= correction_bottom:
+                return "INVALIDATION_NOT_BEYOND_ZONE"
+            if open_value >= correction_bottom:
+                return "ZONE_FIRST_INVALIDATION_INFERABLE"
+            if open_value <= invalidation:
+                return "INVALIDATION_FIRST_AT_OPEN"
+            return "UNORDERED_INVALIDATION"
+
+        if direction == "SHORT":
+            if invalidation <= correction_top:
+                return "INVALIDATION_NOT_BEYOND_ZONE"
+            if open_value <= correction_top:
+                return "ZONE_FIRST_INVALIDATION_INFERABLE"
+            if open_value >= invalidation:
+                return "INVALIDATION_FIRST_AT_OPEN"
+            return "UNORDERED_INVALIDATION"
+
+    return "UNRESOLVED_FROM_VISIBLE_ROW"
+
+
 @dataclass
 class LoadedCsv:
     path: Path
@@ -232,8 +301,13 @@ def analyze(path: Path) -> dict:
     outcomes_by_model: dict[str, Counter[str]] = defaultdict(Counter)
     ambiguous_timing: Counter[str] = Counter()
     ambiguous_timing_by_model: dict[str, Counter[str]] = defaultdict(Counter)
+    ambiguous_reasons: Counter[str] = Counter()
+    same_touch_order: Counter[str] = Counter()
+    same_touch_order_by_model: dict[str, Counter[str]] = defaultdict(Counter)
     supersession_transitions: Counter[str] = Counter()
     superseded_touch_models: Counter[str] = Counter()
+    supersession_speed: Counter[str] = Counter()
+    supersession_transition_speed: dict[str, Counter[str]] = defaultdict(Counter)
     ambiguity_examples: dict[str, list[dict]] = {}
     supersession_examples: dict[str, list[dict]] = {}
 
@@ -383,7 +457,10 @@ def analyze(path: Path) -> dict:
                 bars_since_touch = idx - touch_index if touch_index is not None else None
                 if bars_since_touch is not None:
                     bars_touch_to_supersession.append(bars_since_touch)
-                example_key = f"{transition}|{prior_model}|{_speed_bucket(bars_since_touch)}"
+                speed_bucket = _speed_bucket(bars_since_touch)
+                supersession_speed[speed_bucket] += 1
+                supersession_transition_speed[transition][speed_bucket] += 1
+                example_key = f"{transition}|{prior_model}|{speed_bucket}"
                 _append_example(
                     supersession_examples,
                     example_key,
@@ -505,6 +582,41 @@ def analyze(path: Path) -> dict:
                 if invalidation_hit
                 else "UNRESOLVED_FROM_VISIBLE_ROW"
             )
+            ambiguous_reasons[reason] += 1
+            order_class = None
+            if ambiguity_class == "SAME_TOUCH":
+                touch_snapshot = active.get("touch_snapshot") if active is not None else None
+                touch_open = (
+                    touch_snapshot.get("ohlc", {}).get("open")
+                    if touch_snapshot is not None
+                    else open_value
+                )
+                touch_top = (
+                    touch_snapshot.get("correction_top")
+                    if touch_snapshot is not None
+                    else corr_top
+                )
+                touch_bottom = (
+                    touch_snapshot.get("correction_bottom")
+                    if touch_snapshot is not None
+                    else corr_bottom
+                )
+                touch_invalidation = (
+                    touch_snapshot.get("invalidation")
+                    if touch_snapshot is not None
+                    else invalidation
+                )
+                order_class = _classify_same_touch_order(
+                    direction=ambiguity_direction,
+                    reason=reason,
+                    open_value=touch_open,
+                    correction_top=touch_top,
+                    correction_bottom=touch_bottom,
+                    frozen_target=frozen_target,
+                    invalidation=touch_invalidation,
+                )
+                same_touch_order[order_class] += 1
+                same_touch_order_by_model[ambiguity_model][order_class] += 1
             touch_index = active.get("touch_index") if active is not None else None
             example_key = f"{ambiguity_class}|{ambiguity_model}|{ambiguity_direction}"
             _append_example(
@@ -515,6 +627,7 @@ def analyze(path: Path) -> dict:
                     "model": ambiguity_model,
                     "direction": ambiguity_direction,
                     "reason_from_visible_row": reason,
+                    "same_touch_order_class": order_class,
                     "bars_from_touch": idx - touch_index if touch_index is not None else None,
                     "touch": active.get("touch_snapshot") if active is not None else None,
                     "event": row_snapshot,
@@ -579,8 +692,13 @@ def analyze(path: Path) -> dict:
         "outcomes_by_model": {k: dict(v) for k, v in outcomes_by_model.items()},
         "ambiguous_timing": dict(ambiguous_timing),
         "ambiguous_timing_by_model": {k: dict(v) for k, v in ambiguous_timing_by_model.items()},
+        "ambiguous_reasons": dict(ambiguous_reasons),
+        "same_touch_order": dict(same_touch_order),
+        "same_touch_order_by_model": {k: dict(v) for k, v in same_touch_order_by_model.items()},
         "supersession_transitions": dict(supersession_transitions),
         "superseded_touch_models": dict(superseded_touch_models),
+        "supersession_speed": dict(supersession_speed),
+        "supersession_transition_speed": {k: dict(v) for k, v in supersession_transition_speed.items()},
         "lifecycle_examples": {
             "ambiguity": ambiguity_examples,
             "supersession": supersession_examples,
@@ -655,8 +773,12 @@ def aggregate_reports(reports: Sequence[dict]) -> dict:
     touch_models = Counter()
     reclaim_events = Counter()
     ambiguous_timing = Counter()
+    ambiguous_reasons = Counter()
+    same_touch_order = Counter()
     supersession_transitions = Counter()
     superseded_touch_models = Counter()
+    supersession_speed = Counter()
+    supersession_transition_speed: dict[str, Counter[str]] = defaultdict(Counter)
     resolved_dest = 0
     resolved_inv = 0
 
@@ -667,8 +789,13 @@ def aggregate_reports(reports: Sequence[dict]) -> dict:
         touch_models.update(report["touch_models"])
         reclaim_events.update(report["reclaim_events"])
         ambiguous_timing.update(report.get("ambiguous_timing", {}))
+        ambiguous_reasons.update(report.get("ambiguous_reasons", {}))
+        same_touch_order.update(report.get("same_touch_order", {}))
         supersession_transitions.update(report.get("supersession_transitions", {}))
         superseded_touch_models.update(report.get("superseded_touch_models", {}))
+        supersession_speed.update(report.get("supersession_speed", {}))
+        for transition, speeds in report.get("supersession_transition_speed", {}).items():
+            supersession_transition_speed[transition].update(speeds)
         resolved_dest += report["counts"]["destination_outcomes"]
         resolved_inv += report["counts"]["invalidation_outcomes"]
 
@@ -709,8 +836,12 @@ def aggregate_reports(reports: Sequence[dict]) -> dict:
         "touch_models": dict(touch_models),
         "reclaim_events": dict(reclaim_events),
         "ambiguous_timing": dict(ambiguous_timing),
+        "ambiguous_reasons": dict(ambiguous_reasons),
+        "same_touch_order": dict(same_touch_order),
         "supersession_transitions": dict(supersession_transitions),
         "superseded_touch_models": dict(superseded_touch_models),
+        "supersession_speed": dict(supersession_speed),
+        "supersession_transition_speed": {k: dict(v) for k, v in supersession_transition_speed.items()},
         # Conditional on the small subset that resolved non-ambiguously.
         "zone_to_destination_pct_resolved": (100.0 * resolved_dest / resolved) if resolved else None,
         "touch_outcome_accounting": {
@@ -755,8 +886,12 @@ def print_aggregate(aggregate: dict) -> None:
     print(f"Touch models: {aggregate['touch_models']}")
     print(f"Reclaim events: {aggregate['reclaim_events']}")
     print(f"Ambiguous timing: {aggregate.get('ambiguous_timing', {})}")
+    print(f"Ambiguous reasons: {aggregate.get('ambiguous_reasons', {})}")
+    print(f"Same-touch order classes: {aggregate.get('same_touch_order', {})}")
     print(f"Supersession transitions: {aggregate.get('supersession_transitions', {})}")
     print(f"Superseded touch models: {aggregate.get('superseded_touch_models', {})}")
+    print(f"Supersession speed: {aggregate.get('supersession_speed', {})}")
+    print(f"Supersession transition/speed: {aggregate.get('supersession_transition_speed', {})}")
     if aggregate["pathologies"]:
         print(f"HARD FAIL pathologies: {aggregate['pathologies']}")
     else:
