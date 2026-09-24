@@ -10,94 +10,82 @@
 
 ## 0. Durable write-ahead checkpoint — schema v2
 
-**Checkpoint state:** PREPARED  
-**Product work currently in flight:** reconcile PR #10 with current main and define final TradingView parity gate  
+**Checkpoint state:** STABLE  
+**Product work currently in flight:** none — waiting on the final MM-0 operator parity gate  
 **Continuity protocol:** WRITE-AHEAD + COMMIT-RESULT  
-**Continuity hardening promoted:** PR #16 → `3f9e5a73d3aa94c9bfae6d984f1c25a83e60bf42`  
 **Reusable continuity standard:** `docs/PROJECT_CONTINUITY_STANDARD.md`  
-**Operator evidence required right now:** none
+**Operator evidence required right now:** YES — one batched TradingView parity check
 
 ### Last verified active refs
 
 ```text
 PR #10  feat/market-map-0.1.0-mm0
-head    7d77fa09f9309c5b419d2723553d1b8537300352
+head    bf92d2b329c1132485eb451294d89f8da89930eb
 
 PR #12  research/execution-engine-design
 head    bfd4cad9c35eddf5acdd4df2bf52ba47bddba2f0
 ```
 
-### Durable result of the completed MM-0 lifecycle block
+PR #10 has been reconciled with current `main` through sync merge:
 
-The lifecycle investigation found a real defect in **historical audit semantics**, not evidence that the visible Market Map destination/correction engine should be retuned.
+`88bebb390a5b4b32762a119aef22e6fd082df4c9`
 
-The audit had two problems:
+The branch is **0 commits behind main**.
 
-1. on first correction-zone touch it could freeze the previous bar's destination even after LIVE/adaptive geometry moved that level inside or behind the current correction zone;
-2. it treated every same-touch destination as ambiguous even when candle open + zone/target topology proved the zone had to be touched before the target.
-
-Pine telemetry and the offline kernel were corrected in parity.
-
-Key evidence:
-- corrected six-timeframe offline run: `36068967348` — PASS;
-- evidence commit: `151518a5965fd07cd1051917a355e1df1f29164c`;
-- Pine audit-parity fix: `26e7e821706ecdb687d9b6d23e53b70632ace8b2`;
-- Pine compile: `36068992937` — PASS;
-- final branch Static integrity: `36069246767` — PASS;
+Post-reconciliation gates at PR #10 head:
+- Static integrity: PASS — `36069640443` / `36069635191`;
+- Pine compile: PASS — `36069640482`;
+- corrected six-timeframe offline lifecycle evidence: PASS — `36068967348`;
 - structural pathologies: none;
 - touch accounting: 100%.
 
-Corrected six-timeframe accounting:
-- theses: 45,694;
-- touches: 32,550;
-- destination outcomes: 8,208;
-- invalidation outcomes: 1,055;
-- non-ambiguous resolved: 9,263;
-- ambiguous: 1,121;
-- superseded/censored: 22,163;
-- open: 3.
+The lifecycle diagnosis is closed at the audit/semantic level:
+- stale frozen targets inside/behind the current correction zone are no longer treated as future audit destinations;
+- safely inferable same-bar zone->target sequences are resolved rather than discarded as ambiguous;
+- remaining supersession evidence does not demonstrate a thesis-identity defect;
+- no MM-0 trading thresholds/parameters were tuned from aggregate percentages.
 
-All-touch shares:
-- destination: 25.22%;
-- invalidation: 3.24%;
-- ambiguous: 3.44%;
-- superseded/censored: 68.09%;
-- open: 0.01%.
+### Exact next operator gate — BATCHEd, no trivial testing
 
-The old 4,574 ambiguity count was materially overstated:
-- 2,553 same-touch cases were safely zone-first-target by open/topology;
-- 769 used a frozen target inside the current zone;
-- 108 used a frozen target behind the current zone;
-- after correction, 1,108 genuinely unordered same-touch target cases remain, plus only 3 post-touch both-boundary cases and a small unreconstructible remainder.
+Use the latest PR #10 `src/core/market-map.pine` with **defaults only**.
 
-Representative supersession cases do **not** demonstrate a LIVE→confirmed identity bug. Thesis identity remains anchored to impulse origin + direction; same-direction replacement generally reflects a new structural origin or a later reactivation after map geometry became inactive.
+Provide exactly these three TradingView screenshots:
 
-Decision:
-- do not tune correction ratios, pivot length, ATR tolerances, LIVE rules or destination rules from these lifecycle percentages;
-- no product/trading semantic change is justified from supersession aggregates;
-- the proven audit defect is fixed.
+1. **BTCUSDT 4H — before reload**
+   - full chart
+   - Market Map semantic panel visible
 
-### Exact next atomic product action
+2. **BTCUSDT 4H — after one F5/page reload**
+   - same symbol/timeframe/defaults
+   - full chart + panel visible
 
-Reconcile PR #10 with the current `main` as the next durable action, then verify static/compile integrity and define the **smallest targeted TradingView visual/reload parity set** still needed for MM-0 promotion.
+3. **BTCUSDT 1D — after reload**
+   - same defaults
+   - full chart + panel visible
 
-Expected evidence from this block:
-- PR #10 contains current main without losing its unmerged MM-0 work;
-- post-reconciliation Static integrity PASS;
-- Pine compile PASS for the reconciled head (or explicit proof Pine source is unchanged from a passing compile);
-- one concise operator parity request, only for states that offline evidence cannot prove.
+Purpose:
+- 4H pair: final real-TradingView visual/state reload parity;
+- 1D: LIVE/developing-impulse presentation, correction/destination/invalidation usefulness at higher timeframe.
 
-Do not reopen historical-data plumbing and do not start production `execution.pine`.
+Do not change settings and do not force a particular market state.
+
+This is a **parity/usefulness gate**, not parameter tuning. If current market state does not expose a rare phase such as invalidation or reclaim, do not manufacture it.
+
+### After operator evidence
+
+If the screenshots show stable rendering and no material semantic/UX defect:
+1. record the parity gate;
+2. decide MM-0 promotion readiness;
+3. do not invent another manual test cycle without a concrete defect.
+
+If a material defect appears:
+1. classify it as rendering/parity vs product semantic;
+2. fix only the demonstrated defect;
+3. rerun the appropriate automated gate before requesting any further operator evidence.
 
 ### Recovery algorithm
 
-If interruption occurs after the next PREPARED checkpoint:
-
-1. compare actual PR #10 / PR #12 heads with the refs recorded here;
-2. inspect only commits/runs/artifacts newer than the checkpoint;
-3. if refs did not move, execute the recorded atomic action;
-4. if refs moved, reconstruct completed work from the GitHub delta and continue;
-5. old chat transcripts are fallback only for an unresolved contradiction that canonical project evidence cannot explain.
+If the chat dies while waiting for the screenshots, a future chat should **not redo lifecycle analysis**. It should read this checkpoint, verify PR #10 head, and evaluate the operator evidence when supplied.
 
 ---
 
