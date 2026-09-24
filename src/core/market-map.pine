@@ -20,7 +20,7 @@ showStructureDetails = input.bool(false, "Mostrar BOS/CHoCH e zonas secundárias
 
 // Engineering defaults are intentionally internal. They are product defaults,
 // not operator tuning requirements.
-int AUDIT_SCHEMA = 1
+int AUDIT_SCHEMA = 2
 int FAST_LEN = 21
 int MID_LEN = 50
 int SLOW_LEN = 200
