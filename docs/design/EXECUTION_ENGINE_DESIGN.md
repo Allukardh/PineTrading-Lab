@@ -27,14 +27,22 @@ Execution owns:
 
 The output must be semantic, not a collection of oscillator conditions.
 
-Target state vocabulary:
+Execution uses two orthogonal semantic outputs.
 
+**Readiness**
 - **AGUARDAR**
 - **PREPARANDO LONG / SHORT**
-- **CONFIRMA LONG / SHORT**
+- **ARMADO LONG / SHORT**
+- **CONFIRMA LONG / SHORT** — one-bar transition event
+- **ALINHADO LONG / SHORT** — persistent execution alignment, not position tracking
+
+**Strength**
+- **NORMAL**
 - **PERDENDO FORÇA**
 - **EXAUSTÃO**
-- **CONFLITO**
+- **RISCO DE REAÇÃO**
+
+The detailed transition contract lives in `EXECUTION_STATE_MACHINE.md`.
 
 No arbitrary probability percentage.
 
@@ -120,11 +128,13 @@ Hard limitation:
 - it cannot reconstruct historical aggressor flow
 
 Decision:
-Execution may have two participation modes internally:
-- **Historical:** relative volume + candle pressure proxy
-- **Realtime:** incremental up/down volume delta when genuinely available
+Execution may observe two participation evidence classes internally:
+- **Historical/reload-safe:** relative volume + candle pressure proxy
+- **Realtime-only:** incremental up/down volume delta when genuinely available
 
-The UI must disclose the distinction if realtime delta is used.
+For 0.1.0, realtime-only delta may annotate the live view but **cannot create, cancel or alter a reload-reconstructible CONFIRMA event**.
+
+The UI/diagnostics must disclose the distinction if realtime delta is used.
 
 ### MA MTF Momentum Histogram
 
@@ -202,9 +212,11 @@ Realtime enhancement:
 
 Semantic output:
 - `CONFIRMA`
+- `NEUTRO`
 - `FRACO`
-- `ABSORÇÃO / CONFLITO`
-- `SEM DADO RT` only in diagnostics, not normal panel
+- `CONTRARIA`
+- `RT+` / `RT-` only as optional live annotation
+- `SEM DADO RT` only in diagnostics
 
 ## 5. Execution state machine
 
@@ -229,21 +241,25 @@ A candidate state is built from:
 5. **Participation**
    - volume evidence supports the move or at least does not contradict it
 
-Initial semantic state proposal:
+Canonical readiness path:
 
 ```text
 AGUARDAR
-  ↓ location becomes relevant
+  ↓ relevant location
 PREPARANDO LONG
   ↓ momentum + RSI align
 ARMADO LONG
-  ↓ close confirmation + participation
-CONFIRMA LONG
+  ↓ close confirmation + reload-safe participation
+CONFIRMA LONG     (one-bar event)
+  ↓
+ALINHADO LONG
 ```
 
 Mirrored for short.
 
-Loss of momentum before confirmation returns to `AGUARDAR`.
+Loss of setup quality before confirmation returns to `AGUARDAR`. After confirmation, ALINHADO persists until a canonical cancellation condition occurs; strength/reaction risk is reported separately.
+
+See `EXECUTION_STATE_MACHINE.md` for transition/reset semantics.
 
 ## 6. Exit / correction-warning role
 
@@ -260,13 +276,15 @@ Semantic output:
 - `FORÇA NORMAL`
 - `PERDENDO FORÇA`
 - `EXAUSTÃO`
-- `REAÇÃO PROVÁVEL`
+- `RISCO DE REAÇÃO`
 
-This is a warning, not an automatic exit command.
+The strongest reaction warning requires a meaningful Market Map location plus deterioration/exhaustion evidence. It is a risk warning, not an automatic exit command or calibrated probability.
 
 ## 7. UI policy
 
-Execution should probably be one lower pane.
+Execution is one lower pane.
+
+Per `RUNTIME_TOPOLOGY.md`, the full suite Decision Panel is embedded in Market Map. Execution must not create a second full panel.
 
 Default visible content:
 - one momentum histogram/line
@@ -290,7 +308,8 @@ Normal settings target:
 
 - actionable state transitions commit on chart close
 - HTF context uses confirmed values
-- realtime volume delta may update intrabar but cannot by itself commit a confirmed signal
+- realtime volume delta may update intrabar as an annotation
+- realtime-only evidence cannot create, cancel or alter a confirmed reload-safe signal
 - realtime-only evidence must never rewrite historical bars as if equivalent data existed
 
 ## 9. Validation requirements
@@ -314,10 +333,11 @@ After Market Map MM-0 promotion:
 2. integrate repaired MA Shift momentum turn
 3. add auto confirmed-HTF RSI state
 4. add historical relative-volume participation
-5. add optional realtime incremental delta
-6. build semantic state machine
-7. add correction/exhaustion warning
-8. only then add alerts
+5. build semantic readiness + strength state machines
+6. add correction/exhaustion warning
+7. add optional realtime incremental delta annotation
+8. add audit/reload validation
+9. only then add alerts
 
 ## 11. Explicit non-goals for Execution 0.1.0
 
