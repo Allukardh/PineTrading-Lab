@@ -54,6 +54,7 @@ class Tracker:
     target_hit: bool = False
     invalidated: bool = False
     resolved: bool = False
+    same_bar_target_ordered: bool = False
     superseded: int = 0
 
     def start(self, key: int, direction: int):
@@ -63,17 +64,38 @@ class Tracker:
         self.direction = direction
         self.target = None
         self.touch_bar = None
+        self.same_bar_target_ordered = False
         self.touched = self.target_hit = self.invalidated = self.resolved = False
 
-    def touch(self, bar: int, target: float | None):
+    def touch(
+        self,
+        bar: int,
+        target: float | None,
+        *,
+        open_value: float | None = None,
+        zone_top: float | None = None,
+        zone_bottom: float | None = None,
+    ):
         self.touched = True
         self.touch_bar = bar
         self.target = target
+        self.same_bar_target_ordered = bool(
+            target is not None
+            and open_value is not None
+            and zone_top is not None
+            and zone_bottom is not None
+            and (
+                (self.direction == 1 and target > zone_top and open_value <= zone_top)
+                or (self.direction == -1 and target < zone_bottom and open_value >= zone_bottom)
+            )
+        )
 
     def resolve(self, bar: int, hi: float, lo: float, thesis_invalidated: bool):
         d = self.touched and (not self.target_hit) and (self.target is not None) and (self.direction == 1 and hi >= self.target or (self.direction == -1 and lo <= self.target))
         inv = self.touched and thesis_invalidated and (not self.invalidated)
-        amb = not self.resolved and (self.touch_bar == bar and (d or inv) or (d and inv))
+        same_bar = self.touch_bar == bar
+        ordered_dest_only = same_bar and d and (not inv) and self.same_bar_target_ordered
+        amb = not self.resolved and ((same_bar and (d or inv) and not ordered_dest_only) or (d and inv))
         de = d and (not amb) and (not self.resolved)
         ie = inv and (not amb) and (not self.resolved)
         if amb:
@@ -164,6 +186,11 @@ def push_sample(a: list[float], x: float | None):
 
 def in_zone(x, top, bottom, tol):
     return x is not None and top is not None and (bottom is not None) and (bottom - tol <= x <= top + tol)
+
+def usable_target(direction: int, target: float | None, top: float | None, bottom: float | None) -> bool:
+    if target is None or top is None or bottom is None:
+        return False
+    return (direction == 1 and target > top) or (direction == -1 and target < bottom)
 
 def acceptance(cs: Sequence[Candle], cur: int, start: int | None, end: int | None, lo, hi, tick):
     if start is None or end is None or lo is None or (hi is None) or (hi - lo <= tick):
@@ -425,7 +452,10 @@ class Kernel:
             tb = 0
             if touch:
                 tv, tn, tb = acceptance(self.x, i, istart, iend, ilo, ihi, self.tick)
-                tr.touch(i, prev_dest if prev_map == mdir and prev_dest is not None else dest)
+                prev_target_usable = prev_map == mdir and usable_target(mdir, prev_dest, top, bot)
+                current_target_usable = usable_target(mdir, dest, top, bot)
+                tracked_target = prev_dest if prev_target_usable else dest if current_target_usable else None
+                tr.touch(i, tracked_target, open_value=x.o, zone_top=top, zone_bottom=bot)
             de, ie, amb = tr.resolve(i, x.h, x.l, thesis_inv)
             tol = (a or 0) * 0.15
             fib = ready and top is not None and (top >= fibb) and (bot <= fibt)
