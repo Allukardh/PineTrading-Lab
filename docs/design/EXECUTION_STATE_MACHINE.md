@@ -314,23 +314,24 @@ No meaningful deterioration cluster.
 
 ### 10.2 PERDENDO FORÇA
 
-Require at least two independent deterioration families, for example:
-- momentum deceleration
-- RSI loses extension / rolls from exhaustion
-- relative volume contracts
-- participation turns weak/contrary
+Exactly one independent deterioration family is enough to move Strength from NORMAL to PERDENDO FORÇA:
 
-One weak candle is not enough.
+- momentum deterioration
+- RSI deterioration/exhaustion
+- reload-safe participation deterioration
+
+This is deliberately a **soft warning**. It does not cancel an aligned Execution thesis by itself.
 
 ### 10.3 EXAUSTÃO
 
-Stronger condition:
-- directional move extended
-- momentum decelerating or turning
-- RSI at/extending from an exhaustion region
-- continuation participation no longer expands
+Two or more independent deterioration families are required.
 
-This is still not “sell/buy now”.
+Examples:
+- momentum deceleration + RSI exhaustion
+- momentum turn + weak/contrary participation
+- RSI exhaustion + participation deterioration
+
+This is stronger than PERDENDO FORÇA but still not “sell/buy now”.
 
 ### 10.4 RISCO DE REAÇÃO
 
