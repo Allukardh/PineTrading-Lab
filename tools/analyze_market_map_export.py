@@ -24,6 +24,8 @@ from pathlib import Path
 from typing import Iterable, Sequence
 
 
+EXPECTED_AUDIT_SCHEMA = 2
+
 MODEL_NAMES = {
     0: "NONE",
     1: "FIB",
@@ -49,6 +51,7 @@ AUDIT_NEEDLES = {
     "zone_to_dest": ("mm audit • zona→destino evt", "zona->destino evt", "zona destino evt"),
     "zone_to_inv": ("mm audit • zona→invalidação evt", "zona->invalidacao evt", "zona invalidacao evt"),
     "ambiguous": ("mm audit • ambíguo evt", "ambiguo evt"),
+    "reclaim": ("mm audit • sweep reclaim evt", "sweep reclaim evt"),
 }
 
 OHLC_NEEDLES = {
@@ -218,6 +221,8 @@ def analyze(path: Path) -> dict:
     inv_outcomes = 0
     ambiguous = 0
     superseded_after_touch = 0
+    zone_touch_with_reclaim = 0
+    reclaim_counts: Counter[str] = Counter()
 
     zone_width_atr: list[float] = []
     dest_distance_atr: list[float] = []
@@ -231,8 +236,11 @@ def analyze(path: Path) -> dict:
         for row in data.rows
         if _value(data, row, "schema") is not None
     }
-    if schema_values != {1}:
-        raise ValueError(f"{path}: unsupported or mixed Market Map audit schema: {sorted(schema_values)}")
+    if schema_values != {EXPECTED_AUDIT_SCHEMA}:
+        raise ValueError(
+            f"{path}: unsupported or mixed Market Map audit schema: {sorted(schema_values)}; "
+            f"expected {EXPECTED_AUDIT_SCHEMA}"
+        )
 
     active: dict | None = None
     start_time = _cell(data, data.rows[0], "time") if data.rows else None
@@ -278,8 +286,15 @@ def analyze(path: Path) -> dict:
         zone_to_dest = _flag(_value(data, row, "zone_to_dest"))
         zone_to_inv = _flag(_value(data, row, "zone_to_inv"))
         ambiguous_evt = _flag(_value(data, row, "ambiguous"))
+        reclaim_dir = _intish(_value(data, row, "reclaim")) or 0
 
         if confirmed:
+            if reclaim_dir == 1:
+                reclaim_counts["BULL_RECLAIM"] += 1
+            elif reclaim_dir == -1:
+                reclaim_counts["BEAR_RECLAIM"] += 1
+            elif reclaim_dir != 0:
+                pathology["invalid_reclaim_direction"] += 1
             if corr_top is not None and corr_bottom is not None:
                 if corr_top < corr_bottom:
                     pathology["inverted_correction_zone"] += 1
@@ -334,6 +349,8 @@ def analyze(path: Path) -> dict:
 
         if zone_touch:
             touch_count += 1
+            if reclaim_dir != 0:
+                zone_touch_with_reclaim += 1
             if active is not None:
                 active["touched"] = True
                 active["touch_index"] = idx
@@ -382,7 +399,7 @@ def analyze(path: Path) -> dict:
         "rows": len(data.rows),
         "confirmed_rows": confirmed_rows,
         "provisional_rows": provisional_rows,
-        "audit_schema": 1,
+        "audit_schema": EXPECTED_AUDIT_SCHEMA,
         "start": start_time,
         "end": end_time,
         "counts": {
@@ -394,13 +411,16 @@ def analyze(path: Path) -> dict:
             "ambiguous": ambiguous,
             "superseded_after_touch": superseded_after_touch,
             "open_at_export_end": open_at_end,
+            "zone_touch_with_reclaim": zone_touch_with_reclaim,
         },
         "rates": {
             "theses_with_zone_touch_pct": (100.0 * touch_count / thesis_count) if thesis_count else None,
             "zone_to_destination_pct_resolved": (100.0 * dest_outcomes / resolved) if resolved else None,
             "ambiguous_pct_of_touches": (100.0 * ambiguous / touch_count) if touch_count else None,
+            "zone_touch_with_reclaim_pct": (100.0 * zone_touch_with_reclaim / touch_count) if touch_count else None,
         },
         "direction_theses": dict(direction_counts),
+        "reclaim_events": dict(reclaim_counts),
         "touch_models": dict(model_touch_counts),
         "touch_confluence": dict(confluence_touch_counts),
         "outcomes_by_direction": {k: dict(v) for k, v in outcomes_by_direction.items()},
@@ -423,7 +443,7 @@ def compare_reload(before: Path, after: Path) -> dict:
     compare_keys = [
         "schema", "map_dir", "model", "samples", "corr_top", "corr_bottom", "destination",
         "invalidation", "confluence", "new_thesis", "zone_touch",
-        "zone_to_dest", "zone_to_inv", "ambiguous",
+        "zone_to_dest", "zone_to_inv", "ambiguous", "reclaim",
     ]
 
     def row_map(data: LoadedCsv) -> dict[str, list[str]]:
@@ -472,6 +492,7 @@ def aggregate_reports(reports: Sequence[dict]) -> dict:
 
     direction = Counter()
     touch_models = Counter()
+    reclaim_events = Counter()
     resolved_dest = 0
     resolved_inv = 0
 
@@ -480,6 +501,7 @@ def aggregate_reports(reports: Sequence[dict]) -> dict:
         aggregate_pathologies.update(report["pathologies"])
         direction.update(report["direction_theses"])
         touch_models.update(report["touch_models"])
+        reclaim_events.update(report["reclaim_events"])
         resolved_dest += report["counts"]["destination_outcomes"]
         resolved_inv += report["counts"]["invalidation_outcomes"]
 
@@ -511,6 +533,7 @@ def aggregate_reports(reports: Sequence[dict]) -> dict:
         "counts": dict(totals),
         "direction_theses": dict(direction),
         "touch_models": dict(touch_models),
+        "reclaim_events": dict(reclaim_events),
         "zone_to_destination_pct_resolved": (100.0 * resolved_dest / resolved) if resolved else None,
         "pathologies": dict(aggregate_pathologies),
         "hard_pass": not aggregate_pathologies,
@@ -530,6 +553,7 @@ def print_aggregate(aggregate: dict) -> None:
     print(f"Zone -> destination among resolved: {'n/a' if pct is None else f'{pct:.1f}%'}")
     print(f"Directions: {aggregate['direction_theses']}")
     print(f"Touch models: {aggregate['touch_models']}")
+    print(f"Reclaim events: {aggregate['reclaim_events']}")
     if aggregate["pathologies"]:
         print(f"HARD FAIL pathologies: {aggregate['pathologies']}")
     else:
@@ -565,6 +589,7 @@ def print_report(report: dict) -> None:
            else f"{rates['zone_to_destination_pct_resolved']:.1f}%")
     )
     print(f"Direction theses: {report['direction_theses']}")
+    print(f"Reclaim events: {report['reclaim_events']}")
     print(f"Touch models: {report['touch_models']}")
     print(f"Touch confluence: {report['touch_confluence']}")
     print(f"Outcomes by direction: {report['outcomes_by_direction']}")
