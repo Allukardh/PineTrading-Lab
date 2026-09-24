@@ -50,7 +50,7 @@ class MarketExecutionBridgeTests(unittest.TestCase):
     def test_bear_approaching_only_from_impulse_side(self):
         e = self.ev(
             map_dir=-1,
-            close=90.1,
+            close=95.1,
             t1_top=105.0,
             t1_bottom=100.0,
             primary_top=110.0,
@@ -61,7 +61,7 @@ class MarketExecutionBridgeTests(unittest.TestCase):
         r = classify(BridgeMemory(), e)
         self.assertEqual(r.location, Location.APPROACHING)
 
-        r = classify(BridgeMemory(), MapEvidence(**{**e.__dict__, "close": 89.9}))
+        r = classify(BridgeMemory(), MapEvidence(**{**e.__dict__, "close": 94.9}))
         self.assertEqual(r.location, Location.OUTSIDE)
 
     def test_reclaim_priority_and_hold_window(self):
