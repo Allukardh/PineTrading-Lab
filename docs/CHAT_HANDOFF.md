@@ -10,11 +10,11 @@
 
 ## 0. Durable write-ahead checkpoint — schema v2
 
-**Checkpoint state:** STABLE  
-**Product work currently in flight:** none — waiting on the final MM-0 operator parity gate  
+**Checkpoint state:** PREPARED  
+**Product work currently in flight:** record successful MM-0 TradingView parity, assess promotion readiness, and audit stale GitHub branches/PRs without deleting useful history  
 **Continuity protocol:** WRITE-AHEAD + COMMIT-RESULT  
 **Reusable continuity standard:** `docs/PROJECT_CONTINUITY_STANDARD.md`  
-**Operator evidence required right now:** YES — one batched TradingView parity check
+**Operator evidence required right now:** none — final TradingView parity evidence received
 
 ### Last verified active refs
 
@@ -45,7 +45,7 @@ The lifecycle diagnosis is closed at the audit/semantic level:
 - remaining supersession evidence does not demonstrate a thesis-identity defect;
 - no MM-0 trading thresholds/parameters were tuned from aggregate percentages.
 
-### Exact next operator gate — BATCHEd, no trivial testing
+### Completed operator parity gate — received 2026-09-24
 
 Use the latest PR #10 `src/core/market-map.pine` with **defaults only**.
 
