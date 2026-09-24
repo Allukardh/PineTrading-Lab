@@ -152,13 +152,21 @@ Any later parameter change must improve semantic robustness, not merely historic
 
 ## Intrabar-ordering rule
 
-OHLC bars do not expose the event sequence inside the candle.
+OHLC bars do not normally expose the event sequence inside the candle, so MM-0 must not invent an order.
 
-MM-0 therefore refuses to guess when:
-- first zone touch and an outcome boundary happen in the same bar
-- both destination and invalidation are crossed in the same bar
+There is one safe topology exception for the historical audit:
 
-These cases are removed from the directional outcome denominator and reported separately.
+- LONG: if the frozen destination is above the current correction zone and the candle opens at/below the zone top, a later high reaching that destination necessarily occurs after the zone was already touched;
+- SHORT: if the frozen destination is below the current correction zone and the candle opens at/above the zone bottom, a later low reaching that destination necessarily occurs after the zone was already touched.
+
+Those cases may resolve zone -> destination on the same bar because the order is mathematically implied by the bar open and level geometry.
+
+MM-0 still reports ambiguity when:
+- the open lies between the zone and destination, so target-vs-zone order is unknowable;
+- destination and invalidation are both crossed on one candle;
+- the exported row cannot establish a safe ordering.
+
+The audit must remain conservative outside these provable cases.
 
 
 ## Optional TradingView CSV export workflow
@@ -238,9 +246,15 @@ Only bars explicitly exported as confirmed are compared. The active provisional 
 
 ## Historical-outcome semantics
 
-The target used for zone-outcome validation is frozen at the **first correction-zone touch**, using the prior bar's destination when available.
+The target used for zone-outcome validation is frozen at the **first correction-zone touch**.
 
-This avoids a subtle look-ahead-like distortion where a same-bar liquidity sweep could advance the destination ladder before the validator records what the operator actually had available entering that candle.
+The prior bar's destination is preferred only when it remains a valid post-correction destination relative to the current zone:
+- LONG target must be above the current correction-zone top;
+- SHORT target must be below the current correction-zone bottom.
+
+If the prior target has moved inside or behind the current LIVE/adaptive correction zone, it is stale for post-correction outcome measurement and must not be frozen. The current destination may be used only when it also lies beyond the zone; otherwise the audit target remains absent.
+
+This preserves the original purpose — avoid a same-bar liquidity sweep silently advancing the ladder — without evaluating a stale liquidity level that is no longer a meaningful future destination.
 
 Volume-acceptance confluence is also allowed to add a star only on a confirmed bar. LIVE price geometry may move intrabar, but confirmed confluence evidence is not granted by unfinished volume.
 
