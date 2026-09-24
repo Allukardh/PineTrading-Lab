@@ -57,7 +57,19 @@ The following must be impossible:
 
 Cancellation must be explicit and deterministic.
 
-## 4. Gate C — hidden audit schema
+## 4. Gate C — semantic-code integrity
+
+Canonical integer/state mappings live in:
+
+`manifests/suite-semantics-v1.json`
+
+CI validates that the manifest and executable Python reference enums are identical using:
+
+`tools/check_suite_semantics.py`
+
+Any semantic code change is a contract change and must be intentional.
+
+## 5. Gate D — hidden audit schema
 
 Execution should expose Data-Window-only audit plots, versioned independently from the Market Map audit schema.
 
@@ -85,7 +97,7 @@ Codes must be documented and stable within an audit-schema version.
 
 The audit schema exists for CSV/reload analysis, not normal chart UX.
 
-## 5. Gate D — historical event-frequency sanity
+## 6. Gate E — historical event-frequency sanity
 
 The offline analyzer should report per asset/timeframe:
 
@@ -117,7 +129,7 @@ Review flags, not automatic optimization targets:
 
 The purpose is to discover broken logic, not tune for a preferred hit rate.
 
-## 6. Gate E — reload parity
+## 7. Gate F — reload parity
 
 Workflow:
 
@@ -139,7 +151,7 @@ Hard PASS:
 
 Realtime-only annotation fields are excluded from parity.
 
-## 7. Gate F — visual matrix
+## 8. Gate G — visual matrix
 
 Initial matrix:
 
@@ -158,7 +170,7 @@ Questions:
 
 No manual threshold changes during the default matrix.
 
-## 8. Gate G — cross-asset sanity
+## 9. Gate H — cross-asset sanity
 
 After BTC defaults are stable, test unchanged defaults on:
 
@@ -174,7 +186,7 @@ This is a robustness gate, not an optimization round.
 
 If a default only works after per-asset tuning, it is not a good 0.1.0 default.
 
-## 9. Gate H — realtime delta experiment
+## 10. Gate I — realtime delta experiment
 
 Only after reload-safe core is accepted.
 
@@ -192,7 +204,7 @@ Evaluate whether it adds useful live context.
 
 If not, omit it from the production default even if technically interesting.
 
-## 10. Reaction-risk validation
+## 11. Reaction-risk validation
 
 `RISCO DE REAÇÃO` requires both:
 
@@ -207,7 +219,7 @@ Audit questions:
 
 Do **not** label any resulting historical percentage as future probability.
 
-## 11. Alert validation
+## 12. Alert validation
 
 For every production alert:
 
@@ -224,7 +236,7 @@ Initial alert candidates:
 
 ARMADO alerts remain optional because excessive early warnings would undermine the objective UX.
 
-## 12. Promotion rule
+## 13. Promotion rule
 
 Execution 0.1.0 is promotable only when:
 
