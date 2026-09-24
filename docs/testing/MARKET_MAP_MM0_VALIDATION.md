@@ -6,6 +6,40 @@
 
 Compile/static gates prove implementation invariants, but they cannot prove that projected correction zones are useful on real market history.
 
+## Validation path after TradingView Essential limitation
+
+The original workflow used TradingView CSV export because it contains the Pine-generated `MM Audit • ...` series.
+
+The operator's TradingView Essential plan does not provide the required CSV export workflow. The project will **not** require a paid plan upgrade merely for engineering validation.
+
+Therefore MM-0 now has two evidence paths:
+
+### Primary historical path
+
+Official Binance public BTCUSDT data, prepared by Issue #14, will feed a deterministic offline Market Map research/audit implementation.
+
+Initial historical matrix:
+- 15m
+- 1H
+- 4H
+- 1D
+
+Additional robustness:
+- 3D
+- 1W
+
+The offline implementation must follow the same confirmed-state semantics as Pine and must be tested for equivalence on targeted representative cases before its historical statistics are treated as MM-0 evidence.
+
+### TradingView parity path
+
+TradingView remains the authority for:
+- final rendering;
+- real Pine behavior;
+- selected confirmed-state/reload checks;
+- visual usefulness.
+
+The CSV audit tooling below remains supported if export access becomes available later, but it is no longer a blocker requiring TradingView Premium.
+
 MM-0 therefore computes hidden historical engineering counters inside Pine itself. This keeps validation on the same TradingView data and execution semantics as the production indicator.
 
 ## Data Window fields
@@ -64,7 +98,7 @@ MM-0 therefore refuses to guess when:
 These cases are removed from the directional outcome denominator and reported separately.
 
 
-## CSV export workflow
+## Optional TradingView CSV export workflow
 
 TradingView exports OHLC plus numeric plot results from active indicators. MM-0 therefore exposes a versioned `MM Audit • ...` schema using Data-Window-only plots so the chart stays clean while the historical state can be analyzed offline.
 
@@ -122,7 +156,7 @@ The analyzer reports:
 - bars from zone touch to outcome
 - structural pathology checks
 
-## Reload parity workflow
+## Optional CSV reload-parity workflow
 
 For the final deterministic-history gate:
 
