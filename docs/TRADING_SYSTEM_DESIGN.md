@@ -45,7 +45,7 @@ Market Map owns:
 - breakout vs retest state
 - correction zones
 - Fibonacci retracement/confluence
-- volume-derived support/resistance / POC / high-volume nodes where useful
+- volume-acceptance / volume-supported confluence where it demonstrates incremental value
 - nearest upside/downside technical targets
 - structural invalidation
 
@@ -82,30 +82,27 @@ Target format:
 ```text
 BTCUSDT • 15m
 
-REGIME       ↑ ALTA
-FASE         ↘ CORREÇÃO
-ESTRUTURA    HH/HL • intacta
+REGIME       ALTA
+FASE         CORREÇÃO
+ESTRUTURA    ALTA • HH/HL
 
-LIQUIDEZ ↑   87.400–87.650
-LIQUIDEZ ↓   85.050–84.850
-
-PULLBACK
-T1           85.950–85.700
-T2           85.150–84.850  ★ confluência
-T3           84.300–84.050
+CORREÇÃO     85.150–84.850  ★★★
+DESTINO      87.400 • PDH → 88.100 • EQH
+LIQ ↑        87.400 • PDH
+LIQ ↓        84.700 • EQL
+INVALIDA     84.050
 
 EXECUÇÃO     AGUARDAR
 CONFIRMAÇÃO  Reteste + momentum
-INVALIDA     < 84.050
 ```
 
-When confirmation arrives:
+When confirmation arrives, Decision Panel may simplify to:
 
 ```text
 FASE         RETESTE
-EXECUÇÃO     LONG ✓
-ALVO 1       87.400
-ALVO 2       88.100
+EXECUÇÃO     CONFIRMA LONG
+DESTINO      87.400 → 88.100
+INVALIDA     84.050
 ```
 
 Internal engines may remain complex. The visible answer should not be.
@@ -155,7 +152,7 @@ A correction zone may receive confluence from:
 - Fibonacci retracement of the structural impulse
 - support/resistance zone
 - volume-supported level
-- POC / high-volume node where appropriate
+- volume-acceptance / high-volume evidence where justified
 - VWAP/anchored VWAP where appropriate
 - nearby structural-liquidity pool
 - ATR / recent pullback depth context
@@ -164,21 +161,18 @@ A correction zone may receive confluence from:
 
 Do not claim an exact future price.
 
-Prefer zones:
+The normal operator view exposes **one primary correction zone** plus structural invalidation.
 
-- **T1 — shallow correction / retest**
-- **T2 — primary confluence zone**
-- **T3 — deep correction**
-- **Invalidation — structural condition that breaks the thesis**
+Shallow/deep Fibonacci satellites may exist internally or under Advanced/Diagnostics, but they are not separate default panel rows.
 
 Example:
 
 ```text
-T1  85.950–85.700
-T2  85.150–84.850  ★★★
-T3  84.300–84.050
-INV < 83.950
+CORREÇÃO  85.150–84.850  ★★★
+INVALIDA  83.950
 ```
+
+The primary zone may adapt to recent completed pullback depth when enough samples exist, with Fibonacci retained as a fallback/reference input.
 
 The star/confluence label represents independent evidence count/quality, not a fabricated win probability.
 
@@ -367,8 +361,9 @@ Architecture replaces the previous “repair six independent scripts in sequence
 3. structural-liquidity engine
 4. breakout/retest state
 5. Correction Engine + Fibonacci
-6. volume/POC confluence
-7. clean target/invalidation rendering
+6. validated volume-acceptance confluence
+7. directional destination + invalidation rendering
+8. historical CSV sanity + reload-parity validation
 
 ### Phase B — Execution
 
@@ -391,7 +386,8 @@ Architecture replaces the previous “repair six independent scripts in sequence
 - SignalGate Dashboard 0.1.0 remains an accepted engineering baseline.
 - MAS-0 work is preserved but **paused as a standalone-product reboot**.
 - No more core script will be “fixed for its own sake” before mapping its logic into the three-product architecture.
-- The next implementation milestone is **Market Map foundation**, beginning with the MA 6x trend/regime layer and Correction Engine design.
+- Market Map MM-0 is the active foundation candidate; implementation is substantially complete and promotion is blocked on historical CSV sanity, reload parity, and the final visual pass.
+- Execution architecture research may proceed in parallel, but production implementation waits for the Market Map semantic contract to stabilize.
 
 ## 16. Acceptance criterion for the suite
 
@@ -402,12 +398,13 @@ The target operator experience is:
 ```text
 REGIME      Alta
 FASE        Correção
-T2          84.850–85.150
+ESTRUTURA   Alta • HH/HL
+CORREÇÃO    84.850–85.150  ★★★
+DESTINO     87.400 PDH → 88.100 EQH
 LIQ ↑       87.400
 LIQ ↓       84.700
 EXECUÇÃO    Aguardar
-TRIGGER     Reteste + momentum
-INVALIDA    < 84.050
+INVALIDA    84.050
 ```
 
 If the operator must study ten internal scores before understanding what the system is saying, the UX has failed.
