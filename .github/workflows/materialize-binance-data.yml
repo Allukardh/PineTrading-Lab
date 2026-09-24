@@ -5,6 +5,9 @@ on:
   pull_request:
     paths:
       - ".github/workflows/materialize-binance-data.yml"
+      - "tools/binance_market_data/**"
+      - "configs/binance-spot-btcusdt.json"
+      - "requirements-market-data.txt"
 
 permissions:
   contents: read
