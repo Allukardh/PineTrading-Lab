@@ -29,4 +29,4 @@ jobs:
       - name: Validate suite semantic contract
         run: python tools/check_suite_semantics.py
       - name: Validate Execution research defaults
-        run: python tools/check_execution_research_defaults.py
+        run: python -m tools.check_execution_research_defaults
