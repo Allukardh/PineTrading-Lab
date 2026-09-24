@@ -25,18 +25,17 @@ Neither mechanism should become a normal operator burden for PineTrading-Lab.
 
 ## 2. Product decision
 
-The suite products will be **self-contained at runtime**.
+The runtime indicators will be **self-contained**.
 
-Normal use must be:
+For 0.1.x the accepted topology is documented in `RUNTIME_TOPOLOGY.md`:
 
-1. add Market Map
-2. add Execution
-3. optionally add Decision Panel
-4. use them immediately with production defaults
+1. add Market Map — overlay + the single suite Decision Panel
+2. add Execution — lower pane
+3. use them immediately with production defaults
 
-The operator must **not** wire ten source inputs between scripts.
+The suite still has three logical layers (Market Map / Execution / Decision Panel), but Decision Panel is embedded in Market Map rather than shipped as a third mandatory indicator.
 
-Decision Panel must not require Market Map and Execution plots to be manually selected in Settings.
+The operator must **not** wire source inputs between scripts.
 
 ## 3. Shared logic strategy
 
@@ -46,8 +45,8 @@ Repository architecture will eventually separate:
 
 - **semantic specification** — canonical definitions of states and contracts
 - **shared calculation kernels** — deterministic logic reused by generation/build tooling
-- **product renderers** — Market Map / Execution / Decision Panel UI
-- **generated Pine candidates** — standalone scripts pasted into TradingView
+- **product renderers** — Market Map overlay + embedded Decision Panel / Execution pane
+- **generated Pine candidates** — two standalone runtime scripts pasted into TradingView
 
 Pine has no local include directive, so reuse will be enforced by repository tooling rather than manual duplication.
 
@@ -66,7 +65,6 @@ tools/build_pine_suite.py
 src/core/
   market-map.pine
   execution.pine
-  decision-panel.pine
 ```
 
 The exact fragment format remains an implementation detail. The invariant is more important:
@@ -137,7 +135,9 @@ Canonical concepts:
 
 ### 6.3 Decision Panel contract
 
-Decision Panel synthesizes the canonical engines but owns no unique hidden trading thesis.
+Decision Panel is the semantic synthesis layer rendered inside Market Map.
+
+It owns no unique hidden trading thesis.
 
 It must be possible to explain every Decision Panel state as:
 
@@ -148,6 +148,15 @@ Execution semantic state
 =
 Decision Panel wording
 ```
+
+Market Map therefore contains:
+- the canonical Market Map kernel
+- the canonical/slim Execution kernel needed for synthesis
+- one Decision Panel renderer
+
+Execution contains the same canonical Execution kernel plus the lower-pane renderer.
+
+Repository tooling must prevent semantic drift between those two Execution-kernel consumers.
 
 No new opaque G1/G2/G3/G4/G5 scoring layer.
 
@@ -178,13 +187,15 @@ Repository integrity tests must eventually verify:
 - shared semantic tokens exist in all consumers
 - generated product files match canonical kernels
 - no product silently changes timing semantics
-- Market Map and Decision Panel use the same regime/structure/invalidation rules
-- Execution and Decision Panel use the same confirmation rules
+- Market Map rendering and its embedded Decision Panel use the same regime/structure/invalidation rules
+- Execution pane and Market Map's embedded Decision Panel use the same generated Execution confirmation rules
 
 ## 9. Operator UX invariant
 
 Normal operation must never require understanding the integration architecture.
 
 If the user has to configure script A as the source of script B before the suite works, the production UX has failed.
+
+Likewise, if the user must add a third script merely to see synthesis that Market Map can render itself, the 0.1.x topology has failed.
 
 The repository may be sophisticated. The TradingView workflow must remain simple.
