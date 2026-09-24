@@ -80,7 +80,11 @@ def run_dataset(*, cfg: dict, symbol_cfg: dict, timeframe: str, data_root: Path,
     if conflicts:
         raise DataValidationError(f"{symbol} {timeframe}: conflicting duplicate candles detected")
     if discontinuities:
-        raise DataValidationError(f"{symbol} {timeframe}: unexpected interval discontinuities detected")
+        sample = json.dumps(discontinuities[:10], sort_keys=True, separators=(",", ":"))
+        raise DataValidationError(
+            f"{symbol} {timeframe}: unexpected interval discontinuities detected: "
+            f"count={len(discontinuities)} sample={sample}"
+        )
     if not rows:
         raise DataValidationError(f"{symbol} {timeframe}: no source candles available")
 
