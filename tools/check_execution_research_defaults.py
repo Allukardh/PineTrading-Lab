@@ -6,6 +6,13 @@ import json
 from pathlib import Path
 
 from tools.market_execution_bridge_reference import APPROACH_ATR, EVENT_HOLD_BARS
+from tools.participation_reference import (
+    CONTRACTED_BELOW,
+    EXPANDED_AT_OR_ABOVE,
+    PRESSURE_MIN,
+    STRONG_AT_OR_ABOVE,
+    VOLUME_EMA_LEN,
+)
 from tools.momentum_turn_reference import (
     ACCEL_EPS,
     ACTIVITY_LEN,
@@ -66,10 +73,12 @@ def main() -> int:
     participation = data["participation"]
     expected_participation = {
         "baseline": "ema",
-        "baseline_length": 20,
-        "contracted_below": 0.8,
-        "expanded_at_or_above": 1.2,
-        "strong_at_or_above": 1.5,
+        "baseline_length": VOLUME_EMA_LEN,
+        "contracted_below": CONTRACTED_BELOW,
+        "expanded_at_or_above": EXPANDED_AT_OR_ABOVE,
+        "strong_at_or_above": STRONG_AT_OR_ABOVE,
+        "baseline_reference": "prior_confirmed_ema",
+        "pressure_min": PRESSURE_MIN,
     }
     _expect(participation, expected_participation, "participation defaults")
 
