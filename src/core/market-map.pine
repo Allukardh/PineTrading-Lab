@@ -628,6 +628,7 @@ float primaryTop = correctionReady ? math.max(primaryA, primaryB) : na
 float primaryBottom = correctionReady ? math.min(primaryA, primaryB) : na
 string correctionBaseModel = empiricalReady ? "ADAPT " + str.tostring(pullbackSamples) : "FIB"
 string correctionModel = correctionReady ? (useLiveImpulse ? "LIVE/" : "") + correctionBaseModel : "—"
+int correctionModelCode = not correctionReady ? 0 : useLiveImpulse ? (empiricalReady ? 4 : 3) : (empiricalReady ? 2 : 1)
 
 // Current-impulse volume acceptance. This is a bar-volume approximation:
 // VWAP is exact for the selected bars; VNode bins each bar's hlc3 volume into
@@ -722,6 +723,9 @@ bool diagAmbiguousNow = not diagOutcomeResolved and
      ((diagSameBarAsTouch and (diagDestinationCondition or diagInvalidationCondition)) or
       (diagDestinationCondition and diagInvalidationCondition))
 
+bool diagDestinationResolvedNow = diagDestinationCondition and not diagAmbiguousNow and not diagOutcomeResolved
+bool diagInvalidationResolvedNow = diagInvalidationCondition and not diagAmbiguousNow and not diagOutcomeResolved
+
 if diagAmbiguousNow
     diagAmbiguousOutcomes += 1
     diagOutcomeResolved := true
@@ -729,7 +733,7 @@ if diagAmbiguousNow
 if diagDestinationCondition
     diagDestinationHit := true
     diagDestinationHits += 1
-    if not diagOutcomeResolved
+    if diagDestinationResolvedNow
         diagZoneToDestination += 1
         diagOutcomeResolved := true
         diagOutcomeBarsSum += bar_index - diagZoneTouchBar
@@ -738,7 +742,7 @@ if diagDestinationCondition
 if diagInvalidationCondition
     diagInvalidated := true
     diagInvalidations += 1
-    if not diagOutcomeResolved
+    if diagInvalidationResolvedNow
         diagZoneToInvalidation += 1
         diagOutcomeResolved := true
         diagOutcomeBarsSum += bar_index - diagZoneTouchBar
@@ -898,6 +902,24 @@ if barstate.islast
         if not na(liqBelowLine)
             line.delete(liqBelowLine)
             liqBelowLine := na
+
+// Audit series are Data Window / CSV-export fields for offline validation.
+// Codes:
+//   MapDir: -1 bear / 0 none-transition / +1 bull
+//   Model: 0 none / 1 FIB / 2 ADAPT / 3 LIVE-FIB / 4 LIVE-ADAPT
+plot(mapDir, "MM Audit • MapDir", color=color.new(color.white, 100), display=display.data_window)
+plot(correctionModelCode, "MM Audit • Modelo", color=color.new(color.white, 100), display=display.data_window)
+plot(pullbackSamples, "MM Audit • Amostras adaptativas", color=color.new(color.white, 100), display=display.data_window)
+plot(correctionActive ? primaryTop : na, "MM Audit • Correção topo", color=color.new(color.white, 100), display=display.data_window)
+plot(correctionActive ? primaryBottom : na, "MM Audit • Correção fundo", color=color.new(color.white, 100), display=display.data_window)
+plot(thesisInvalidated ? na : destination1, "MM Audit • Destino 1", color=color.new(color.white, 100), display=display.data_window)
+plot(correctionReady ? invalidation : na, "MM Audit • Invalidação", color=color.new(color.white, 100), display=display.data_window)
+plot(correctionConfluence, "MM Audit • Confluências", color=color.new(color.white, 100), display=display.data_window)
+plot(diagNewThesis ? 1 : 0, "MM Audit • Nova tese evt", color=color.new(color.white, 100), display=display.data_window)
+plot(diagZoneTouchNow ? 1 : 0, "MM Audit • Toque zona evt", color=color.new(color.white, 100), display=display.data_window)
+plot(diagDestinationResolvedNow ? 1 : 0, "MM Audit • Zona→Destino evt", color=color.new(color.white, 100), display=display.data_window)
+plot(diagInvalidationResolvedNow ? 1 : 0, "MM Audit • Zona→Invalidação evt", color=color.new(color.white, 100), display=display.data_window)
+plot(diagAmbiguousNow ? 1 : 0, "MM Audit • Ambíguo evt", color=color.new(color.white, 100), display=display.data_window)
 
 // Historical diagnostics are intentionally hidden from the chart/status line.
 plot(diagTheses, "MM Hist • Teses", color=color.new(color.white, 100), display=display.data_window)
