@@ -12,7 +12,7 @@ from pathlib import Path
 from tools.binance_market_data import PIPELINE_VERSION, SCHEMA_VERSION
 from tools.binance_market_data.core import (
     DataValidationError, infer_timestamp_unit, iter_months, latest_publishable_month,
-    parse_checksum_text, parse_kline_row, sha256_file, timestamp_to_us, verify_checksum,
+    parse_checksum_text, parse_kline_row, sha256_file, timestamp_to_us, validate_candle_duration, verify_checksum,
 )
 from tools.binance_market_data.storage import (
     build_manifest, manifest_is_current, source_fingerprint, write_json, write_parquet,
@@ -62,13 +62,19 @@ class CoreTests(unittest.TestCase):
         with self.assertRaises(DataValidationError):
             parse_kline_row(ROW_MS[:-1], source_file="bad.zip")
 
-    def test_legacy_exact_boundary_close_time_is_accepted(self):
+    def test_legacy_exact_boundary_close_time_is_classified(self):
         legacy = list(ROW_MS)
         legacy[0] = "1504712700000"
         legacy[6] = "1504713600000"
         row = parse_kline_row(legacy, source_file="BTCUSDT-15m-2017-09.zip")
-        from tools.binance_market_data.core import validate_candle_duration
-        validate_candle_duration(row, "15m")
+        self.assertEqual(validate_candle_duration(row, "15m"), "exact_boundary")
+
+    def test_legacy_early_close_is_preserved_and_classified(self):
+        legacy = list(ROW_MS)
+        legacy[0] = "1513599300000"
+        legacy[6] = "1513600153419"
+        row = parse_kline_row(legacy, source_file="BTCUSDT-15m-2017-12.zip")
+        self.assertEqual(validate_candle_duration(row, "15m"), "early_close")
 
     def test_checksum(self):
         with tempfile.TemporaryDirectory() as td:
@@ -130,6 +136,7 @@ class CoreTests(unittest.TestCase):
 
     def test_manifest_required_fields(self):
         row = parse_kline_row(ROW_US, source_file="x.zip")
+        row["source_close_time_convention"] = validate_candle_duration(row, "15m")
         with tempfile.TemporaryDirectory() as td:
             pq = Path(td) / "BTCUSDT_15m.parquet"
             pq.write_bytes(b"x")
@@ -151,6 +158,7 @@ class CoreTests(unittest.TestCase):
         except ImportError:
             self.skipTest("pyarrow not installed in local runtime")
         row = parse_kline_row(ROW_US, source_file="x.zip")
+        row["source_close_time_convention"] = validate_candle_duration(row, "15m")
         with tempfile.TemporaryDirectory() as td:
             p = Path(td) / "x.parquet"
             write_parquet([row], p, symbol="BTCUSDT", market="spot", timeframe="15m")
@@ -160,6 +168,7 @@ class CoreTests(unittest.TestCase):
             self.assertIn("close_time_raw", table.column_names)
             self.assertIn("taker_buy_base_asset_volume", table.column_names)
             self.assertIn("source_timestamp_unit", table.column_names)
+            self.assertIn("source_close_time_convention", table.column_names)
 
 
 if __name__ == "__main__":
