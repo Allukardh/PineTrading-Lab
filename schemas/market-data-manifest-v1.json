@@ -4,27 +4,115 @@
   "title": "PineTrading-Lab market-data dataset manifest",
   "type": "object",
   "required": [
-    "pipeline_version", "schema_version", "symbol", "market", "timeframe", "data_source",
-    "first_date", "last_date", "candles", "source_file_count", "duplicates_found", "gaps_found",
-    "files_missing", "checksum_status", "dataset_sha256", "final_size_bytes", "status"
+    "pipeline_version",
+    "schema_version",
+    "symbol",
+    "market",
+    "timeframe",
+    "data_source",
+    "first_date",
+    "last_date",
+    "candles",
+    "source_file_count",
+    "duplicates_found",
+    "gaps_found",
+    "files_missing",
+    "checksum_status",
+    "dataset_sha256",
+    "final_size_bytes",
+    "status",
+    "close_time_conventions",
+    "close_time_anomalies_found"
   ],
   "properties": {
-    "pipeline_version": {"type": "string"},
-    "schema_version": {"type": "string"},
-    "symbol": {"type": "string"},
-    "market": {"type": "string"},
-    "timeframe": {"type": "string"},
-    "data_source": {"type": "string"},
-    "first_date": {"type": ["string", "null"]},
-    "last_date": {"type": ["string", "null"]},
-    "candles": {"type": "integer", "minimum": 0},
-    "source_file_count": {"type": "integer", "minimum": 0},
-    "duplicates_found": {"type": "integer", "minimum": 0},
-    "gaps_found": {"type": "integer", "minimum": 0},
-    "files_missing": {"type": "array", "items": {"type": "string"}},
-    "checksum_status": {"type": "object"},
-    "dataset_sha256": {"type": ["string", "null"]},
-    "final_size_bytes": {"type": "integer", "minimum": 0},
-    "status": {"enum": ["ok", "ok_with_findings", "invalid"]}
+    "pipeline_version": {
+      "type": "string"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "symbol": {
+      "type": "string"
+    },
+    "market": {
+      "type": "string"
+    },
+    "timeframe": {
+      "type": "string"
+    },
+    "data_source": {
+      "type": "string"
+    },
+    "first_date": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "last_date": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "candles": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source_file_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "duplicates_found": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "gaps_found": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "files_missing": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "checksum_status": {
+      "type": "object"
+    },
+    "dataset_sha256": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "final_size_bytes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "status": {
+      "enum": [
+        "ok",
+        "ok_with_findings",
+        "invalid"
+      ]
+    },
+    "close_time_conventions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "close_time_anomalies_found": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "close_time_anomaly_samples": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    }
   }
 }
