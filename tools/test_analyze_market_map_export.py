@@ -36,6 +36,7 @@ HEADER = [
     "MM Audit • Zona→Destino evt",
     "MM Audit • Zona→Invalidação evt",
     "MM Audit • Ambíguo evt",
+    "MM Audit • Sweep reclaim evt",
 ]
 
 
@@ -45,26 +46,26 @@ def row(
     top: float | None, bottom: float | None, dest: float | None,
     inv: float | None, conf: int,
     new: int = 0, touch: int = 0, dest_evt: int = 0,
-    inv_evt: int = 0, amb_evt: int = 0,
+    inv_evt: int = 0, amb_evt: int = 0, reclaim: int = 0,
 ):
     def v(x):
         return "" if x is None else x
     return [
-        t, o, h, l, c, 1, 1, direction, atr, model, samples,
+        t, o, h, l, c, 2, 1, direction, atr, model, samples,
         v(top), v(bottom), v(dest), v(inv), conf,
-        new, touch, dest_evt, inv_evt, amb_evt,
+        new, touch, dest_evt, inv_evt, amb_evt, reclaim,
     ]
 
 
 ROWS = [
     row("2026-01-01 00:00", 100, 104, 99, 103, 1, 5, 4, 12, 100, 95, 110, 90, 4, new=1),
-    row("2026-01-01 01:00", 103, 103, 97, 99, 1, 5, 4, 12, 100, 95, 110, 90, 4, touch=1),
+    row("2026-01-01 01:00", 103, 103, 97, 99, 1, 5, 4, 12, 100, 95, 110, 90, 4, touch=1, reclaim=1),
     row("2026-01-01 02:00", 99, 111, 98, 109, 1, 5, 4, 12, 100, 95, 111, 90, 4, dest_evt=1),
     row("2026-01-01 03:00", 120, 123, 118, 121, -1, 5, 2, 10, 125, 120, 100, 130, 3, new=1),
-    row("2026-01-01 04:00", 121, 123, 119, 121, -1, 5, 2, 10, 125, 120, 100, 130, 3, touch=1),
+    row("2026-01-01 04:00", 121, 123, 119, 121, -1, 5, 2, 10, 125, 120, 100, 130, 3, touch=1, reclaim=-1),
     row("2026-01-01 05:00", 121, 131, 120, 130.5, -1, 5, 2, 10, 125, 120, 99, 130, 3, inv_evt=1),
     row("2026-01-01 06:00", 100, 103, 99, 102, 1, 4, 1, 2, 99, 96, 108, 92, 2, new=1),
-    row("2026-01-01 07:00", 102, 109, 97, 104, 1, 4, 1, 2, 99, 96, 108, 92, 2, touch=1, amb_evt=1),
+    row("2026-01-01 07:00", 102, 109, 97, 104, 1, 4, 1, 2, 99, 96, 108, 92, 2, touch=1, amb_evt=1, reclaim=1),
     row("2026-01-01 08:00", 104, 105, 103, 104.5, 1, 4, 1, 2, 99, 96, 109, 92, 2),
 ]
 
@@ -82,7 +83,7 @@ class AnalyzerTests(unittest.TestCase):
             self.write_csv(p)
             report = mm.analyze(p)
 
-            self.assertEqual(report["audit_schema"], 1)
+            self.assertEqual(report["audit_schema"], 2)
             self.assertEqual(report["confirmed_rows"], len(ROWS))
             self.assertEqual(report["provisional_rows"], 0)
             self.assertEqual(report["counts"]["theses"], 3)
@@ -94,6 +95,8 @@ class AnalyzerTests(unittest.TestCase):
             self.assertAlmostEqual(report["rates"]["zone_to_destination_pct_resolved"], 50.0)
             self.assertEqual(report["direction_theses"], {"LONG": 2, "SHORT": 1})
             self.assertEqual(report["touch_models"], {"LIVE/ADAPT": 1, "ADAPT": 1, "FIB": 1})
+            self.assertEqual(report["reclaim_events"], {"BULL_RECLAIM": 2, "BEAR_RECLAIM": 1})
+            self.assertEqual(report["counts"]["zone_touch_with_reclaim"], 3)
             self.assertEqual(report["pathologies"], {})
 
     def test_aggregate_reports(self):
