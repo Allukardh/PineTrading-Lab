@@ -131,11 +131,14 @@ The most relied-upon legacy workflow was:
 - **MA 6x** for moving-average/trend reading
 - **Fibonacci retracement** for pullback/correction context
 
+This is evidence about what helped the operator, **not a compatibility contract**.
+
 Therefore:
-- MA 6x is the first Market Map trend/regime donor
-- the familiar MA overlay must be preserved in a cleaner architecture
-- Fibonacci becomes a first-class Correction Engine input
-- low-level configuration is not delegated back to the operator
+- moving-average context remains valuable, but the project may change the count, periods and presentation;
+- retracement/correction context remains valuable, but Fibonacci may be combined with or subordinated to adaptive/statistical correction logic;
+- legacy scripts are donors/research material, not product specifications;
+- low-level configuration is not delegated back to the operator;
+- the assistant may replace familiar mechanics when a clearer or better-evidenced design exists.
 
 ## Liquidity decision
 
@@ -152,21 +155,15 @@ Actual leveraged liquidation clusters require external derivatives/order-book/op
 
 ## Defaults policy
 
-Normal operation is profile-driven and Auto-first.
+Normal operation is **Auto-first with engineered defaults**.
 
-Default:
-- Profile: **Balanced**
-- Visual: **Standard**
-- Timeframe behavior: **Auto** where safe
-
-Normal user-facing settings should be limited primarily to:
-- Profile
-- visual density
-- colors/styles
-- alert families
-- rare true operator preferences
-
-Engineering thresholds belong under profiles or Advanced/Diagnostics, not in the normal workflow.
+- No profile selector is mandatory.
+- Profiles exist only when they represent genuinely useful operating behaviors.
+- Timeframe behavior should be automatic where safe.
+- The normal user-facing surface should remain minimal.
+- Colors/styles, alert families and rare true operator preferences may remain configurable.
+- Engineering thresholds belong inside the engine or Advanced/Diagnostics, not in the normal workflow.
+- “Optimized default” means a project-recommended, validated default; it must not be presented as universally optimal without evidence.
 
 ## Development state
 
@@ -174,19 +171,20 @@ Engineering thresholds belong under profiles or Advanced/Diagnostics, not in the
 Accepted timing-safe baseline.
 
 ### Moving Average Shift MAS-0
-Existing draft work is preserved but **paused as a standalone-product reboot**. Its useful logic will be integrated under Execution after Market Map foundations are established.
+Existing draft work is preserved but **paused as a standalone-product reboot**. Its useful logic is donor material for Execution.
 
-### Next implementation target
-**Market Map foundation**
+### Market Map
+Primary active product candidate. Exact unmerged semantics, evidence, branch head and next discriminant belong in `docs/CHAT_HANDOFF.md` / PR #10 and must not be inferred from older legacy-donor wording in this file.
 
-Order:
-1. MA 6x trend/regime layer
-2. deterministic structure engine
-3. structural-liquidity engine
-4. breakout/retest state
-5. Correction Engine + Fibonacci
-6. volume/POC confluence
-7. target/invalidation rendering
+### Execution
+Parallel research only. Production `execution.pine` remains intentionally blocked until the pre-registered historical evidence work challenges the candidate engines.
+
+### Current product sequence
+1. close the Market Map MM-0 lifecycle/parity evidence gate;
+2. promote MM-0 only if the remaining evidence supports it;
+3. run the pre-registered Execution evidence tests before numeric retuning;
+4. create production Execution only after evidence justifies the candidate semantics;
+5. evolve the Decision Panel as the concise semantic synthesis of the validated engines.
 
 ## Version lineage
 
