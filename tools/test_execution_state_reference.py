@@ -27,6 +27,7 @@ class ExecutionStateReferenceTests(unittest.TestCase):
         location=Location.IN_CORRECTION,
         momentum=Momentum.NEUTRAL,
         rsi=RsiState.NEUTRAL,
+        rsi_context=0,
         participation=Participation.NEUTRAL,
         confirmed=True,
         invalidated=False,
@@ -37,6 +38,7 @@ class ExecutionStateReferenceTests(unittest.TestCase):
             location=location,
             momentum=momentum,
             rsi=rsi,
+            rsi_context_dir=rsi_context,
             participation=participation,
             bar_confirmed=confirmed,
             thesis_invalidated=invalidated,
@@ -137,6 +139,60 @@ class ExecutionStateReferenceTests(unittest.TestCase):
             ),
         )
         self.assertEqual(r.state.readiness, Readiness.ALIGNED)
+
+    def test_opposing_confirmed_rsi_context_blocks_arming(self):
+        prev = State(Readiness.PREP, 1, Strength.NORMAL)
+
+        blocked = step(
+            prev,
+            self.ev(
+                direction=1,
+                momentum=Momentum.TURN_UP,
+                rsi=RsiState.RECOVERING_OVERSOLD,
+                rsi_context=-1,
+            ),
+        )
+        self.assertEqual(blocked.state.readiness, Readiness.PREP)
+        self.assertFalse(blocked.events.armed_entered)
+
+        allowed = step(
+            prev,
+            self.ev(
+                direction=1,
+                momentum=Momentum.TURN_UP,
+                rsi=RsiState.RECOVERING_OVERSOLD,
+                rsi_context=0,
+            ),
+        )
+        self.assertEqual(allowed.state.readiness, Readiness.ARMED)
+        self.assertTrue(allowed.events.armed_entered)
+
+    def test_opposing_confirmed_rsi_context_cancels_armed(self):
+        prev = State(Readiness.ARMED, -1, Strength.NORMAL)
+
+        r = step(
+            prev,
+            self.ev(
+                direction=-1,
+                location=Location.RETEST,
+                momentum=Momentum.DOWN_ACCEL,
+                rsi=RsiState.BEAR,
+                rsi_context=1,
+                participation=Participation.NEUTRAL,
+            ),
+        )
+
+        self.assertEqual(r.state.readiness, Readiness.WAIT)
+        self.assertTrue(r.events.canceled)
+
+    def test_invalid_rsi_context_direction_rejected(self):
+        with self.assertRaises(ValueError):
+            step(
+                State(),
+                self.ev(
+                    rsi_context=2,
+                ),
+            )
 
     def test_map_invalidation_wins(self):
         for stage in Readiness:
