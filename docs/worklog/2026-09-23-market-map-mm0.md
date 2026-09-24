@@ -461,3 +461,18 @@ MM-0 now classifies that lifecycle explicitly:
 - the invalidation cumulative label was clarified to `Invalidações pós-toque`
 
 This makes censored historical cases explicit instead of silently contaminating the open-outcome count.
+
+
+## Validation-route change — TradingView Essential
+
+The operator confirmed the active TradingView plan is Essential and does not provide the CSV export capability assumed by the first MM-0 validation design.
+
+Decision:
+- do not require a Premium upgrade;
+- preserve audit schema v2 and the CSV analyzer as optional/reusable tooling;
+- make official Binance historical data the primary quantitative validation source;
+- use Issue #14's delegated pipeline for BTCUSDT 15m/1H/4H/1D plus 3D/1W robustness;
+- build a deterministic offline Market Map research/audit equivalent before using Binance history to judge Correction/Destination semantics;
+- retain targeted TradingView visual/reload checks as the final Pine/runtime parity gate.
+
+This changes the validation transport, not the MM-0 product semantics.
