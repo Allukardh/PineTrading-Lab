@@ -52,6 +52,7 @@ jobs:
           fetch_artifact 10810563678 BTCUSDT_1h.parquet 86f2f12b66979d2e0659b44b95b584ec5140050770acce58e6c4643c9b409776
           fetch_artifact 10811281699 BTCUSDT_4h.parquet 93226923a88861cc56d11d82900801db7f64fbe89920c710843dc26673265e06
           fetch_artifact 10810907465 BTCUSDT_1d.parquet 1788d075ad21091e279cb68ccfac79935149ca9c444a74dbc971bba00e15fdae
+          fetch_artifact 10811056999 BTCUSDT_3d.parquet e4228da434e9131ae2353147181069d119bc0ef373ec4b93effc5c1dcf9a39d9
           fetch_artifact 10811406601 BTCUSDT_1w.parquet 960de3600ea7ab8651ec2dbaa51d204e05fce19127eb53bb24fcd59dd010ac46
 
       - name: Generate MM-0 Audit Schema v2
@@ -60,7 +61,7 @@ jobs:
 
       - name: Analyze BTC historical matrix
         run: |
-          python tools/analyze_market_map_export.py             --json "$OUT_DIR/mm0-evidence.json"             "$OUT_DIR/BTCUSDT_15m_mm0_audit.csv"             "$OUT_DIR/BTCUSDT_1h_mm0_audit.csv"             "$OUT_DIR/BTCUSDT_4h_mm0_audit.csv"             "$OUT_DIR/BTCUSDT_1d_mm0_audit.csv"
+          python tools/analyze_market_map_export.py             --json "$OUT_DIR/mm0-evidence.json"             "$OUT_DIR/BTCUSDT_15m_mm0_audit.csv"             "$OUT_DIR/BTCUSDT_1h_mm0_audit.csv"             "$OUT_DIR/BTCUSDT_4h_mm0_audit.csv"             "$OUT_DIR/BTCUSDT_1d_mm0_audit.csv"             "$OUT_DIR/BTCUSDT_3d_mm0_audit.csv"             "$OUT_DIR/BTCUSDT_1w_mm0_audit.csv"
 
       - name: Enforce structural pathology gate
         run: |
