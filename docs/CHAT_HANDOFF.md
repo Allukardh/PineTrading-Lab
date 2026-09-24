@@ -13,6 +13,7 @@
 **Checkpoint state:** STABLE  
 **Product work currently in flight:** none  
 **Continuity protocol:** WRITE-AHEAD + COMMIT-RESULT  
+**Continuity hardening promoted:** PR #16 → `3f9e5a73d3aa94c9bfae6d984f1c25a83e60bf42`  
 **Operator evidence required right now:** none
 
 ### Last verified active refs
