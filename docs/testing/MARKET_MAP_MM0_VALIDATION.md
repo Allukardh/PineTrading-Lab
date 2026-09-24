@@ -30,6 +30,52 @@ Additional robustness:
 
 The offline implementation must follow the same confirmed-state semantics as Pine and must be tested for equivalence on targeted representative cases before its historical statistics are treated as MM-0 evidence.
 
+### Primary historical path — current status
+
+The deterministic offline kernel now exists:
+
+- `tools/market_map_offline_core.py`
+- `tools/market_map_offline.py`
+- `tools/test_market_map_offline.py`
+- `.github/workflows/market-map-offline-evidence.yml`
+
+Initial BTCUSDT matrix completed on the exact production artifacts from run `36006762328`.
+
+Final accounting evidence run:
+
+`36039228914`
+
+Result:
+- 45,562 theses
+- 32,458 first correction-zone touches
+- 5,408 non-ambiguous destination outcomes
+- 1,039 non-ambiguous invalidation outcomes
+- 4,560 ambiguous OHLC-order outcomes
+- 21,448 superseded/censored touched theses
+- 3 still open at export end
+- outcome accounting: **100%**
+- structural pathologies: **none**
+- hard structural gate: **PASS**
+
+Important denominator rule:
+
+The conditional destination share among the 6,447 non-ambiguous resolved cases is 83.88%, but those resolved cases are only 19.86% of all touched theses.
+
+Across all touches:
+- destination: 16.66%
+- invalidation: 3.20%
+- ambiguous: 14.05%
+- superseded/censored: 66.08%
+- open: 0.01%
+
+Therefore the conditional resolved percentage must never be presented as a trading win rate or unconditional map success rate.
+
+A model-specific review also found that LIVE/ADAPT has much higher same-candle OHLC ambiguity than confirmed ADAPT. This is now a targeted parity/lifecycle question, not a parameter-tuning signal.
+
+Full worklog:
+
+`docs/worklog/2026-09-24-market-map-offline-evidence.md`
+
 ### TradingView parity path
 
 TradingView remains the authority for:
@@ -72,6 +118,8 @@ The metric does not model:
 - Execution confirmation
 
 It only asks whether the map's primary correction zone is followed more often by the thesis destination or by structural invalidation among resolved historical cases.
+
+Because a newer structural thesis can supersede a touched thesis before either boundary resolves, the project must also report the full all-touch accounting. A large censored share is not a win or a loss and cannot be silently removed from interpretation.
 
 ## Acceptance philosophy
 
