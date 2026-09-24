@@ -477,6 +477,8 @@ This protocol is now part of the locked working methodology.
 
 Promotion: PR #16 merged to `main` at `3f9e5a73d3aa94c9bfae6d984f1c25a83e60bf42`.
 
+Reusable future-project template: `docs/PROJECT_CONTINUITY_STANDARD.md`. This protocol is intended to be reused by default in future long-running projects, adapted only when a project's storage/workflow requires a different implementation.
+
 ---
 
 ## 9. Current continuation checkpoint
