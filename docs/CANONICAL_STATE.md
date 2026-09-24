@@ -1,8 +1,9 @@
 # Canonical State
 
 **Date:** 2026-09-24  
-**Phase:** Trading Suite Architecture v1 — Market Map foundation  
-**Main baseline:** SignalGate Dashboard 0.1.0 accepted on `main`  
+**Phase:** Trading Suite Architecture v1 — Execution evidence research  
+**Primary accepted product baseline:** Market Map 0.1.0 on `main`  
+**Preserved engineering baseline:** SignalGate Dashboard 0.1.0  
 **Active architecture:** two runtime indicators — Market Map (with embedded Decision Panel) + Execution
 
 ## Continuity navigation
@@ -167,23 +168,35 @@ Normal operation is **Auto-first with engineered defaults**.
 ## Development state
 
 ### SignalGate
-Accepted timing-safe baseline.
+Accepted timing-safe engineering baseline/donor. It is not a final third runtime product.
 
 ### Moving Average Shift MAS-0
-Existing draft work is preserved but **paused as a standalone-product reboot**. Its useful logic is donor material for Execution.
+Closed standalone reboot research is preserved as donor material for Execution.
 
-### Market Map
-Primary active product candidate. Exact unmerged semantics, evidence, branch head and next discriminant belong in `docs/CHAT_HANDOFF.md` / PR #10 and must not be inferred from older legacy-donor wording in this file.
+### Market Map 0.1.0
+**ACCEPTED PRODUCT BASELINE** on `main`.
+
+Promotion:
+`0eeb0d37b256a950cfb38f627fa3521bb213d380`
+
+Promotion evidence:
+- corrected six-timeframe BTCUSDT offline lifecycle/pathology gate: PASS;
+- 100% touch accounting;
+- zero structural pathologies;
+- Pine v6 compile: PASS;
+- Static integrity: PASS;
+- BTCUSDT 4H before/after reload visual/state parity: PASS;
+- BTCUSDT 1D correction/destination/invalidation/HTF presentation: PASS.
 
 ### Execution
-Parallel research only. Production `execution.pine` remains intentionally blocked until the pre-registered historical evidence work challenges the candidate engines.
+**Primary active research focus.** Production `execution.pine` remains intentionally blocked until the pre-registered historical evidence plan challenges MTE-A / RSE-A / PSE-A against the accepted Binance datasets.
 
 ### Current product sequence
-1. close the Market Map MM-0 lifecycle/parity evidence gate;
-2. promote MM-0 only if the remaining evidence supports it;
-3. run the pre-registered Execution evidence tests before numeric retuning;
-4. create production Execution only after evidence justifies the candidate semantics;
-5. evolve the Decision Panel as the concise semantic synthesis of the validated engines.
+1. run the pre-registered Execution historical evidence tests with unchanged candidate defaults;
+2. classify each candidate KEEP / REFINE / REMOVE / INSUFFICIENT EVIDENCE from the pre-registered questions, without optimizing to aggregate percentages;
+3. create production `execution.pine` only after evidence justifies the semantic/numeric contract;
+4. integrate validated Execution semantics into the Market Map embedded Decision Panel;
+5. close final cross-script TradingView parity before a later 1.0.0 milestone.
 
 ## Version lineage
 
