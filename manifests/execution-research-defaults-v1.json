@@ -30,7 +30,9 @@
     "baseline_length": 20,
     "contracted_below": 0.8,
     "expanded_at_or_above": 1.2,
-    "strong_at_or_above": 1.5
+    "strong_at_or_above": 1.5,
+    "baseline_reference": "prior_confirmed_ema",
+    "pressure_min": 0.2
   },
   "market_map_execution_bridge": {
     "approach_distance_atr": 0.5,
