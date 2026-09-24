@@ -908,6 +908,7 @@ if barstate.islast
 //   MapDir: -1 bear / 0 none-transition / +1 bull
 //   Model: 0 none / 1 FIB / 2 ADAPT / 3 LIVE-FIB / 4 LIVE-ADAPT
 plot(mapDir, "MM Audit • MapDir", color=color.new(color.white, 100), display=display.data_window)
+plot(atr, "MM Audit • ATR", color=color.new(color.white, 100), display=display.data_window)
 plot(correctionModelCode, "MM Audit • Modelo", color=color.new(color.white, 100), display=display.data_window)
 plot(pullbackSamples, "MM Audit • Amostras adaptativas", color=color.new(color.white, 100), display=display.data_window)
 plot(correctionActive ? primaryTop : na, "MM Audit • Correção topo", color=color.new(color.white, 100), display=display.data_window)
