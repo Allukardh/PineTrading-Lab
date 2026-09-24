@@ -110,36 +110,34 @@ Static integrity PASS  run 35938558111
 
 ### MM-0 promotion blockers
 
-These are real TradingView gates, not code chores:
+The operator uses TradingView Essential, which does **not** allow the required CSV export workflow without upgrading. Do not ask the operator to buy Premium merely for validation.
 
-1. final visual sanity with current DESTINO / invalidation / sweep-reclaim semantics;
-2. historical CSV sanity on BTCUSDT:
+Revised evidence path:
+
+1. final TradingView visual sanity with current DESTINO / invalidation / sweep-reclaim semantics;
+2. historical offline sanity using official Binance BTCUSDT data from delegated Issue #14:
    - 15m
    - 1H
    - 4H
    - 1D
-3. confirmed-history reload parity.
+   - 3D / 1W as higher-timeframe robustness where useful
+3. implement/validate a deterministic offline Market Map equivalent or audit kernel against the Pine semantics;
+4. targeted TradingView reload/visual parity on representative confirmed states instead of full-history CSV parity.
+
+The existing TradingView CSV audit/analyzer remains useful infrastructure if export access becomes available later, but it is no longer the primary promotion path.
 
 ### Next operator evidence request
 
-When the operator is ready, obtain **five CSV exports** from the current MM-0 candidate:
+None right now.
 
-```text
-BTCUSDT 15m
-BTCUSDT 1H
-BTCUSDT 4H
-BTCUSDT 1D
-one second export of any one timeframe after reload
-```
+Issue #14 is building the official Binance historical-data pipeline in a separate chat/thread.
 
-The exact same candidate/version should be used for all five.
+When that data pipeline is ready:
+- consume its PR/manifests/Drive datasets;
+- run the offline MM-0 historical validation;
+- only then ask for a small number of targeted TradingView screenshots/reload checks if needed.
 
-The assistant then runs the repository analyzer and decides whether MM-0:
-- passes;
-- needs semantic adjustment;
-- needs correction-engine/default adjustment.
-
-Do not ask for screenshots/CSV again before there is a meaningful reason.
+Do not ask the operator for thousands of Binance files or a TradingView plan upgrade.
 
 ### Important MM-0 files on PR #10
 
@@ -159,15 +157,15 @@ tools/test_analyze_market_map_export.py
 
 **Branch:** `research/execution-engine-design`  
 **PR:** #12 — Research: Execution Engine architecture  
-**Head at this checkpoint:** `663277d35cddefcfb02e1e4fa289d9359a394cbb`  
+**Head at this checkpoint:** `cb7beeedab3ce59451c788af9c61c77d86ac276e`  
 **PR state:** Draft / mergeable  
 **Production `execution.pine`: NOT CREATED intentionally**
 
 Latest automated evidence:
 
 ```text
-Static integrity + semantic/reference tests
-PASS  run 35940853153
+Integrated Execution research CI
+PASS  run 35948868686
 ```
 
 ### Candidate runtime topology
@@ -207,19 +205,36 @@ RISCO DE REAÇÃO
 
 Readiness and strength are separate axes.
 
-### Candidate engine-owned defaults
+### Candidate evidence engines
 
+**MTE-A — Momentum Turn**
+- core = (EMA8(HLC3) - EMA21(HLC3)) / ATR14
+- activity RMA20
+- neutral factor 0.15
+- turn factor 0.50
+- turn floor 0.02
+- numeric accel epsilon 1e-9
+- synthetic scale/translation/trend/reversal tests PASS
+
+**RSE-A — RSI State**
 - RSI 14
 - center dead-band 48–52
-- exhaustion 70/30
-- extended exhaustion 80/20
-- volume baseline EMA 20
-- contracted participation < 0.80x
-- expanded participation >= 1.20x
-- strong expansion >= 1.50x
-- no normal user threshold tuning
+- 70/30 standard zones
+- 80/20 extremes
+- minimum step 0.25
+- 2 confirmed-bar recovery/fade memory
+- separate confirmed HTF RSI context direction -1/0/+1
 
-The exact clean-room Momentum Turn numeric formula is intentionally not frozen yet.
+**PSE-A — Participation**
+- prior confirmed EMA20 volume baseline
+- <0.80 WEAK
+- >=1.20 expanded
+- >=1.50 strong diagnostic
+- close-location pressure proxy
+- pressure threshold 0.20
+- Binance taker-buy imbalance reserved for offline validation only
+
+All numeric values are research candidates, not operator settings and not yet production-canonical.
 
 ### Market Map -> Execution bridge candidate
 
@@ -264,35 +279,50 @@ RECLAIM
 docs/design/EXECUTION_ENGINE_DESIGN.md
 docs/design/EXECUTION_STATE_MACHINE.md
 docs/design/EXECUTION_DEFAULTS.md
+docs/design/MOMENTUM_TURN_ENGINE.md
+docs/design/RSI_STATE_ENGINE.md
+docs/design/PARTICIPATION_ENGINE.md
 docs/design/MARKET_MAP_EXECUTION_BRIDGE.md
 docs/design/SUITE_INTEGRATION_CONTRACT.md
 docs/design/RUNTIME_TOPOLOGY.md
 docs/testing/EXECUTION_VALIDATION_PLAN.md
+docs/testing/EXECUTION_EVIDENCE_RESEARCH_PLAN.md
 
 tools/execution_state_reference.py
 tools/test_execution_state_reference.py
 tools/market_execution_bridge_reference.py
 tools/test_market_execution_bridge_reference.py
+tools/momentum_turn_reference.py
+tools/test_momentum_turn_reference.py
+tools/rsi_state_reference.py
+tools/test_rsi_state_reference.py
+tools/participation_reference.py
+tools/test_participation_reference.py
 tools/check_suite_semantics.py
+tools/check_execution_research_defaults.py
+
 manifests/suite-semantics-v1.json
+manifests/execution-research-defaults-v1.json
 ```
 
 ### Exact next independent Execution task
 
-Until MM-0 real-chart evidence arrives:
+The three reload-safe evidence-engine candidates now exist and pass reference tests.
 
-> Research and define the clean-room **Momentum Turn Engine** candidate without creating production `execution.pine`.
+While Issue #14 prepares Binance data:
 
-Use legacy Moving Average Shift and relevant donor scripts as evidence, not authority.
+> Keep production `execution.pine` blocked. Do not numerically optimize MTE-A/RSE-A/PSE-A without market data.
 
-Do not freeze old SMA40 / osc15 / percentile500 / 97.5 / smooth10 values merely because they existed.
+The historical research questions are pre-registered in:
 
-The goal is a normalized momentum-turn formula that:
-- behaves comparably across BTC/ETH/AVAX;
-- exposes turn / acceleration / deceleration;
-- has honest warmup;
-- has minimal/no operator tuning;
-- can later be validated on BTC 15m/1H/4H.
+`docs/testing/EXECUTION_EVIDENCE_RESEARCH_PLAN.md`
+
+Next useful engineering before data arrives may focus on:
+- Execution lower-pane renderer contract / one-glance UX;
+- report/analyzer glue that does not duplicate Issue #14's downloader work;
+- shared-kernel/code-generation architecture needed later for Market Map's embedded Decision Panel.
+
+When Issue #14 lands, historical evidence takes priority over further formula invention.
 
 ---
 
@@ -319,7 +349,7 @@ Scope:
 The delegated thread must not modify Market Map/Execution semantics.
 
 If this main chat is active while Issue #14 is being handled elsewhere:
-- continue Momentum Turn / Execution research here
+- continue Execution architecture/UX research here without retuning the evidence formulas
 - consume the data-pipeline PR/artifacts only when they are ready
 - do not duplicate the downloader work in this thread
 
@@ -350,9 +380,9 @@ Resume like this:
 
 1. verify PR #10 and PR #12 heads/status;
 2. read any commits newer than the SHAs recorded above;
-3. if the operator has brought the requested CSVs, prioritize MM-0 historical/reload validation;
-4. otherwise continue Momentum Turn research on PR #12;
-5. do not create production Execution Pine until the MM-0 interface/contract is stable enough;
+3. if Issue #14 data artifacts are ready, prioritize offline MM-0 + Execution evidence validation;
+4. otherwise continue non-numeric Execution architecture/UX research on PR #12;
+5. do not create production Execution Pine until MM-0 and the evidence candidates have enough historical validation;
 6. update this handoff whenever the exact next discriminant changes.
 
 The project should continue from here without requiring the operator to re-explain the methodology, product goal or prior decisions.
