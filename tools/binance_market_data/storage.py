@@ -104,9 +104,9 @@ def build_manifest(
         for r in anomalous_close_rows[:100]
     ]
     status = "ok"
-    if conflicts or discontinuities:
+    if conflicts:
         status = "invalid"
-    elif missing_files or gaps or anomalous_close_rows or checksum_counts.get("missing", 0):
+    elif missing_files or gaps or discontinuities or anomalous_close_rows or checksum_counts.get("missing", 0):
         status = "ok_with_findings"
     return {
         "pipeline_version": PIPELINE_VERSION,
@@ -123,6 +123,7 @@ def build_manifest(
         "conflicting_duplicates": list(conflicts),
         "gaps_found": len(gaps),
         "gaps": list(gaps),
+        "open_time_discontinuities_found": len(discontinuities),
         "unexpected_discontinuities": list(discontinuities),
         "close_time_conventions": dict(sorted(close_time_conventions.items())),
         "close_time_anomalies_found": len(anomalous_close_rows),
