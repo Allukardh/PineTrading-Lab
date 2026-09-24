@@ -259,6 +259,20 @@ def analyze(path: Path) -> dict:
         invalidation = _value(data, row, "invalidation")
         confluence = _intish(_value(data, row, "confluence"))
 
+        if confirmed:
+            if map_dir not in {-1, 0, 1}:
+                pathology["invalid_map_dir"] += 1
+            if model_code not in MODEL_NAMES:
+                pathology["unknown_model_code"] += 1
+            if confluence is not None and not 0 <= confluence <= 6:
+                pathology["invalid_confluence_count"] += 1
+            if model_code in {2, 4} and _intish(_value(data, row, "samples")) is not None and _intish(_value(data, row, "samples")) < 5:
+                pathology["adaptive_model_below_min_samples"] += 1
+            if model_code in {1, 3} and (_intish(_value(data, row, "samples")) or 0) >= 5:
+                pathology["fib_model_despite_adaptive_samples"] += 1
+            if map_dir == 0 and (destination is not None or corr_top is not None or corr_bottom is not None):
+                pathology["directionless_map_has_directional_geometry"] += 1
+
         new_thesis = _flag(_value(data, row, "new_thesis"))
         zone_touch = _flag(_value(data, row, "zone_touch"))
         zone_to_dest = _flag(_value(data, row, "zone_to_dest"))
@@ -417,11 +431,11 @@ def compare_reload(before: Path, after: Path) -> dict:
 
     ma = row_map(a)
     mb = row_map(b)
-    common_all = sorted(set(ma) & set(mb))
-    common = [
-        t for t in common_all
-        if _flag(_value(a, ma[t], "confirmed")) and _flag(_value(b, mb[t], "confirmed"))
-    ]
+    common = []
+    for i, row in enumerate(a.rows):
+        t = _cell(a, row, "time") or f"row:{i}"
+        if t in mb and _flag(_value(a, row, "confirmed")) and _flag(_value(b, mb[t], "confirmed")):
+            common.append(t)
 
     mismatches = Counter()
     examples: dict[str, list[dict]] = defaultdict(list)
@@ -449,6 +463,83 @@ def compare_reload(before: Path, after: Path) -> dict:
         "examples": dict(examples),
         "pass": not mismatches,
     }
+
+
+def aggregate_reports(reports: Sequence[dict]) -> dict:
+    totals = Counter()
+    aggregate_pathologies = Counter()
+    review_flags: list[str] = []
+
+    direction = Counter()
+    touch_models = Counter()
+    resolved_dest = 0
+    resolved_inv = 0
+
+    for report in reports:
+        totals.update(report["counts"])
+        aggregate_pathologies.update(report["pathologies"])
+        direction.update(report["direction_theses"])
+        touch_models.update(report["touch_models"])
+        resolved_dest += report["counts"]["destination_outcomes"]
+        resolved_inv += report["counts"]["invalidation_outcomes"]
+
+        c = report["counts"]
+        r = report["rates"]
+        if c["resolved_non_ambiguous"] < 10:
+            review_flags.append(f"{report['file']}: small resolved sample ({c['resolved_non_ambiguous']})")
+        touch_pct = r["theses_with_zone_touch_pct"]
+        if touch_pct is not None and (touch_pct < 5.0 or touch_pct > 95.0):
+            review_flags.append(f"{report['file']}: extreme zone-touch rate ({touch_pct:.1f}%)")
+        amb_pct = r["ambiguous_pct_of_touches"]
+        if amb_pct is not None and amb_pct > 25.0:
+            review_flags.append(f"{report['file']}: high OHLC ambiguity share ({amb_pct:.1f}%)")
+        if c["zone_touches"] >= 20:
+            adaptive_touches = (
+                report["touch_models"].get("ADAPT", 0)
+                + report["touch_models"].get("LIVE/ADAPT", 0)
+            )
+            if adaptive_touches == 0:
+                review_flags.append(f"{report['file']}: no adaptive-zone touches despite {c['zone_touches']} touches")
+
+        width_med = report["distributions"]["zone_width_atr"]["median"]
+        if width_med is not None and width_med > 2.0:
+            review_flags.append(f"{report['file']}: median correction-zone width is broad ({width_med:.2f} ATR)")
+
+    resolved = resolved_dest + resolved_inv
+    return {
+        "files": len(reports),
+        "counts": dict(totals),
+        "direction_theses": dict(direction),
+        "touch_models": dict(touch_models),
+        "zone_to_destination_pct_resolved": (100.0 * resolved_dest / resolved) if resolved else None,
+        "pathologies": dict(aggregate_pathologies),
+        "hard_pass": not aggregate_pathologies,
+        "review_flags": review_flags,
+    }
+
+
+def print_aggregate(aggregate: dict) -> None:
+    print("\n=== AGGREGATE ===")
+    print(f"Files: {aggregate['files']}")
+    c = aggregate["counts"]
+    print(
+        f"Theses: {c.get('theses', 0)} | touches: {c.get('zone_touches', 0)} | "
+        f"resolved: {c.get('resolved_non_ambiguous', 0)} | ambiguous: {c.get('ambiguous', 0)}"
+    )
+    pct = aggregate["zone_to_destination_pct_resolved"]
+    print(f"Zone -> destination among resolved: {'n/a' if pct is None else f'{pct:.1f}%'}")
+    print(f"Directions: {aggregate['direction_theses']}")
+    print(f"Touch models: {aggregate['touch_models']}")
+    if aggregate["pathologies"]:
+        print(f"HARD FAIL pathologies: {aggregate['pathologies']}")
+    else:
+        print("Hard structural checks: PASS")
+    if aggregate["review_flags"]:
+        print("Review flags:")
+        for flag in aggregate["review_flags"]:
+            print(f"  - {flag}")
+    else:
+        print("Review flags: none")
 
 
 def print_report(report: dict) -> None:
@@ -517,7 +608,11 @@ def main() -> int:
         reports.append(report)
         print_report(report)
 
-    output = {"reports": reports}
+    aggregate = aggregate_reports(reports)
+    if len(reports) > 1:
+        print_aggregate(aggregate)
+
+    output = {"reports": reports, "aggregate": aggregate}
     if args.json:
         args.json.write_text(json.dumps(output, indent=2, ensure_ascii=False), encoding="utf-8")
         print(f"\nJSON report written to {args.json}")
