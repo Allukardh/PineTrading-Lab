@@ -481,6 +481,40 @@ Reusable future-project template: `docs/PROJECT_CONTINUITY_STANDARD.md`. This pr
 
 ---
 
+
+### 2026-09-24 — MM-0 lifecycle diagnosis corrects audit semantics, not trading parameters
+
+The lifecycle/parity investigation decomposed the previous high ambiguity share instead of tuning MM-0 from aggregate percentages.
+
+It found a real historical-audit defect:
+- the validator could freeze a previous destination that had become inside/behind the current LIVE/adaptive correction zone;
+- every same-touch outcome was treated as ambiguous even when candle open + level topology proved the zone had to precede the destination.
+
+Pine telemetry and the offline kernel were corrected in parity. No user-facing Market Map destination/correction rule was retuned.
+
+Corrected six-timeframe evidence:
+- 45,694 theses;
+- 32,550 touches;
+- 8,208 destination outcomes;
+- 1,055 invalidation outcomes;
+- 1,121 ambiguous outcomes;
+- 22,163 superseded/censored;
+- 3 open;
+- 100% accounting;
+- zero structural pathologies.
+
+The ambiguity share fell from 14.05% to 3.44% because the audit stopped:
+- counting stale targets inside/behind the zone as future destinations; and
+- discarding same-bar zone->target sequences whose order is mathematically inferable.
+
+Supersession remains high, but representative same-direction cases do not demonstrate a LIVE->confirmed thesis-identity defect. Identity remains anchored to impulse origin + direction.
+
+Causal consequence:
+- do not tune MM-0 engine parameters from the old lifecycle aggregates;
+- the lifecycle blocker is considered resolved at the audit/semantics level;
+- next work is branch reconciliation plus a minimal targeted TradingView visual/reload parity gate before MM-0 promotion.
+
+
 ## 9. Current continuation checkpoint
 
 The exact volatile checkpoint belongs in:
