@@ -110,6 +110,9 @@ def run_dataset(*, cfg: dict, symbol_cfg: dict, timeframe: str, data_root: Path,
         "last_date": manifest["last_date"],
         "duplicates_found": duplicate_count,
         "gaps_found": len(gaps),
+        "close_time_conventions": manifest["close_time_conventions"],
+        "close_time_anomalies_found": manifest["close_time_anomalies_found"],
+        "close_time_anomaly_samples": manifest["close_time_anomaly_samples"],
         "files_missing": missing_files,
         "checksum_status": manifest["checksum_status"],
         "dataset_sha256": manifest["dataset_sha256"],
@@ -142,8 +145,9 @@ def run_config(config_path: Path, data_root: Path) -> dict:
                 key: manifest.get(key)
                 for key in (
                     "symbol", "market", "timeframe", "first_date", "last_date", "candles",
-                    "source_file_count", "duplicates_found", "gaps_found", "files_missing",
-                    "checksum_status", "dataset_sha256", "final_size_bytes", "status", "output_file",
+                    "source_file_count", "duplicates_found", "gaps_found", "close_time_conventions",
+                    "close_time_anomalies_found", "files_missing", "checksum_status", "dataset_sha256",
+                    "final_size_bytes", "status", "output_file",
                 )
             })
     if len(cfg["symbols"]) == 1:
