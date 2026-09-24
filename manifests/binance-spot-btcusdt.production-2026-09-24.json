@@ -1,0 +1,178 @@
+{
+  "materialization": {
+    "date_utc": "2026-09-24",
+    "github_actions_run_id": 36006762328,
+    "github_actions_run_url": "https://github.com/Allukardh/PineTrading-Lab/actions/runs/36006762328",
+    "source_branch": "infra/binance-market-data",
+    "source_head_sha": "eff420c7823e7e32e8317433ac61bd1e21d1914b",
+    "pipeline_version": "0.1.2",
+    "schema_version": "binance-spot-kline-v1",
+    "total_candles": 420144,
+    "total_source_files": 651,
+    "total_verified_checksums": 651,
+    "total_checksum_missing": 0,
+    "total_checksum_mismatch": 0,
+    "total_duplicates": 0,
+    "consolidated_size_bytes": 42074123,
+    "raw_bundle_size_bytes": 25077760
+  },
+  "drive": {
+    "root_folder_id": "1iX6XQW9gjaYRfYN7PShMLx-ZqQQ-VttX",
+    "raw_bundle": {
+      "id": "1QWuJ9_zWDNFSEhNUwmibTrZRIBzhgRcW",
+      "file": "BTCUSDT_raw_monthly.tar",
+      "size_bytes": 25077760
+    },
+    "manifests_bundle": {
+      "id": "1DqXSH_TL05S3zCG6SNg6m9CwCr6lmWAZ",
+      "file": "BTCUSDT_manifests.tar",
+      "size_bytes": 256000
+    },
+    "reports_bundle": {
+      "id": "1izcVMZHc8wFoL0O7PHZN2QG7SNUD0IIt",
+      "file": "BTCUSDT_reports.tar",
+      "size_bytes": 30720
+    }
+  },
+  "market": "spot",
+  "symbol": "BTCUSDT",
+  "datasets": [
+    {
+      "timeframe": "15m",
+      "first_date": "2017-08-17T04:00:00Z",
+      "last_date": "2026-08-31T23:45:00Z",
+      "candles": 316414,
+      "source_file_count": 109,
+      "duplicates_found": 0,
+      "gaps_found": 30,
+      "open_time_discontinuities_found": 2,
+      "close_time_anomalies_found": 15,
+      "timestamp_epoch_anomalies_found": 0,
+      "files_missing": [],
+      "checksum_status": {
+        "verified": 109,
+        "missing": 0,
+        "mismatch": 0
+      },
+      "dataset_sha256": "cac347638b577b2bcfcd671f66a68af96edb49c614c4dc203d7dc8ea3fb48411",
+      "final_size_bytes": 30094824,
+      "drive_file_id": "1r78NY1v8VcppvJ04ughlNc0nOEmd4ukl",
+      "status": "ok_with_findings"
+    },
+    {
+      "timeframe": "1h",
+      "first_date": "2017-08-17T04:00:00Z",
+      "last_date": "2026-08-31T23:00:00Z",
+      "candles": 79117,
+      "source_file_count": 109,
+      "duplicates_found": 0,
+      "gaps_found": 27,
+      "open_time_discontinuities_found": 2,
+      "close_time_anomalies_found": 14,
+      "timestamp_epoch_anomalies_found": 0,
+      "files_missing": [],
+      "checksum_status": {
+        "verified": 109,
+        "missing": 0,
+        "mismatch": 0
+      },
+      "dataset_sha256": "86f2f12b66979d2e0659b44b95b584ec5140050770acce58e6c4643c9b409776",
+      "final_size_bytes": 9065156,
+      "drive_file_id": "1moilAqPlFo3791a7bTWQE00s-koQTCm2",
+      "status": "ok_with_findings"
+    },
+    {
+      "timeframe": "4h",
+      "first_date": "2017-08-17T04:00:00Z",
+      "last_date": "2026-08-31T20:00:00Z",
+      "candles": 19794,
+      "source_file_count": 109,
+      "duplicates_found": 0,
+      "gaps_found": 9,
+      "open_time_discontinuities_found": 0,
+      "close_time_anomalies_found": 18,
+      "timestamp_epoch_anomalies_found": 0,
+      "files_missing": [],
+      "checksum_status": {
+        "verified": 109,
+        "missing": 0,
+        "mismatch": 0
+      },
+      "dataset_sha256": "93226923a88861cc56d11d82900801db7f64fbe89920c710843dc26673265e06",
+      "final_size_bytes": 2314969,
+      "drive_file_id": "1UbSzypSTUAUfPI6LonMkbkHOi3la_lBo",
+      "status": "ok_with_findings"
+    },
+    {
+      "timeframe": "1d",
+      "first_date": "2017-08-17T00:00:00Z",
+      "last_date": "2026-08-31T00:00:00Z",
+      "candles": 3302,
+      "source_file_count": 109,
+      "duplicates_found": 0,
+      "gaps_found": 0,
+      "open_time_discontinuities_found": 0,
+      "close_time_anomalies_found": 0,
+      "timestamp_epoch_anomalies_found": 0,
+      "files_missing": [],
+      "checksum_status": {
+        "verified": 109,
+        "missing": 0,
+        "mismatch": 0
+      },
+      "dataset_sha256": "1788d075ad21091e279cb68ccfac79935149ca9c444a74dbc971bba00e15fdae",
+      "final_size_bytes": 406797,
+      "drive_file_id": "1Q0Zvmbn3x6MO3GGmB8zExXAqG9p1VnfL",
+      "status": "ok"
+    },
+    {
+      "timeframe": "3d",
+      "first_date": "2017-08-17T00:00:00Z",
+      "last_date": "2026-07-01T00:00:00Z",
+      "candles": 1061,
+      "source_file_count": 108,
+      "duplicates_found": 0,
+      "gaps_found": 12,
+      "open_time_discontinuities_found": 0,
+      "close_time_anomalies_found": 0,
+      "timestamp_epoch_anomalies_found": 10,
+      "files_missing": [
+        "BTCUSDT-3d-2026-08.zip"
+      ],
+      "checksum_status": {
+        "verified": 108,
+        "missing": 0,
+        "mismatch": 0
+      },
+      "dataset_sha256": "e4228da434e9131ae2353147181069d119bc0ef373ec4b93effc5c1dcf9a39d9",
+      "final_size_bytes": 132181,
+      "drive_file_id": "1u0cTA19g0s1ojxGyI3jkmW7Zlk_c-sUU",
+      "status": "ok_with_findings"
+    },
+    {
+      "timeframe": "1w",
+      "first_date": "2017-08-14T00:00:00Z",
+      "last_date": "2026-06-29T00:00:00Z",
+      "candles": 456,
+      "source_file_count": 107,
+      "duplicates_found": 0,
+      "gaps_found": 8,
+      "open_time_discontinuities_found": 0,
+      "close_time_anomalies_found": 0,
+      "timestamp_epoch_anomalies_found": 6,
+      "files_missing": [
+        "BTCUSDT-1w-2026-07.zip",
+        "BTCUSDT-1w-2026-08.zip"
+      ],
+      "checksum_status": {
+        "verified": 107,
+        "missing": 0,
+        "mismatch": 0
+      },
+      "dataset_sha256": "960de3600ea7ab8651ec2dbaa51d204e05fce19127eb53bb24fcd59dd010ac46",
+      "final_size_bytes": 60196,
+      "drive_file_id": "1E1b8x1Imxprx_YyyHWN4Vin8mZgnntB_",
+      "status": "ok_with_findings"
+    }
+  ]
+}
