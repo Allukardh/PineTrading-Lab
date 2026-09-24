@@ -281,3 +281,119 @@ The next evidence gate remains:
 4. only if a semantic defect is demonstrated should MM-0 logic change;
 5. then request a small, targeted TradingView parity set for the specific states that cannot be proven offline.
 
+
+
+## Lifecycle diagnosis — ambiguity decomposition and audit correction
+
+The lifecycle gate was expanded before any MM-0 parameter tuning.
+
+Diagnostic tooling first decomposed the previous 4,574 ambiguous outcomes by timing and geometry.
+
+Before the correction:
+- same-touch ambiguity: **4,571 / 4,574**
+- post-touch both-bounds ambiguity: **3 / 4,574**
+- same-touch cases whose open/geometry proved zone-before-target: **2,553**
+- frozen targets already inside the current correction zone: **769**
+- frozen targets already behind the current correction zone: **108**
+- genuinely unordered same-touch target cases: **1,108**
+
+The inside/behind cases exposed a real **audit-semantic defect** rather than a Market Map target/display defect.
+
+At first correction-zone touch, the historical telemetry froze the prior bar's destination whenever direction was unchanged. Under LIVE/adaptive geometry, that prior liquidity target can become stale relative to the current correction zone. The UI/current destination may already be valid while the audit still evaluates an obsolete prior target.
+
+The audit contract was corrected in Pine and the offline kernel:
+
+1. a previous target is frozen only if it remains directionally **beyond the current correction zone**;
+2. otherwise the current destination is used only if it is beyond the zone;
+3. if neither is valid, the audit target is left absent rather than fabricating a post-correction destination;
+4. a same-touch destination is no longer automatically ambiguous when candle open + level topology prove that the correction zone had to be touched before the destination;
+5. genuinely unordered same-touch cases remain ambiguous;
+6. destination + invalidation on the same candle remains ambiguous.
+
+No correction ratio, pivot length, ATR tolerance, LIVE impulse rule, destination ladder rule or user-facing trading semantic was tuned.
+
+### Corrected six-timeframe evidence
+
+Offline evidence run:
+
+`36068967348`
+
+Evidence commit:
+
+`151518a5965fd07cd1051917a355e1df1f29164c`
+
+Machine-readable evidence artifact:
+
+`mm0-evidence.json` — SHA-256 `5c51309699a39dd864f971794296c0a65baa2d093f94c2e735f859a308d95f13`
+
+Pine audit-semantic parity fix:
+
+`26e7e821706ecdb687d9b6d23e53b70632ace8b2`
+
+Pine compile:
+
+`36068992937` — **PASS**
+
+Final repository/static gate after updating regression invariants:
+
+`36069062578` — **PASS**
+
+Corrected aggregate:
+
+- theses: **45,694** unchanged
+- first correction-zone touches: **32,550** unchanged
+- destination outcomes: **8,208**
+- invalidation outcomes: **1,055**
+- non-ambiguous resolved: **9,263**
+- ambiguous: **1,121**
+- superseded/censored: **22,163**
+- open: **3**
+- touch accounting: **100%**
+- structural pathologies: **none**
+
+All-touch accounting now becomes:
+
+- destination: **25.22%**
+- invalidation: **3.24%**
+- ambiguous: **3.44%**
+- superseded/censored: **68.09%**
+- open: **0.01%**
+
+The ambiguity reduction from **4,574 -> 1,121** is not performance tuning. It removes:
+- audit targets that were no longer valid post-correction destinations; and
+- cases whose event order is logically inferable from the candle open + zone/target topology.
+
+The remaining same-touch ambiguity consists primarily of **1,108 genuinely unordered target cases**, plus three target-first-at-open cases and a handful of rows where the visible exported fields cannot independently reconstruct the original reason. Only **3** post-touch both-boundary ambiguity cases remain.
+
+### Supersession diagnosis
+
+After removing the audit ambiguity defect, supersession remains the dominant lifecycle outcome (**68.09% of touched theses**), but representative cases do not support a thesis-identity bug.
+
+Same-direction supersessions remain common because a new thesis uses a **new impulse origin**. The thesis key is already stable across LIVE -> confirmed-terminal-pivot evolution, so terminal confirmation does not create a new thesis by itself.
+
+Corrected transition counts:
+
+- LONG -> LONG: **8,533**
+- SHORT -> SHORT: **7,096**
+- LONG -> SHORT: **3,233**
+- SHORT -> LONG: **3,301**
+
+Supersession speed:
+
+- <=3 bars after touch: **5,998**
+- 4–10 bars: **10,402**
+- >10 bars: **5,763**
+
+Representative same-direction cases show either:
+- a genuinely new structural impulse origin; or
+- a period in which map/correction geometry becomes inactive before a later same-direction thesis appears.
+
+Therefore no thesis-identity or lifecycle rule is changed from aggregate supersession percentages.
+
+### Lifecycle-gate decision
+
+The proven defect was in **historical audit target freezing / ambiguity classification**, and it is corrected.
+
+The available evidence does **not** justify changing MM-0 trading semantics or tuning the engine.
+
+The next gate can move from aggregate lifecycle diagnosis to a **small targeted Pine/TradingView parity check** focused on the audit states that cannot be proven from the offline kernel alone.
