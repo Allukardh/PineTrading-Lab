@@ -1,6 +1,6 @@
 # Canonical State
 
-**Date:** 2026-09-23  
+**Date:** 2026-09-24  
 **Phase:** Trading Suite Architecture v1 — Market Map foundation  
 **Main baseline:** SignalGate Dashboard 0.1.0 accepted on `main`  
 **Active architecture:** Market Map + Execution + Decision Panel
@@ -24,6 +24,57 @@ The immutable TradingView extraction remains under `archive/`:
 - mode: `pine-facade / read-only`
 
 Never edit archived Pine files to represent new behavior.
+
+## Accepted historical market-data lab
+
+PR #15 / Issue #14 is **PROMOTED TO `main`** as the canonical offline historical-data infrastructure.
+
+Promotion merge:
+
+`bf132cf715aade528aa89b1b327566a964015609`
+
+Scope:
+- official Binance Public Data SPOT monthly klines only;
+- 15 symbols:
+  - BTCUSDT
+  - ETHUSDT
+  - AVAXUSDT
+  - DOGEUSDT
+  - DOTUSDT
+  - ADAUSDT
+  - XRPUSDT
+  - SOLUSDT
+  - UNIUSDT
+  - NEARUSDT
+  - AAVEUSDT
+  - HBARUSDT
+  - LINKUSDT
+  - SUIUSDT
+  - LTCUSDT
+- timeframes: 15m / 1h / 4h / 1d / 3d / 1w;
+- 90 consolidated Parquet datasets;
+- 4,849,829 candles;
+- 7,503 available official checksums verified;
+- 0 checksum mismatches;
+- one exact AVAXUSDT duplicate deterministically deduplicated and reported;
+- expected-but-missing Binance monthly objects remain explicit findings; no candles are synthesized.
+
+Final PR gate:
+- Market data pipeline: PASS — 21/21 tests;
+- Static integrity: PASS;
+- timestamp precision transition regression: PASS;
+- missing-archive idempotency regression: PASS.
+
+Canonical repository artifacts:
+- `configs/binance-spot-research-universe.json`
+- `docs/data/BINANCE_MARKET_DATA_PIPELINE.md`
+- `docs/data/GOOGLE_DRIVE_LAYOUT.md`
+- `manifests/binance-spot-btcusdt.production-2026-09-24.json`
+- `manifests/binance-spot-research-universe.production-2026-09-24.json`
+- `reports/binance-spot-btcusdt-materialization-2026-09-24.md`
+- `reports/binance-spot-research-universe-materialization-2026-09-24.md`
+
+The historical lab is evidence infrastructure only. It does not promote or alter Market Map / Execution trading semantics by itself.
 
 ## Accepted product direction
 
