@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Sequence
 
 from . import PIPELINE_VERSION, SCHEMA_VERSION
-from .core import INTERVAL_US, iso_utc_from_us, sha256_file, sha256_json
+from .core import INTERVAL_US, expected_timestamp_unit_for_us, iso_utc_from_us, sha256_file, sha256_json
 
 
 def source_fingerprint(source_files: Sequence[dict]) -> str:
@@ -103,10 +103,28 @@ def build_manifest(
         }
         for r in anomalous_close_rows[:100]
     ]
+    timestamp_units = Counter(r.get("source_timestamp_unit", "unknown") for r in rows)
+    timestamp_epoch_anomaly_rows = [
+        r for r in rows
+        if r.get("source_timestamp_unit") != expected_timestamp_unit_for_us(r["open_time_us"])
+    ]
+    timestamp_epoch_anomaly_samples = [
+        {
+            "open_time": iso_utc_from_us(r["open_time_us"]),
+            "open_time_raw": r["open_time_raw"],
+            "source_file": r["source_file"],
+            "observed_unit": r.get("source_timestamp_unit"),
+            "expected_unit": expected_timestamp_unit_for_us(r["open_time_us"]),
+        }
+        for r in timestamp_epoch_anomaly_rows[:100]
+    ]
     status = "ok"
     if conflicts:
         status = "invalid"
-    elif missing_files or gaps or discontinuities or anomalous_close_rows or checksum_counts.get("missing", 0):
+    elif (
+        missing_files or gaps or discontinuities or anomalous_close_rows
+        or timestamp_epoch_anomaly_rows or checksum_counts.get("missing", 0)
+    ):
         status = "ok_with_findings"
     return {
         "pipeline_version": PIPELINE_VERSION,
@@ -125,6 +143,9 @@ def build_manifest(
         "gaps": list(gaps),
         "open_time_discontinuities_found": len(discontinuities),
         "unexpected_discontinuities": list(discontinuities),
+        "timestamp_units": dict(sorted(timestamp_units.items())),
+        "timestamp_epoch_anomalies_found": len(timestamp_epoch_anomaly_rows),
+        "timestamp_epoch_anomaly_samples": timestamp_epoch_anomaly_samples,
         "close_time_conventions": dict(sorted(close_time_conventions.items())),
         "close_time_anomalies_found": len(anomalous_close_rows),
         "close_time_anomaly_samples": close_time_anomaly_samples,
