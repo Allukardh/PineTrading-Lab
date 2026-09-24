@@ -96,6 +96,23 @@ class AnalyzerTests(unittest.TestCase):
             self.assertEqual(report["touch_models"], {"LIVE/ADAPT": 1, "ADAPT": 1, "FIB": 1})
             self.assertEqual(report["pathologies"], {})
 
+    def test_aggregate_reports(self):
+        with tempfile.TemporaryDirectory() as td:
+            a = Path(td) / "a.csv"
+            b = Path(td) / "b.csv"
+            self.write_csv(a)
+            self.write_csv(b)
+            ra = mm.analyze(a)
+            rb = mm.analyze(b)
+            agg = mm.aggregate_reports([ra, rb])
+
+            self.assertEqual(agg["files"], 2)
+            self.assertEqual(agg["counts"]["theses"], 6)
+            self.assertEqual(agg["counts"]["zone_touches"], 6)
+            self.assertAlmostEqual(agg["zone_to_destination_pct_resolved"], 50.0)
+            self.assertTrue(agg["hard_pass"])
+            self.assertEqual(agg["pathologies"], {})
+
     def test_reload_compare_pass_and_fail(self):
         with tempfile.TemporaryDirectory() as td:
             a = Path(td) / "before.csv"
