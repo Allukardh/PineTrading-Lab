@@ -737,11 +737,14 @@ var int diagInvalidations = 0
 var int diagZoneToDestination = 0
 var int diagZoneToInvalidation = 0
 var int diagAmbiguousOutcomes = 0
+var int diagSupersededAfterTouch = 0
 var int diagOutcomeBarsSum = 0
 var int diagOutcomeBarsCount = 0
 
 bool diagNewThesis = barstate.isconfirmed and correctionReady and not na(impulseKey) and impulseKey != diagTrackedKey
 if diagNewThesis
+    if diagZoneTouched and not diagOutcomeResolved
+        diagSupersededAfterTouch += 1
     diagTrackedKey := impulseKey
     diagTrackedDir := mapDir
     diagTrackedDestination := na
@@ -814,7 +817,7 @@ if diagInvalidationCondition
         diagOutcomeBarsCount += 1
 
 float diagResolvedAfterZone = diagZoneToDestination + diagZoneToInvalidation
-float diagOpenAfterZone = math.max(0, diagZoneTouches - diagResolvedAfterZone - diagAmbiguousOutcomes)
+float diagOpenAfterZone = math.max(0, diagZoneTouches - diagResolvedAfterZone - diagAmbiguousOutcomes - diagSupersededAfterTouch)
 float diagZoneTouchPct = diagTheses > 0 ? 100.0 * diagZoneTouches / diagTheses : na
 float diagAvgBarsToOutcome = diagOutcomeBarsCount > 0 ? 1.0 * diagOutcomeBarsSum / diagOutcomeBarsCount : na
 float diagZoneReactionPct = diagResolvedAfterZone > 0 ? 100.0 * diagZoneToDestination / diagResolvedAfterZone : na
@@ -1002,10 +1005,11 @@ plot(diagTheses, "MM Hist • Teses", color=color.new(color.white, 100), display
 plot(diagZoneTouches, "MM Hist • Toques correção", color=color.new(color.white, 100), display=display.data_window)
 plot(diagZoneTouchPct, "MM Hist • Teses com toque %", color=color.new(color.white, 100), display=display.data_window)
 plot(diagDestinationHits, "MM Hist • Destinos pós-toque atingidos", color=color.new(color.white, 100), display=display.data_window)
-plot(diagInvalidations, "MM Hist • Invalidações", color=color.new(color.white, 100), display=display.data_window)
+plot(diagInvalidations, "MM Hist • Invalidações pós-toque", color=color.new(color.white, 100), display=display.data_window)
 plot(diagZoneToDestination, "MM Hist • Zona→Destino", color=color.new(color.white, 100), display=display.data_window)
 plot(diagZoneToInvalidation, "MM Hist • Zona→Invalidação", color=color.new(color.white, 100), display=display.data_window)
 plot(diagAmbiguousOutcomes, "MM Hist • Resultados ambíguos", color=color.new(color.white, 100), display=display.data_window)
+plot(diagSupersededAfterTouch, "MM Hist • Zona supersedida", color=color.new(color.white, 100), display=display.data_window)
 plot(diagOpenAfterZone, "MM Hist • Zona sem desfecho", color=color.new(color.white, 100), display=display.data_window)
 plot(diagAvgBarsToOutcome, "MM Hist • Barras toque→desfecho", color=color.new(color.white, 100), display=display.data_window)
 plot(diagZoneReactionPct, "MM Hist • Zona→Destino % (engenharia)", color=color.new(color.white, 100), display=display.data_window)
