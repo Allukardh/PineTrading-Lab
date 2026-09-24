@@ -20,3 +20,5 @@ jobs:
           python-version: "3.12"
       - name: Validate archive and reboot invariants
         run: python tools/check_repo_integrity.py
+      - name: Test Market Map export analyzer
+        run: python tools/test_analyze_market_map_export.py
