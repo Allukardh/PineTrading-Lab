@@ -24,5 +24,7 @@ jobs:
         run: python -m unittest tools/test_execution_state_reference.py
       - name: Test Market Map to Execution bridge
         run: python -m unittest tools/test_market_execution_bridge_reference.py
+      - name: Test Momentum Turn MTE-A reference
+        run: python -m unittest tools/test_momentum_turn_reference.py
       - name: Validate suite semantic contract
         run: python tools/check_suite_semantics.py
