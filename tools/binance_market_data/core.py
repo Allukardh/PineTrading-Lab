@@ -198,21 +198,26 @@ def parse_kline_row(row: Sequence[str], *, source_file: str) -> dict:
     }
 
 
-def validate_candle_duration(record: dict, timeframe: str) -> None:
+def validate_candle_duration(record: dict, timeframe: str) -> str:
+    """Classify native Binance close-time convention without rewriting source data.
+
+    The candle grid is validated separately from open_time. Historical SPOT archives
+    contain verified candles that close one native tick before the next boundary,
+    exactly on the boundary, or earlier than the nominal boundary. Those source
+    variations are preserved and surfaced in manifests instead of being fabricated
+    into a uniform close_time.
+    """
     expected = INTERVAL_US[timeframe]
     unit_tick = 1000 if record["source_timestamp_unit"] == "ms" else 1
-    # Most Binance klines close one native tick before the next interval boundary.
-    # Legacy SPOT archives also contain verified rows whose close_time is exactly
-    # the next boundary. Preserve either native convention; reject anything else.
-    allowed_closes = {
-        record["open_time_us"] + expected - unit_tick,
-        record["open_time_us"] + expected,
-    }
-    if record["close_time_us"] not in allowed_closes:
-        expected_text = ",".join(str(x) for x in sorted(allowed_closes))
-        raise DataValidationError(
-            f"{record['source_file']}: unexpected close_time for {timeframe}: "
-            f"open={record['open_time_us']} close={record['close_time_us']} allowed={expected_text}"
-        )
+    boundary = record["open_time_us"] + expected
+    close_time = record["close_time_us"]
+
+    if close_time == boundary - unit_tick:
+        return "boundary_minus_tick"
+    if close_time == boundary:
+        return "exact_boundary"
+    if close_time < boundary:
+        return "early_close"
+    return "overrun"
 
 
