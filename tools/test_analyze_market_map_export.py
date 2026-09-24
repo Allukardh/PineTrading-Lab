@@ -94,6 +94,10 @@ class AnalyzerTests(unittest.TestCase):
             self.assertEqual(report["counts"]["ambiguous"], 1)
             self.assertEqual(report["ambiguous_timing"], {"SAME_TOUCH": 1})
             self.assertEqual(report["ambiguous_timing_by_model"]["FIB"], {"SAME_TOUCH": 1})
+            amb = report["lifecycle_examples"]["ambiguity"]["SAME_TOUCH|FIB|LONG"][0]
+            self.assertEqual(amb["reason_from_visible_row"], "TARGET")
+            self.assertEqual(amb["frozen_target"], 108)
+            self.assertEqual(amb["bars_from_touch"], 0)
             self.assertAlmostEqual(report["rates"]["zone_to_destination_pct_resolved"], 50.0)
             self.assertAlmostEqual(report["rates"]["resolved_non_ambiguous_pct_of_touches"], 200.0 / 3.0)
             self.assertAlmostEqual(report["rates"]["destination_pct_of_touches"], 100.0 / 3.0)
@@ -144,6 +148,12 @@ class AnalyzerTests(unittest.TestCase):
             self.assertEqual(report["supersession_transitions"], {"LONG->LONG": 1})
             self.assertEqual(report["superseded_touch_models"], {"LIVE/ADAPT": 1})
             self.assertEqual(report["distributions"]["bars_touch_to_supersession"]["median"], 1.0)
+            sup = report["lifecycle_examples"]["supersession"]["LONG->LONG|LIVE/ADAPT|LE3"][0]
+            self.assertEqual(sup["transition"], "LONG->LONG")
+            self.assertEqual(sup["prior_model"], "LIVE/ADAPT")
+            self.assertEqual(sup["bars_touch_to_supersession"], 1)
+            self.assertEqual(sup["touch"]["time"], "2026-01-01 01:00")
+            self.assertEqual(sup["new_thesis"]["time"], "2026-01-01 02:00")
             self.assertEqual(report["pathologies"], {})
 
     def test_post_touch_ambiguity_is_classified_separately(self):
@@ -161,6 +171,10 @@ class AnalyzerTests(unittest.TestCase):
                 report["ambiguous_timing_by_model"]["LIVE/ADAPT"],
                 {"POST_TOUCH_BOTH_BOUNDS": 1},
             )
+            amb = report["lifecycle_examples"]["ambiguity"]["POST_TOUCH_BOTH_BOUNDS|LIVE/ADAPT|LONG"][0]
+            self.assertEqual(amb["bars_from_touch"], 1)
+            self.assertEqual(amb["touch"]["time"], "2026-01-01 01:00")
+            self.assertEqual(amb["event"]["time"], "2026-01-01 02:00")
 
     def test_reload_compare_pass_and_fail(self):
         with tempfile.TemporaryDirectory() as td:
