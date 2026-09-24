@@ -166,3 +166,118 @@ Do not tune correction ratios, ATR tolerances, pivot length, LIVE rules or targe
 The next gate is **lifecycle/parity diagnosis**, led by the high supersession share and model-specific LIVE ambiguity.
 
 Only after that gate should the project decide whether MM-0 semantics need adjustment or whether these are honest censoring/observability characteristics of the map.
+
+
+## 3D / 1W robustness extension
+
+The Pine timeframe contract was verified before extending the offline matrix.
+
+For chart timeframes above 1D, MM-0 uses:
+
+`contextTf = timeframe.period`
+
+Therefore:
+- 3D uses current 3D state as its context rather than inventing a higher timeframe;
+- 1W uses current 1W state as its context;
+- PDH/PDL are disabled above 1D, matching `dayLevelsAllowed = chartSec <= tfDSec`;
+- PWH/PWL remain available through 1W.
+
+The offline kernel was extended to reproduce those rules explicitly and regression-test them.
+
+Robustness workflow run:
+
+`36039959727`
+
+Evidence head:
+
+`8b4390462d36e2219249b86f11813df0d77b3fcd`
+
+Artifacts:
+- `mm0-evidence.json` — SHA-256 `86591c85cf6b6a09d93a221ae7d3000ac1db1069a48af76ec76fe4ead9a90146`
+- `mm0-materialization.json` — SHA-256 `edde04d3b3b99e444c07f9a14908dbe2058cb3db9f282cf875b93a50a741be5b`
+
+Additional canonical source:
+- 3D Parquet: 1,061 rows, SHA-256 `e4228da434e9131ae2353147181069d119bc0ef373ec4b93effc5c1dcf9a39d9`
+
+Generated robustness audits:
+- 3D audit SHA-256 `701b7a84ef69447eb8d004919d45d1cf589773a969ce2d11bec1c14cc48873f4`
+- 1W audit SHA-256 `8adb84fb9e1676cf2014d43ce3fb5a2ca43709f884f06c9ed6fe1778fe7bbfef`
+
+### 3D
+
+- theses: 96
+- touches: 63
+- destination: 12
+- invalidation: 2
+- ambiguous: 7
+- superseded/censored: 42
+- open: 0
+- structural pathologies: none
+
+All-touch accounting:
+- destination: 19.05%
+- invalidation: 3.17%
+- ambiguous: 11.11%
+- superseded/censored: 66.67%
+- resolved non-ambiguous: 22.22%
+
+### 1W
+
+- theses: 36
+- touches: 29
+- destination: 8
+- invalidation: 0
+- ambiguous: 7
+- superseded/censored: 14
+- open: 0
+- structural pathologies: none
+
+All-touch accounting:
+- destination: 27.59%
+- invalidation: 0.00%
+- ambiguous: 24.14%
+- superseded/censored: 48.28%
+- resolved non-ambiguous: 27.59%
+
+The 1W result has only **8 non-ambiguous resolved outcomes**. The analyzer correctly raises:
+
+`small resolved sample (8)`
+
+No statistical conclusion or parameter tuning is allowed from that weekly sample.
+
+### Six-timeframe aggregate
+
+Across 15m / 1h / 4h / 1d / 3d / 1w:
+
+- theses: **45,694**
+- touches: **32,550**
+- destination outcomes: **5,428**
+- invalidation outcomes: **1,041**
+- non-ambiguous resolved: **6,469**
+- ambiguous: **4,574**
+- superseded/censored: **21,504**
+- open: **3**
+- outcome accounting: **100%**
+- structural pathologies: **none**
+
+All-touch accounting:
+- destination: **16.68%**
+- invalidation: **3.20%**
+- ambiguous: **14.05%**
+- superseded/censored: **66.06%**
+- open: **0.01%**
+
+The robustness extension therefore does not materially change the initial interpretation. It strengthens the structural sanity result while preserving the same lifecycle concern: most touched theses are replaced before a non-ambiguous destination/invalidation outcome.
+
+## Next discriminant after robustness
+
+No correction ratio, pivot length, ATR tolerance, LIVE rule or target rule is changed from these aggregates.
+
+The next evidence gate remains:
+
+1. isolate representative LIVE/ADAPT ambiguous first-touch candles;
+2. isolate representative touched theses superseded before outcome;
+3. determine whether those cases are honest consequences of developing-impulse timing / OHLC observability or a thesis-identity/lifecycle defect;
+4. only if a semantic defect is demonstrated should MM-0 logic change;
+5. then request a small, targeted TradingView parity set for the specific states that cannot be proven offline.
+
