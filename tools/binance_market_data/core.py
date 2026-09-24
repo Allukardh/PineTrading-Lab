@@ -201,11 +201,18 @@ def parse_kline_row(row: Sequence[str], *, source_file: str) -> dict:
 def validate_candle_duration(record: dict, timeframe: str) -> None:
     expected = INTERVAL_US[timeframe]
     unit_tick = 1000 if record["source_timestamp_unit"] == "ms" else 1
-    expected_close = record["open_time_us"] + expected - unit_tick
-    if record["close_time_us"] != expected_close:
+    # Most Binance klines close one native tick before the next interval boundary.
+    # Legacy SPOT archives also contain verified rows whose close_time is exactly
+    # the next boundary. Preserve either native convention; reject anything else.
+    allowed_closes = {
+        record["open_time_us"] + expected - unit_tick,
+        record["open_time_us"] + expected,
+    }
+    if record["close_time_us"] not in allowed_closes:
+        expected_text = ",".join(str(x) for x in sorted(allowed_closes))
         raise DataValidationError(
             f"{record['source_file']}: unexpected close_time for {timeframe}: "
-            f"open={record['open_time_us']} close={record['close_time_us']} expected={expected_close}"
+            f"open={record['open_time_us']} close={record['close_time_us']} allowed={expected_text}"
         )
 
 

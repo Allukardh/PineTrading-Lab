@@ -91,7 +91,7 @@ Before consolidation the pipeline validates:
 - ZIP structure/integrity (`ZipFile.testzip`);
 - exactly one CSV payload per Binance monthly kline ZIP;
 - exact 12-column native kline schema;
-- timestamp magnitude/unit and close-time duration;
+- timestamp magnitude/unit and close-time duration, accepting both the normal `next boundary - one native tick` convention and verified legacy Binance rows that close exactly on the next boundary while preserving the native value;
 - numeric/finite OHLCV values;
 - non-negative trade count and volume fields;
 - OHLC ordering constraints;
@@ -140,4 +140,4 @@ Each final dataset manifest includes at least:
 
 ## Runtime limitation recorded for the delegated ChatGPT environment
 
-The delegated ChatGPT runtime used to implement Issue #14 could create the Google Drive hierarchy and modify GitHub, but its container could not resolve `data.binance.vision` by DNS. Consequently no BTCUSDT monthly ZIPs were downloaded and no production Parquet was fabricated in that runtime. The code/test/CI path is complete; materialization must occur in a network-capable local/CI environment using the one-command run above.
+The delegated ChatGPT container itself could not resolve `data.binance.vision` by DNS. Production materialization is therefore validated through a network-capable GitHub Actions job and remains reproducible locally with the one-command run above.

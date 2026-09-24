@@ -62,6 +62,14 @@ class CoreTests(unittest.TestCase):
         with self.assertRaises(DataValidationError):
             parse_kline_row(ROW_MS[:-1], source_file="bad.zip")
 
+    def test_legacy_exact_boundary_close_time_is_accepted(self):
+        legacy = list(ROW_MS)
+        legacy[0] = "1504712700000"
+        legacy[6] = "1504713600000"
+        row = parse_kline_row(legacy, source_file="BTCUSDT-15m-2017-09.zip")
+        from tools.binance_market_data.core import validate_candle_duration
+        validate_candle_duration(row, "15m")
+
     def test_checksum(self):
         with tempfile.TemporaryDirectory() as td:
             p = Path(td) / "x.zip"
