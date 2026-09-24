@@ -40,9 +40,9 @@ See:
 
 ## Continuity after a chat interruption
 
-The repository contains an explicit continuation system so a future chat does not need to reconstruct the project from old transcripts.
+The repository contains an explicit continuation system so a future chat does not need old transcripts to reconstruct either the engineering state **or the working method**.
 
-Resume in this order:
+Resume in this exact order:
 
 1. `README.md`
 2. `docs/CANONICAL_STATE.md`
@@ -50,8 +50,28 @@ Resume in this order:
 4. `docs/CHAT_HANDOFF.md`
 5. the active PR/branch documents named by the handoff
 
-`docs/CONTINUITY_LOG.md` preserves project reasoning and interaction methodology.  
-`docs/CHAT_HANDOFF.md` is the exact volatile resume point and must be updated whenever the active branch/gate/next discriminant changes.
+Roles:
+
+- `docs/CONTINUITY_LOG.md` is **slow memory**: causal history, product rationale, rejected routes and the operator/assistant working contract.
+- `docs/CHAT_HANDOFF.md` is **fast memory**: current refs, last durable result, in-flight work and the exact next atomic discriminant.
+
+### Write-ahead durability rule
+
+For any substantial engineering block whose interruption would force meaningful reconstruction, the **first durable action** is to update `docs/CHAT_HANDOFF.md` on `main` with a PREPARED checkpoint before the block starts.
+
+That checkpoint records:
+- current active branch/PR heads;
+- the last verified durable result;
+- the next atomic action;
+- expected workflow/artifact/evidence;
+- whether operator evidence is required;
+- recovery instructions if the chat dies mid-block.
+
+After a meaningful milestone, update the handoff again with the actual result and new next discriminant.
+
+If interruption occurs between those two checkpoints, the next chat compares the recorded refs with GitHub's actual refs/runs/artifacts and continues from the delta instead of repeating the previous analysis.
+
+`CONTINUITY_LOG.md` is updated only when causal history, methodology or product decisions change; it must not become a noisy per-commit journal.
 
 ## Repository layout
 
