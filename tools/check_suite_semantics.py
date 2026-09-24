@@ -50,6 +50,12 @@ def main() -> int:
     if map_dir != {"-1": "BAIXA", "0": "NEUTRO_TRANSICAO", "1": "ALTA"}:
         raise SystemExit(f"FAIL: invalid map_dir contract: {map_dir!r}")
 
+    rsi_context_dir = semantics.get("rsi_context_dir")
+    if rsi_context_dir != {"-1": "BEAR", "0": "NEUTRAL", "1": "BULL"}:
+        raise SystemExit(
+            f"FAIL: invalid rsi_context_dir contract: {rsi_context_dir!r}"
+        )
+
     labels = data.get("operator_labels_pt_br", {})
     readiness_labels = labels.get("readiness", {})
     strength_labels = labels.get("strength", {})
