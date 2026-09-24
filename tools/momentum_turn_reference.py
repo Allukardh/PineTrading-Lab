@@ -39,6 +39,7 @@ ACTIVITY_LEN = 20
 NEUTRAL_FACTOR = 0.15
 TURN_FACTOR = 0.50
 TURN_FLOOR = 0.02
+ACCEL_EPS = 1e-9
 
 
 @dataclass(frozen=True)
@@ -206,19 +207,24 @@ def calculate(bars: Sequence[Bar]) -> list[MomentumSample]:
         neutral_band = NEUTRAL_FACTOR * activity
         turn_band = max(TURN_FLOOR, TURN_FACTOR * accel_activity_value)
 
+        # Numerical sign noise around zero must not flip semantic states after
+        # price scaling/translation. This is an arithmetic epsilon, not a
+        # market threshold.
+        accel_semantic = 0.0 if abs(accel) <= ACCEL_EPS else accel
+
         if abs(value) <= neutral_band:
             state = Momentum.NEUTRAL
         elif value > 0.0:
-            if accel < -turn_band:
+            if accel_semantic < -turn_band:
                 state = Momentum.TURN_DOWN
-            elif accel < 0.0:
+            elif accel_semantic < 0.0:
                 state = Momentum.UP_DECEL
             else:
                 state = Momentum.UP_ACCEL
         else:
-            if accel > turn_band:
+            if accel_semantic > turn_band:
                 state = Momentum.TURN_UP
-            elif accel > 0.0:
+            elif accel_semantic > 0.0:
                 state = Momentum.DOWN_DECEL
             else:
                 state = Momentum.DOWN_ACCEL
