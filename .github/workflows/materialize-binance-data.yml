@@ -2,8 +2,7 @@ name: Materialize BTCUSDT market data
 
 on:
   workflow_dispatch:
-  push:
-    branches: ["infra/binance-market-data"]
+  pull_request:
     paths:
       - ".github/workflows/materialize-binance-data.yml"
 
