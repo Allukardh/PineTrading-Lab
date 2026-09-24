@@ -8,11 +8,11 @@
 
 PineTrading-Lab is not intended to become a collection of six independent indicators that the operator must mentally reconcile.
 
-The product goal is a **three-part trading suite** that reduces mechanical chart interpretation while preserving final human discretion:
+The product goal is **three logical layers delivered through two runtime indicators**, reducing mechanical chart interpretation while preserving final human discretion:
 
 1. **Market Map** — where price is, what regime/phase it is in, where structure/liquidity lives, and where a correction/retest is likely to react.
 2. **Execution** — whether momentum/participation currently supports acting on the map.
-3. **Decision Panel** — concise synthesis of Market Map + Execution into a small number of actionable states.
+3. **Decision Panel** — concise synthesis of Market Map + Execution into a small number of actionable states, embedded in Market Map rather than deployed as a third indicator.
 
 The suite supports a decision. It does not replace macro/news/political/context analysis and does not place trades.
 
@@ -29,6 +29,16 @@ Every visible output must help answer one of these questions:
 Any metric that does not materially improve one of these answers belongs under the hood or should be removed.
 
 ## 3. Final suite
+
+### Runtime topology
+
+The final operator surface is intentionally limited to **two TradingView indicators**:
+
+1. **Market Map overlay + embedded Decision Panel**
+2. **Execution lower pane**
+
+The three-layer vocabulary remains useful architecturally, but it must never be interpreted as a requirement for three separate Pine scripts. SignalGate Dashboard remains an engineering/timing donor and accepted historical baseline, not a third final runtime product.
+
 
 ### 3.1 Market Map
 
@@ -69,7 +79,7 @@ Execution must not create its own independent market map. It answers:
 
 ### 3.3 Decision Panel
 
-**Role:** one small, human-readable synthesis layer.
+**Role:** one small, human-readable synthesis layer **embedded in Market Map**. It is not a standalone mandatory runtime indicator.
 
 There are **no Compact/Full panel variants**. That legacy split created two bad outcomes: one panel omitted useful context and the other exposed internal clutter. The suite uses one semantic panel whose contents are curated by the engine. The operator may show or hide it, but does not choose between competing information architectures.
 
