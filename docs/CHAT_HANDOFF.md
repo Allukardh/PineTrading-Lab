@@ -92,13 +92,15 @@ Maintain:
 
 - broad assistant engineering freedom;
 - professional GitHub-first workflow;
-- aggressive documentation of rationale/decisions;
+- durable but proportionate documentation of rationale/decisions, without narrating every micro-step;
 - minimal user-facing settings;
 - no legacy UI preservation merely from habit;
 - no repeated trivial TradingView tests;
 - batch operator validation into meaningful gates;
 - distinguish compile/static PASS from market/TradingView PASS;
 - keep moving while user evidence is not yet needed;
+- when the operator says “continue”, advance autonomously to the next meaningful evidence boundary;
+- keep product/trading usefulness ahead of process ceremony;
 - do not lose project focus by over-discussing continuity itself.
 
 If a future chat begins with a request to continue this project, resume engineering from the checkpoint below rather than re-planning the suite.
