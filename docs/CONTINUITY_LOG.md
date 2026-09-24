@@ -244,6 +244,27 @@ Major candidate architecture:
 
 Compile/static gates are green. Promotion is deliberately blocked on real TradingView historical/visual evidence.
 
+### 2026-09-23 — TradingView Essential changes the historical-validation path
+
+The operator confirmed the account is TradingView Essential and cannot export the historical CSVs required by the original MM-0 audit workflow without upgrading.
+
+Decision:
+- do **not** require a TradingView Premium upgrade for engineering validation;
+- preserve the Pine CSV audit schema/analyzer because it remains useful when export access exists;
+- move primary historical validation to official Binance public market data;
+- delegate data plumbing to a separate infrastructure thread tracked by Issue #14;
+- keep the main indicator-engineering thread focused on Market Map / Execution;
+- use targeted TradingView visual/reload checks later for Pine/runtime parity rather than as the only source of historical evidence.
+
+Issue #14 owns:
+- official Binance spot klines;
+- BTCUSDT first;
+- 15m / 1h / 4h / 1d / 3d / 1w;
+- automated monthly download/checksum/gap validation;
+- large Parquet datasets stored outside Git, preferably in the connected Google Drive.
+
+This change improves independence from TradingView plan limitations and creates a reproducible offline research lab.
+
 ### 2026-09-23 — Execution architecture research
 
 Active research: PR #12 / `research/execution-engine-design`.
@@ -264,6 +285,27 @@ Research added executable Python reference models and CI for semantic transition
 
 This is intentional: Pine implementation must conform to an explicit contract instead of inventing behavior during coding.
 
+The research subsequently produced three first-pass evidence-engine candidates:
+
+- **MTE-A — Momentum Turn**
+  - ATR-normalized EMA8/EMA21 spread;
+  - adaptive neutral/counter-acceleration semantics;
+  - scale/translation/reversal synthetic tests.
+
+- **RSE-A — RSI State**
+  - local RSI14 semantic state;
+  - 48–52 center dead-band;
+  - 70/30 and 80/20 zones;
+  - 2-bar recovery/fade memory;
+  - separate confirmed HTF RSI context direction.
+
+- **PSE-A — Participation**
+  - current volume vs prior confirmed EMA20 baseline;
+  - honest candle close-location pressure proxy;
+  - validation-only comparison against Binance taker-buy imbalance.
+
+All three remain research candidates. Numeric defaults must not be optimized before the Binance historical lab supplies evidence.
+
 ---
 
 ## 9. Current continuation checkpoint
@@ -274,9 +316,10 @@ The exact volatile checkpoint belongs in:
 
 At the time this continuity system was introduced:
 - accepted `main` baseline remained SignalGate Dashboard 0.1.0;
-- Market Map MM-0 was compile/static green but awaiting TradingView CSV/visual/reload evidence;
-- Execution remained design/research only, with reference-state and bridge semantics green in CI;
-- the next independent research task was the clean-room Momentum Turn Engine;
-- production `execution.pine` remained intentionally blocked.
+- Market Map MM-0 was compile/static green; the original TradingView CSV path was later replaced as the primary historical route by the delegated Binance offline lab because Essential cannot export those CSVs;
+- Execution remained design/research only;
+- MTE-A / RSE-A / PSE-A candidates and their executable reference tests were added after the initial continuity checkpoint;
+- Issue #14 owns Binance historical-data infrastructure in a separate chat/thread;
+- production `execution.pine` remains intentionally blocked until historical evidence challenges the candidate formulas.
 
 Future chats must read `CHAT_HANDOFF.md` rather than relying on this paragraph to stay current.
