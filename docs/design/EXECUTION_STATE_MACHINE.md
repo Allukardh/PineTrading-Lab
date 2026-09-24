@@ -71,6 +71,10 @@ This prevents a combinatorial enum such as `LONG_ARMED_EXHAUSTED_NEAR_TARGET`.
 
 The renderer combines direction + stage into operator wording.
 
+The initial engine-owned thresholds/defaults are documented in `EXECUTION_DEFAULTS.md`. The deterministic Market Map location reduction is documented in `MARKET_MAP_EXECUTION_BRIDGE.md`.
+
+Machine-readable state codes are canonical in `manifests/suite-semantics-v1.json` and are validated against the reference model in CI.
+
 ## 4. Context and location contract
 
 Execution is allowed to become interested only when the canonical Market Map logic provides a coherent thesis.
@@ -467,3 +471,21 @@ These metrics are engineering diagnostics, not strategy win rates.
 This document freezes the intended semantics, not the exact formula.
 
 Production `execution.pine` starts only after Market Map MM-0 closes its remaining real-chart gates and the shared semantic contract is stable enough to generate/recompute the canonical context without drift.
+
+
+## 17. Reference semantic model
+
+Before Pine implementation, the transition contract is executable in pure Python:
+
+- `tools/execution_state_reference.py`
+- `tools/test_execution_state_reference.py`
+
+The test suite exhaustively verifies key invariants including:
+- WAIT cannot jump directly to ARMED/CONFIRMED/ALIGNED
+- unconfirmed bars cannot emit CONFIRMA
+- invalid/conflicted map context cannot arm
+- direction reversal resets before the opposite setup starts
+- CONFIRMA lasts one transition bar then becomes ALINHADO
+- RISCO DE REAÇÃO requires meaningful location plus at least two deterioration families
+
+The reference model validates semantics only; market formulas remain subject to TradingView validation.
