@@ -91,7 +91,7 @@ Before consolidation the pipeline validates:
 - ZIP structure/integrity (`ZipFile.testzip`);
 - exactly one CSV payload per Binance monthly kline ZIP;
 - exact 12-column native kline schema;
-- timestamp magnitude/unit; the candle grid is validated from `open time`, while native `close time` conventions are classified and preserved. Verified legacy archives include both exact-boundary closes and early closes, which are reported rather than rewritten;
+- timestamp magnitude/unit; the candle grid is validated from `open time`, while native `close time` conventions are classified and preserved. Verified legacy archives include exact-boundary closes, early closes, and at least one `pre_open` close timestamp (BTCUSDT 15m, 2020-12-21 14:00 UTC). These native metadata anomalies are reported rather than rewritten;
 - numeric/finite OHLCV values;
 - non-negative trade count and volume fields;
 - OHLC ordering constraints;
@@ -120,7 +120,7 @@ Each `symbol + timeframe` becomes one Zstandard-compressed Parquet file. Columns
 - `ignore`
 - `source_file`
 - `source_timestamp_unit`
-- `source_close_time_convention` (`boundary_minus_tick`, `exact_boundary`, `early_close`, or `overrun`)
+- `source_close_time_convention` (`boundary_minus_tick`, `exact_boundary`, `early_close`, `pre_open`, or `overrun`)
 
 Price/volume-like numeric fields use Parquet `decimal128(38,18)` to avoid binary floating-point loss in the canonical dataset. Taker-buy fields are intentionally retained for future Execution research.
 
