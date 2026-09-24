@@ -36,6 +36,8 @@ jobs:
         run: python -m unittest tools/test_participation_reference.py
       - name: Test integrated Execution candidate reachability
         run: python -m unittest tools/test_execution_candidate_reference.py
+      - name: Test Execution historical evidence helpers
+        run: python -m unittest tools/test_execution_historical_evidence.py
       - name: Validate suite semantic contract
         run: python tools/check_suite_semantics.py
       - name: Validate Execution research defaults
