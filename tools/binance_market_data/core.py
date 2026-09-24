@@ -91,15 +91,14 @@ def infer_timestamp_unit(raw: int) -> str:
     raise DataValidationError(f"unsupported/implausible timestamp magnitude: {raw}")
 
 
+def expected_timestamp_unit_for_us(value_us: int) -> str:
+    switch_us = 1_735_689_600_000_000  # 2025-01-01T00:00:00Z
+    return "us" if value_us >= switch_us else "ms"
+
+
 def timestamp_to_us(raw: int) -> tuple[int, str]:
     unit = infer_timestamp_unit(raw)
     value_us = raw * 1000 if unit == "ms" else raw
-    switch_us = 1_735_689_600_000_000  # 2025-01-01T00:00:00Z
-    expected = "us" if value_us >= switch_us else "ms"
-    if unit != expected:
-        raise DataValidationError(
-            f"timestamp unit {unit} conflicts with Binance SPOT archive epoch rule; expected {expected}"
-        )
     return value_us, unit
 
 
