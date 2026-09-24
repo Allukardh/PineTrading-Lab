@@ -149,7 +149,7 @@ Order:
 3. structural-liquidity engine
 4. breakout/retest state
 5. Correction Engine + Fibonacci
-6. volume/POC confluence
+6. validated volume-acceptance confluence
 7. target/invalidation rendering
 
 ## Version lineage
