@@ -308,6 +308,41 @@ All three remain research candidates. Numeric defaults must not be optimized bef
 
 ---
 
+### 2026-09-24 — Binance historical lab completed and promoted
+
+Issue #14 / PR #15 completed the delegated historical-data infrastructure and was promoted to `main`.
+
+Promotion merge:
+
+`bf132cf715aade528aa89b1b327566a964015609`
+
+Accepted production evidence:
+- 15 Binance SPOT symbols;
+- 6 timeframes per symbol: 15m / 1h / 4h / 1d / 3d / 1w;
+- 90 consolidated Parquet datasets;
+- 4,849,829 candles;
+- 7,503 available official Binance checksums verified;
+- 0 checksum mismatches;
+- one exact AVAXUSDT duplicate deterministically deduplicated and reported;
+- unavailable expected monthly objects retained explicitly as findings; no candle synthesis.
+
+The final independent review also closed two correctness issues before promotion:
+- timestamp precision around the 2024/2025 transition now preserves valid native millisecond rows and reports epoch inconsistencies as findings instead of rejecting verified candles;
+- expected-but-missing monthly archives participate in the idempotency fingerprint, preventing an old manifest from silently masking a newly expected 404.
+
+Final PR gate:
+- Market data pipeline: 21/21 PASS;
+- Static integrity: PASS.
+
+Causal consequence for the product work:
+- historical data plumbing is no longer the blocker;
+- offline Market Map validation becomes the primary next evidence gate;
+- pre-registered MTE-A / RSE-A / PSE-A historical tests may now run against real market data;
+- production `execution.pine` remains blocked until those evidence results are reviewed;
+- downloader redesign should not resume unless a concrete evidence task exposes an actual infrastructure defect.
+
+---
+
 ## 9. Current continuation checkpoint
 
 The exact volatile checkpoint belongs in:
@@ -319,7 +354,8 @@ At the time this continuity system was introduced:
 - Market Map MM-0 was compile/static green; the original TradingView CSV path was later replaced as the primary historical route by the delegated Binance offline lab because Essential cannot export those CSVs;
 - Execution remained design/research only;
 - MTE-A / RSE-A / PSE-A candidates and their executable reference tests were added after the initial continuity checkpoint;
-- Issue #14 owns Binance historical-data infrastructure in a separate chat/thread;
+- Issue #14 / PR #15 historical-data infrastructure is accepted on `main`;
+- the offline historical evidence gate is now active for Market Map and the Execution candidates;
 - production `execution.pine` remains intentionally blocked until historical evidence challenges the candidate formulas.
 
 Future chats must read `CHAT_HANDOFF.md` rather than relying on this paragraph to stay current.
