@@ -11,7 +11,7 @@ from pathlib import Path
 
 from tools.binance_market_data import PIPELINE_VERSION, SCHEMA_VERSION
 from tools.binance_market_data.core import (
-    DataValidationError, infer_timestamp_unit, iter_months, latest_publishable_month,
+    DataValidationError, expected_timestamp_unit_for_us, infer_timestamp_unit, iter_months, latest_publishable_month,
     parse_checksum_text, parse_kline_row, sha256_file, timestamp_to_us, validate_candle_duration, verify_checksum,
 )
 from tools.binance_market_data.storage import (
@@ -44,10 +44,14 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(infer_timestamp_unit(1735689600000000), "us")
         self.assertEqual(timestamp_to_us(1609459200000), (1609459200000000, "ms"))
         self.assertEqual(timestamp_to_us(1735689600000000), (1735689600000000, "us"))
+        value_us, unit = timestamp_to_us(1735689600000)
+        self.assertEqual(unit, "ms")
+        self.assertEqual(expected_timestamp_unit_for_us(value_us), "us")
+        value_us, unit = timestamp_to_us(1609459200000000)
+        self.assertEqual(unit, "us")
+        self.assertEqual(expected_timestamp_unit_for_us(value_us), "ms")
         with self.assertRaises(DataValidationError):
-            timestamp_to_us(1735689600000)
-        with self.assertRaises(DataValidationError):
-            timestamp_to_us(1609459200000000)
+            timestamp_to_us(12345)
 
     def test_parse_preserves_taker_and_trade_fields(self):
         row = parse_kline_row(ROW_MS, source_file="x.zip")
@@ -170,6 +174,7 @@ class CoreTests(unittest.TestCase):
             )
             for key in ("symbol","market","timeframe","data_source","first_date","last_date","candles",
                         "source_file_count","duplicates_found","gaps_found","open_time_discontinuities_found",
+                        "timestamp_units","timestamp_epoch_anomalies_found",
                         "files_missing","checksum_status","dataset_sha256","final_size_bytes",
                         "pipeline_version","schema_version"):
                 self.assertIn(key, m)
@@ -183,6 +188,20 @@ class CoreTests(unittest.TestCase):
             )
             self.assertEqual(finding["status"], "ok_with_findings")
             self.assertEqual(finding["open_time_discontinuities_found"], 1)
+
+            legacy_2025 = parse_kline_row([
+                "1735689600000", "93000", "93100", "92900", "93050", "5",
+                "1735948799999", "465250", "80", "3", "279150", "0"
+            ], source_file="BTCUSDT-3d-2025-01.zip")
+            legacy_2025["source_close_time_convention"] = validate_candle_duration(legacy_2025, "3d")
+            unit_finding = build_manifest(
+                symbol="BTCUSDT", market="spot", timeframe="3d", source_url="https://data.binance.vision/",
+                rows=[legacy_2025], source_files=src, missing_files=[], duplicate_count=0, conflicts=[], gaps=[],
+                discontinuities=[], parquet_path=pq, fingerprint=fp,
+            )
+            self.assertEqual(unit_finding["status"], "ok_with_findings")
+            self.assertEqual(unit_finding["timestamp_epoch_anomalies_found"], 1)
+            self.assertEqual(unit_finding["timestamp_units"], {"ms": 1})
 
     def test_parquet_consolidation_when_pyarrow_available(self):
         try:
