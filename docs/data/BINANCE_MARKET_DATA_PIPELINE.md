@@ -1,6 +1,6 @@
 # Binance historical market-data pipeline
 
-Status: infrastructure-only implementation for Issue #14. It does not modify Market Map or Execution semantics.
+Status: infrastructure-only implementation for Issue #14, production-materialized on 2026-09-24. It does not modify Market Map or Execution semantics.
 
 ## Source contract
 
@@ -142,6 +142,26 @@ Each final dataset manifest includes at least:
 - consolidated Parquet SHA-256 and size;
 - pipeline and schema versions.
 
-## Runtime limitation recorded for the delegated ChatGPT environment
+## Production materialization — 2026-09-24
 
-The delegated ChatGPT container itself could not resolve `data.binance.vision` by DNS. Production materialization is therefore validated through a network-capable GitHub Actions job and remains reproducible locally with the one-command run above.
+The delegated ChatGPT container itself could not resolve `data.binance.vision` by DNS, so the full production run was executed in the network-capable GitHub Actions environment instead of fabricating or substituting data.
+
+Canonical production run:
+
+- GitHub Actions run: `36006762328`
+- source branch/head: `infra/binance-market-data` @ `eff420c7823e7e32e8317433ac61bd1e21d1914b`
+- pipeline version: `0.1.2`
+- schema version: `binance-spot-kline-v1`
+- 6 consolidated Parquets produced
+- 420,144 candles total
+- 651 timeframe-month source archives consumed
+- 651 Binance checksum sidecars verified; 0 missing and 0 mismatched
+- 0 duplicate open times across all six consolidated datasets
+- consolidated Parquet bytes: 42,074,123
+- raw provenance bundle bytes: 25,077,760
+
+The production run intentionally preserves source findings instead of normalizing them away. The 15m/1h/4h histories contain historical gaps and native close-time anomalies; 15m and 1h contain verified off-grid restart timestamps around the 2018 Binance outage; 3d/1w contain a small number of post-2025 archives that still use millisecond timestamps; and the public monthly store did not expose `BTCUSDT-3d-2026-08.zip`, `BTCUSDT-1w-2026-07.zip`, or `BTCUSDT-1w-2026-08.zip` at materialization time. These are recorded as findings, not silently filled.
+
+The heavy materialization workflow is `workflow_dispatch` by design after this successful production validation. Pull requests continue to use the normal deterministic unit/integration CI without repeatedly downloading the entire historical corpus.
+
+Small production inventory/report snapshots are versioned in Git. The large raw provenance bundle and six Parquets are stored in the Google Drive dataset hierarchy documented in `docs/data/GOOGLE_DRIVE_LAYOUT.md`.
