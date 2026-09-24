@@ -1,0 +1,63 @@
+name: Execution offline evidence
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["research/execution-engine-design"]
+    paths:
+      - ".github/workflows/execution-offline-evidence.yml"
+      - "tools/execution_historical_evidence.py"
+      - "tools/momentum_turn_reference.py"
+      - "tools/rsi_state_reference.py"
+      - "tools/participation_reference.py"
+      - "manifests/execution-research-defaults-v1.json"
+      - "manifests/suite-semantics-v1.json"
+
+permissions:
+  contents: read
+
+jobs:
+  btc-primary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install market-data dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements-market-data.txt
+
+      - name: Materialize official Binance BTC history
+        run: |
+          python -m tools.binance_market_data run \
+            --config configs/binance-spot-btcusdt.json \
+            --symbol BTCUSDT \
+            --data-root "$RUNNER_TEMP/Binance"
+
+      - name: Run pre-registered Execution evidence plan
+        run: |
+          python tools/execution_historical_evidence.py \
+            --data-root "$RUNNER_TEMP/Binance" \
+            --symbol BTCUSDT \
+            --canonical-manifest manifests/binance-spot-btcusdt.production-2026-09-24.json \
+            --output-json "$RUNNER_TEMP/execution-btc-evidence.json" \
+            --output-md "$RUNNER_TEMP/execution-btc-evidence.md" \
+            --code-sha "$GITHUB_SHA"
+
+      - name: Show evidence summary
+        run: cat "$RUNNER_TEMP/execution-btc-evidence.md"
+
+      - name: Upload machine-readable evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: execution-btc-evidence
+          path: |
+            ${{ runner.temp }}/execution-btc-evidence.json
+            ${{ runner.temp }}/execution-btc-evidence.md
+          archive: false
+          retention-days: 7
