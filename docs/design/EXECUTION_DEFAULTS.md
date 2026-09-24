@@ -150,25 +150,50 @@ A single low-volume bar should not invalidate an otherwise valid setup.
 
 ## 5. Momentum defaults
 
-The exact numeric clean-room momentum formula remains the one part intentionally not frozen before real-chart validation.
+A first clean-room candidate is now selected for validation:
 
-The implementation must preserve these invariants:
+**MTE-A — volatility-normalized EMA spread**
 
-1. normalize MA displacement so behavior is comparable across BTC / ETH / AVAX and across timeframes
-2. distinguish sign from acceleration
-3. expose turn / acceleration / deceleration states
+```text
+source            HLC3
+fast EMA          8
+slow EMA          21
+ATR               14
+core activity RMA 20
+neutral factor    0.15
+turn factor       0.50
+turn floor        0.02
+numeric accel eps 1e-9
+```
+
+Core:
+
+```text
+core = (EMA8(HLC3) - EMA21(HLC3)) / ATR14
+```
+
+Acceleration is the one-bar change in `core`.
+
+The engine remains neutral until its volatility/activity context is valid. No synthetic normalization fallback is allowed.
+
+The candidate preserves these invariants:
+
+1. scale/translation stability
+2. sign and acceleration are separate concepts
+3. explicit TURN / ACCEL / DECEL semantics
 4. no synthetic warmup values
 5. no user-facing MA/signal-mode selector
-6. confirmed transition events
+6. confirmed actionable transitions happen later in the Execution state machine, not inside the oscillator
 
-Initial implementation preference:
+MTE-A is **not yet a frozen production default**. The exact formula/defaults must survive historical BTC/ETH/AVAX validation before canonization.
 
-- one EMA-family base rather than the legacy MA zoo
-- volatility/rolling-distance normalization
-- short smoothing
-- neutral state during insufficient warmup
+Detailed rationale and synthetic tests:
 
-The first formula is evaluated against the BTC 15m/1H/4H matrix before being canonized.
+`docs/design/MOMENTUM_TURN_ENGINE.md`
+
+Machine-readable candidate defaults:
+
+`manifests/execution-research-defaults-v1.json`
 
 ## 6. Readiness evidence burden
 
