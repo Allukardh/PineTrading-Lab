@@ -131,61 +131,66 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — ANTECIPADO_TREND cross-asset robustness
+### PREPARED block — ANTECIPADO_TREND 15-symbol 1D robustness
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `b2e4e2992c8c32ee81f7cf86e193e81132cad6c6`
+- durable pre-block research head: `1363549ece6b03039d424d904be010ff7241232b`
 
-Closed BTC profile gates:
-- first-pass workflow `36185483411` — PASS;
-- refined quality workflow `36186000295` — PASS;
+Closed profile evidence:
+- BTC first-pass `36185483411` — PASS;
+- BTC refined quality `36186000295` — PASS;
+- ETH/AVAX robustness `36186309267` — PASS;
 - Static integrity — PASS;
 - worklog: `docs/worklog/2026-09-25-suite-0.2-responsiveness-profiles.md`.
 
 Current decisions:
-- PADRÃO = accepted OPERATOR_READINESS_V1 — KEEP;
-- naive all-path ANTECIPADO — REMOVE / DO NOT SHIP;
-- CONFIRMADO +1 — REMOVE / DO NOT SHIP;
-- ANTECIPADO_TREND — KEEP for cross-asset validation.
+- PADRÃO — KEEP;
+- naive all-path ANTECIPADO — REMOVE;
+- CONFIRMADO +1 — REMOVE;
+- ANTECIPADO_TREND 4H — KEEP as profile candidate;
+- ANTECIPADO_TREND 1D — insufficient sample across BTC/ETH/AVAX.
 
-Why ANTECIPADO_TREND survived BTC:
-- 4H BREAKOUT_EXPANSION converted early events: 27 HELD / 1 FAKEOUT;
-- 4H nonconverted early events: 28 HELD / 2 FAKEOUT;
-- 1D breakout converted: 2 HELD / 0 FAKEOUT;
-- 1D breakout nonconverted: 5 HELD / 0 FAKEOUT;
-- nonconversion to PADRÃO therefore does not imply structural failure.
+4H evidence:
+- nonconverted BREAKOUT HELD share among resolved:
+  - BTC 93.33%;
+  - ETH 75.51%;
+  - AVAX 85.71%;
+- converted breakout HELD share:
+  - BTC 96.43%;
+  - ETH 91.67%;
+  - AVAX 100%;
+- REACCELERATION nonconverted resolved examples were all HELD in the three 4H histories.
 
-Why CONFIRMADO was removed:
-- BTC 4H +1 rejected 9 PADRÃO signals; 6 later COMPLETED, 3 INVALIDATED;
-- BTC 1D +1 rejected 1 signal and it later COMPLETED;
-- extra delay did not isolate a clearly poorer cohort.
+Product semantic lock:
+- ANTECIPADO is an earlier opportunity/action posture, **not** a relabeled CONFIRMA;
+- short-lived readiness does not automatically imply structural failure;
+- no threshold retuning.
 
 Exact intended work:
-1. validate unchanged ANTECIPADO_TREND on ETHUSDT 4H/1D;
-2. validate unchanged on AVAXUSDT 4H/1D;
-3. no per-asset retuning;
-4. measure:
-   - BREAKOUT_EXPANSION HELD vs FAKEOUT for converted/nonconverted;
-   - REACCELERATION structural outcomes;
-   - event count;
-   - conversion to PADRÃO;
-   - lead bars / ATR move consumed while waiting;
-   - quick nonconverted churn;
+1. run unchanged ANTECIPADO_TREND on the accepted 15-symbol 1D universe;
+2. use exact canonical 1D/1W Parquets;
+3. no per-symbol tuning;
+4. aggregate:
+   - event breadth by symbol;
    - LONG/SHORT balance;
-5. if robust, decide whether product needs only:
-   - PADRÃO
-   - ANTECIPADO
-   rather than a forced three-profile selector;
-6. if not robust, ship no profile selector and keep PADRÃO only;
+   - BREAKOUT converted/nonconverted HELD vs FAKEOUT;
+   - REACCELERATION converted/nonconverted HELD vs FAKEOUT;
+   - conversion to PADRÃO;
+   - quick nonconverted <=3 bars;
+   - bars/ATR move consumed while waiting when converted;
+5. decide final Phase E profile set:
+   - PADRÃO only; or
+   - PADRÃO + ANTECIPADO;
+6. do not resurrect CONFIRMADO from this block;
 7. no production Pine/default/profile/panel change.
 
 Recovery:
-- compare active branch with `b2e4e299...`;
-- inspect only newer ANTECIPADO_TREND robustness commits/runs/artifacts;
-- do not reopen CONFIRMADO or naive all-path ANTECIPADO without new evidence.
+- compare branch with `1363549...`;
+- inspect only newer ANTECIPADO_TREND universe commits/runs/artifacts;
+- do not reopen removed profiles without new evidence.
 
 
 ## 7. Continuity protocol
