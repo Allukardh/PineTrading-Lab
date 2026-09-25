@@ -25,7 +25,26 @@ from datetime import datetime
 from pathlib import Path
 from typing import Iterable, Sequence
 
-from tools.execution_state_reference import Momentum, Participation, RsiState
+from tools.execution_candidate_reference import (
+    ExecutionResearchBar,
+    calculate as calculate_execution_candidate,
+)
+from tools.execution_state_reference import (
+    Location,
+    Momentum,
+    Participation,
+    Readiness,
+    RELEVANT_LOCATIONS,
+    RsiState,
+    Strength,
+)
+from tools.market_execution_bridge_reference import (
+    BridgeMemory,
+    MapEvidence,
+    classify as classify_map_location,
+)
+from tools.market_map_offline_core import Candle as MarketMapCandle
+from tools.market_map_offline_core import Kernel as MarketMapKernel
 from tools.momentum_turn_reference import Bar as MomentumBar
 from tools.momentum_turn_reference import calculate as calculate_momentum
 from tools.participation_reference import (
@@ -788,13 +807,237 @@ def analyze_timeframe(
     }
 
 
+def _to_market_map_candles(data: dict) -> list[MarketMapCandle]:
+    return [
+        MarketMapCandle(
+            t=int(t.timestamp() * 1_000_000),
+            o=o,
+            h=h,
+            l=l,
+            c=c,
+            v=v,
+        )
+        for t, o, h, l, c, v in zip(
+            data["open_time"],
+            data["open"],
+            data["high"],
+            data["low"],
+            data["close"],
+            data["volume"],
+        )
+    ]
+
+
+def market_map_integration_report(
+    timeframe: str,
+    datasets: dict[str, dict],
+    context_dirs: Sequence[int],
+    *,
+    tick_size: float,
+) -> dict:
+    """Run accepted MM-0 semantics into the candidate Execution state machine."""
+
+    chart = _to_market_map_candles(datasets[timeframe])
+    context = _to_market_map_candles(datasets[CONTEXT_TF[timeframe]])
+    daily = _to_market_map_candles(datasets["1d"])
+    weekly = _to_market_map_candles(datasets["1w"])
+
+    snapshots = []
+    MarketMapKernel(
+        chart,
+        context,
+        daily,
+        weekly,
+        timeframe,
+        tick=tick_size,
+    ).run(snapshots, emit_audit=False)
+
+    if len(snapshots) != len(chart):
+        raise AssertionError(
+            f"{timeframe}: Market Map integration rows {len(snapshots)} != chart rows {len(chart)}"
+        )
+    if len(context_dirs) != len(chart):
+        raise AssertionError(
+            f"{timeframe}: RSI context rows {len(context_dirs)} != chart rows {len(chart)}"
+        )
+
+    memory = BridgeMemory()
+    locations: list[Location] = []
+    research_bars: list[ExecutionResearchBar] = []
+
+    for candle, snapshot, rsi_context in zip(chart, snapshots, context_dirs):
+        bridge = classify_map_location(
+            memory,
+            MapEvidence(
+                bar_index=snapshot.bar_index,
+                map_dir=snapshot.map_dir,
+                atr=snapshot.atr,
+                close=snapshot.close,
+                correction_active=snapshot.correction_active,
+                bar_time_ms=snapshot.time // 1000,
+                thesis_invalidated=snapshot.thesis_invalidated,
+                structural_conflict=snapshot.structural_conflict,
+                t1_top=snapshot.t1_top,
+                t1_bottom=snapshot.t1_bottom,
+                primary_top=snapshot.primary_top,
+                primary_bottom=snapshot.primary_bottom,
+                t3_top=snapshot.t3_top,
+                t3_bottom=snapshot.t3_bottom,
+                retest_event=snapshot.retest_event,
+                reclaim_event=snapshot.reclaim_event,
+                destination_near=snapshot.destination_near,
+            ),
+        )
+        memory = bridge.memory
+        locations.append(bridge.location)
+        research_bars.append(
+            ExecutionResearchBar(
+                open=candle.o,
+                high=candle.h,
+                low=candle.l,
+                close=candle.c,
+                volume=candle.v,
+                map_dir=snapshot.map_dir,
+                location=bridge.location,
+                rsi_context_dir=rsi_context,
+                thesis_invalidated=snapshot.thesis_invalidated,
+                structural_conflict=snapshot.structural_conflict,
+                bar_confirmed=True,
+            )
+        )
+
+    samples = calculate_execution_candidate(research_bars)
+
+    location_counts = Counter(loc.name for loc in locations)
+    readiness_counts = Counter(sample.result.state.readiness.name for sample in samples)
+    strength_counts = Counter(sample.result.state.strength.name for sample in samples)
+    transition_counts = Counter()
+    readiness_by_location: dict[str, Counter[str]] = defaultdict(Counter)
+    strength_by_location: dict[str, Counter[str]] = defaultdict(Counter)
+    gate_by_location: dict[str, Counter[str]] = defaultdict(Counter)
+    event_counts = Counter()
+    confirm_by_location = Counter()
+    confirm_by_direction = Counter()
+    yearly_confirm = Counter()
+
+    previous_readiness: Readiness | None = None
+    rsi_supportive_relevant = 0
+    rsi_relevant = 0
+    rsi_recovery_fade_relevant = 0
+
+    for i, (bar, loc, sample) in enumerate(zip(research_bars, locations, samples)):
+        result = sample.result
+        readiness = result.state.readiness
+        strength = result.state.strength
+        readiness_by_location[loc.name][readiness.name] += 1
+        strength_by_location[loc.name][strength.name] += 1
+
+        if previous_readiness is not None:
+            transition_counts[f"{previous_readiness.name}->{readiness.name}"] += 1
+        previous_readiness = readiness
+
+        if loc in RELEVANT_LOCATIONS and bar.map_dir in (-1, 1):
+            gate_by_location[loc.name]["bars"] += 1
+            momentum_aligned = _mte_aligned(
+                bar.map_dir,
+                Momentum[sample.momentum_state_name],
+            )
+            rsi_supportive = supports(
+                bar.map_dir,
+                RsiState[sample.rsi_state_name],
+                bar.rsi_context_dir,
+            )
+            participation_confirm = (
+                Participation[sample.participation_state_name] == Participation.CONFIRM
+            )
+            gate_by_location[loc.name]["momentum_aligned"] += int(momentum_aligned)
+            gate_by_location[loc.name]["rsi_supportive"] += int(rsi_supportive)
+            gate_by_location[loc.name]["participation_confirm"] += int(participation_confirm)
+            gate_by_location[loc.name]["all_three"] += int(
+                momentum_aligned and rsi_supportive and participation_confirm
+            )
+
+            rsi_relevant += 1
+            rsi_supportive_relevant += int(rsi_supportive)
+            rsi_recovery_fade_relevant += int(
+                sample.rsi_state_name
+                in {
+                    "RECOVERING_OVERSOLD",
+                    "RECOVERING_OVERBOUGHT",
+                    "FADING_OVERBOUGHT",
+                    "FADING_OVERSOLD",
+                }
+            )
+
+        events = result.events
+        for name in (
+            "preparing_entered",
+            "armed_entered",
+            "confirm",
+            "canceled",
+            "reaction_risk_entered",
+        ):
+            if getattr(events, name):
+                event_counts[name] += 1
+
+        if events.confirm:
+            confirm_by_location[loc.name] += 1
+            confirm_by_direction["LONG" if result.state.direction == 1 else "SHORT"] += 1
+            yearly_confirm[datasets[timeframe]["open_time"][i].year] += 1
+
+    by_location = {}
+    for loc_name, total in sorted(location_counts.items()):
+        by_location[loc_name] = {
+            "bars": total,
+            "bar_pct": pct(total, len(locations)),
+            "readiness_counts": dict(readiness_by_location[loc_name]),
+            "readiness_pct": _state_pct(readiness_by_location[loc_name], total),
+            "strength_counts": dict(strength_by_location[loc_name]),
+            "strength_pct": _state_pct(strength_by_location[loc_name], total),
+        }
+
+    gate_summary = {}
+    for loc_name, counts in sorted(gate_by_location.items()):
+        total = counts["bars"]
+        gate_summary[loc_name] = {
+            "bars": total,
+            "momentum_aligned_pct": pct(counts["momentum_aligned"], total),
+            "rsi_supportive_pct": pct(counts["rsi_supportive"], total),
+            "participation_confirm_pct": pct(counts["participation_confirm"], total),
+            "all_three_pct": pct(counts["all_three"], total),
+        }
+
+    return {
+        "tick_size": tick_size,
+        "bars": len(samples),
+        "location_counts": dict(sorted(location_counts.items())),
+        "location_pct": _state_pct(location_counts, len(samples)),
+        "readiness_counts": dict(sorted(readiness_counts.items())),
+        "readiness_pct": _state_pct(readiness_counts, len(samples)),
+        "strength_counts": dict(sorted(strength_counts.items())),
+        "strength_pct": _state_pct(strength_counts, len(samples)),
+        "readiness_transitions": dict(sorted(transition_counts.items())),
+        "by_location": by_location,
+        "relevant_location_gate_rates": gate_summary,
+        "events": dict(sorted(event_counts.items())),
+        "confirm_by_location": dict(sorted(confirm_by_location.items())),
+        "confirm_by_direction": dict(sorted(confirm_by_direction.items())),
+        "confirm_by_year": {str(k): v for k, v in sorted(yearly_confirm.items())},
+        "rsi_at_relevant_locations": {
+            "bars": rsi_relevant,
+            "supportive_pct": pct(rsi_supportive_relevant, rsi_relevant),
+            "recovery_fade_state_pct": pct(rsi_recovery_fade_relevant, rsi_relevant),
+        },
+    }
+
+
 def _fmt(value: float | None, digits: int = 2) -> str:
     return "n/a" if value is None else f"{value:.{digits}f}"
 
 
 def markdown_report(report: dict) -> str:
     lines = [
-        "# Execution historical evidence — BTC primary pass",
+        f"# Execution historical evidence — {report['metadata']['symbol']}",
         "",
         "This is semantic/component evidence, not a strategy backtest or profitability claim.",
         "",
@@ -843,6 +1086,37 @@ def markdown_report(report: dict) -> str:
                 as_=_fmt(x["short"]["cooccurrence_pct"].get("all_three")),
             )
         )
+    integration_tfs = [
+        tf for tf in TIMEFRAMES
+        if "market_map_integration" in report["timeframes"][tf]["evidence"]
+    ]
+    if integration_tfs:
+        lines += [
+            "",
+            "## Accepted Market Map -> Execution integration",
+            "",
+            "| TF | Relevant location % | PREP % | ARMED % | CONFIRM events | ALIGNED % | RSI supportive @ relevant % | RSI recovery/fade @ relevant % |",
+            "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        ]
+        for tf in integration_tfs:
+            integ = report["timeframes"][tf]["evidence"]["market_map_integration"]
+            relevant_pct = sum(
+                integ["location_pct"].get(name) or 0.0
+                for name in ("APPROACHING", "IN_CORRECTION", "RETEST", "RECLAIM")
+            )
+            lines.append(
+                "| {tf} | {rel} | {prep} | {armed} | {confirm} | {aligned} | {rsi} | {rf} |".format(
+                    tf=tf,
+                    rel=_fmt(relevant_pct),
+                    prep=_fmt(integ["readiness_pct"].get("PREP")),
+                    armed=_fmt(integ["readiness_pct"].get("ARMED")),
+                    confirm=integ["events"].get("confirm", 0),
+                    aligned=_fmt(integ["readiness_pct"].get("ALIGNED")),
+                    rsi=_fmt(integ["rsi_at_relevant_locations"].get("supportive_pct")),
+                    rf=_fmt(integ["rsi_at_relevant_locations"].get("recovery_fade_state_pct")),
+                )
+            )
+
     lines += [
         "",
         "## Interpretation guardrails",
@@ -864,7 +1138,21 @@ def main() -> int:
     parser.add_argument("--output-json", type=Path, required=True)
     parser.add_argument("--output-md", type=Path, required=True)
     parser.add_argument("--code-sha", default="unknown")
+    parser.add_argument(
+        "--market-map-integration",
+        action="store_true",
+        help="Condition Execution evidence on accepted MM-0 offline semantics.",
+    )
+    parser.add_argument(
+        "--tick-size",
+        type=float,
+        default=None,
+        help="Instrument minimum tick for MM-0 integration; required with --market-map-integration.",
+    )
     args = parser.parse_args()
+
+    if args.market_map_integration and (args.tick_size is None or args.tick_size <= 0):
+        parser.error("--tick-size > 0 is required with --market-map-integration")
 
     canonical = json.loads(args.canonical_manifest.read_text(encoding="utf-8"))
     expected = {d["timeframe"]: d for d in canonical["datasets"]}
@@ -926,6 +1214,8 @@ def main() -> int:
                 "confirmed_htf": "previous completed HTF bar ([1] + lookahead_on equivalent)",
                 "above_1d_context": "self confirmed RSI context",
                 "pse_component_direction": "hypothetical LONG and SHORT classifications; not Execution signals",
+                "market_map_integration": bool(args.market_map_integration),
+                "market_map_tick_size": args.tick_size,
             },
         },
         "timeframes": {},
@@ -940,6 +1230,14 @@ def main() -> int:
     for tf in TIMEFRAMES:
         context_dirs = build_context_dirs(tf, datasets, rsi_cache)
         evidence = analyze_timeframe(tf, datasets[tf], context_dirs)
+        if args.market_map_integration:
+            assert args.tick_size is not None
+            evidence["market_map_integration"] = market_map_integration_report(
+                tf,
+                datasets,
+                context_dirs,
+                tick_size=args.tick_size,
+            )
         report["timeframes"][tf] = {
             "metadata": dataset_meta[tf]
             | {
