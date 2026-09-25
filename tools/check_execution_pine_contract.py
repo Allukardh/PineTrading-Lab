@@ -175,6 +175,61 @@ def main() -> int:
         "Market Map slim context",
     )
 
+    # Embedded Decision Panel consumer must use the same accepted defaults.
+    embedded_pairs = [
+        ("MTE_FAST_EMA", "EX_MTE_FAST_EMA"),
+        ("MTE_SLOW_EMA", "EX_MTE_SLOW_EMA"),
+        ("MTE_ATR_LEN", "EX_MTE_ATR_LEN"),
+        ("MTE_ACTIVITY_LEN", "EX_MTE_ACTIVITY_LEN"),
+        ("MTE_NEUTRAL_FACTOR", "EX_MTE_NEUTRAL_FACTOR"),
+        ("MTE_TURN_FACTOR", "EX_MTE_TURN_FACTOR"),
+        ("MTE_TURN_FLOOR", "EX_MTE_TURN_FLOOR"),
+        ("MTE_ACCEL_EPS", "EX_MTE_ACCEL_EPS"),
+        ("RSI_LEN", "EX_RSI_LEN"),
+        ("RSI_CENTER_LOW", "EX_RSI_CENTER_LOW"),
+        ("RSI_CENTER_HIGH", "EX_RSI_CENTER_HIGH"),
+        ("RSI_OVERBOUGHT", "EX_RSI_OVERBOUGHT"),
+        ("RSI_OVERSOLD", "EX_RSI_OVERSOLD"),
+        ("RSI_EXTREME_OVERBOUGHT_LEVEL", "EX_RSI_EXTREME_OVERBOUGHT_LEVEL"),
+        ("RSI_EXTREME_OVERSOLD_LEVEL", "EX_RSI_EXTREME_OVERSOLD_LEVEL"),
+        ("RSI_MIN_STEP", "EX_RSI_MIN_STEP"),
+        ("RSI_ZONE_MEMORY_BARS", "EX_RSI_ZONE_MEMORY_BARS"),
+        ("PSE_VOLUME_EMA_LEN", "EX_PSE_VOLUME_EMA_LEN"),
+        ("PSE_CONTRACTED_BELOW", "EX_PSE_CONTRACTED_BELOW"),
+        ("PSE_EXPANDED_AT_OR_ABOVE", "EX_PSE_EXPANDED_AT_OR_ABOVE"),
+        ("PSE_PRESSURE_MIN", "EX_PSE_PRESSURE_MIN"),
+        ("EX_APPROACH_ATR", "EX_APPROACH_ATR"),
+        ("EX_EVENT_HOLD_BARS", "EX_EVENT_HOLD_BARS"),
+    ]
+    for execution_name, market_name in embedded_pairs:
+        a = number(ex, execution_name)
+        b = number(mm, market_name)
+        if a != b:
+            fail(
+                f"Execution/embedded Decision Panel default drift: "
+                f"{execution_name}={a} {market_name}={b}"
+            )
+
+    expect_num(mm, "EX_DEFAULTS_VERSION", 2)
+
+    require(
+        mm,
+        [
+            "float exMteCore = not na(exMteFast) and not na(exMteSlow)",
+            "float exRsiLocal = f_ex_rsi(close)",
+            "float exDirectionalPressure = exPseReady and mapDir != 0 ? exPressureProxy * mapDir : na",
+            "int exGenericDeterioration = (exMomentumDeteriorates ? 1 : 0) + (exRsiDeteriorates ? 1 : 0) + (exParticipationState == EX_PSE_CONTRARY ? 1 : 0)",
+            "exLocation == EX_LOC_DESTINATION_NEAR and exDestinationDeterioration >= 2",
+            "if barstate.isconfirmed",
+            "else if prevReadiness == EX_READY_ARMED",
+            "exParticipationState == EX_PSE_CONFIRM",
+            'table.cell(panel, 0, 10, "EXECUÇÃO"',
+            'table.cell(panel, 0, 11, "FORÇA"',
+            "table.clear(panel, 0, 0, 1, 11)",
+        ],
+        "Market Map embedded Execution consumer",
+    )
+
     # Semantic codes must match the machine-readable suite contract.
     sem = semantics["semantics"]
     code_maps = {
