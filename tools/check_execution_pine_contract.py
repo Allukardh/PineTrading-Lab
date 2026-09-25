@@ -42,11 +42,43 @@ def require(text: str, tokens: list[str], label: str) -> None:
             fail(f"{label} token missing: {token}")
 
 
+PLOT_PRODUCING_CALL_RE = re.compile(
+    r"\\b(?:plot|plotshape|plotchar|plotbar|plotcandle|bgcolor|fill|alertcondition)\\s*\\("
+)
+PLOT_PRODUCING_CALL_BUDGET = 55
+
+
+def plot_producing_call_count(text: str) -> int:
+    """Conservative source-level guard for TradingView's 64 plot-count ceiling.
+
+    Some Pine calls can consume more than one runtime plot count, so the source
+    call budget deliberately leaves headroom instead of trying to equal 64.
+    """
+    total = 0
+    for raw_line in text.splitlines():
+        code = raw_line.split("//", 1)[0]
+        total += len(PLOT_PRODUCING_CALL_RE.findall(code))
+    return total
+
+
 def main() -> int:
     ex = EXEC.read_text(encoding="utf-8").replace("\r\n", "\n")
     mm = MM.read_text(encoding="utf-8").replace("\r\n", "\n")
     defaults = json.loads(DEFAULTS.read_text(encoding="utf-8"))
     semantics = json.loads(SEMANTICS.read_text(encoding="utf-8"))
+
+    ex_plot_calls = plot_producing_call_count(ex)
+    mm_plot_calls = plot_producing_call_count(mm)
+    if ex_plot_calls > PLOT_PRODUCING_CALL_BUDGET:
+        fail(
+            f"Execution plot-producing calls={ex_plot_calls} exceed conservative "
+            f"budget={PLOT_PRODUCING_CALL_BUDGET}"
+        )
+    if mm_plot_calls > PLOT_PRODUCING_CALL_BUDGET:
+        fail(
+            f"Market Map plot-producing calls={mm_plot_calls} exceed conservative "
+            f"budget={PLOT_PRODUCING_CALL_BUDGET}"
+        )
 
     if defaults["execution_research_defaults_version"] != 2:
         fail("accepted defaults manifest is not v2")
@@ -406,7 +438,11 @@ def main() -> int:
         for semantic_name, pine_name in mapping.items():
             expect_num(ex, pine_name, expected_by_name[semantic_name])
 
-    print("PASS: Suite 0.2 Pine contract/default/cross-script parity")
+    print(
+        "PASS: Suite 0.2 Pine contract/default/cross-script parity; "
+        f"plot-producing calls EX={ex_plot_calls}, MM={mm_plot_calls} "
+        f"(budget<={PLOT_PRODUCING_CALL_BUDGET})"
+    )
     return 0
 
 
