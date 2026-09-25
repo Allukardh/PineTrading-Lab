@@ -12,6 +12,7 @@ from tools.responsiveness_profile_reference import (
     resolve_anticipated,
     resolve_confirmed,
     standard_events,
+    anticipated_trend_supported,
 )
 
 
@@ -135,6 +136,30 @@ class ResponsivenessProfileTests(unittest.TestCase):
         ],rows)
         self.assertFalse(r.survived)
         self.assertEqual(r.reason,"OPERATOR_CONFLICT")
+
+
+    def test_final_anticipated_scope(self):
+        for tf in ("15m", "1h", "4h", "1d", "3d"):
+            self.assertTrue(
+                anticipated_trend_supported(tf, "BREAKOUT_EXPANSION")
+            )
+            self.assertTrue(
+                anticipated_trend_supported(tf, "REACCELERATION")
+            )
+
+        for tf in ("1w", "1M"):
+            self.assertFalse(
+                anticipated_trend_supported(tf, "BREAKOUT_EXPANSION")
+            )
+
+        for kind in (
+            "REGIME_REVERSAL",
+            "RANGE_ROTATION",
+            "PULLBACK_RETEST",
+        ):
+            self.assertFalse(
+                anticipated_trend_supported("4h", kind)
+            )
 
 
 if __name__=="__main__":
