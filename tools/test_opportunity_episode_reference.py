@@ -220,7 +220,7 @@ class OpportunityEpisodeTests(unittest.TestCase):
                 thesis_invalidated=False,
                 regime_age_before_bar=REACCELERATION_REGIME_MIN_BARS,
                 had_prior_same_direction_break=True,
-                recent_pullback_reaction=False,
+                pullback_since_prior_same_break=False,
                 reaction_on_break_bar=False,
                 opposite_mature_regime=False,
             ),
@@ -236,7 +236,7 @@ class OpportunityEpisodeTests(unittest.TestCase):
                 thesis_invalidated=False,
                 regime_age_before_bar=REACCELERATION_REGIME_MIN_BARS,
                 had_prior_same_direction_break=True,
-                recent_pullback_reaction=True,
+                pullback_since_prior_same_break=True,
                 reaction_on_break_bar=False,
                 opposite_mature_regime=False,
             ),
@@ -252,7 +252,7 @@ class OpportunityEpisodeTests(unittest.TestCase):
                 thesis_invalidated=False,
                 regime_age_before_bar=0,
                 had_prior_same_direction_break=False,
-                recent_pullback_reaction=False,
+                pullback_since_prior_same_break=False,
                 reaction_on_break_bar=False,
                 opposite_mature_regime=True,
             ),
@@ -300,7 +300,7 @@ class OpportunityEpisodeTests(unittest.TestCase):
         self.assertEqual(reacc[0].confirmation_bar, second_break)
         self.assertEqual(reacc[0].direction, 1)
 
-    def test_recent_pullback_suppresses_reacceleration_label(self):
+    def test_pullback_after_previous_break_suppresses_reacceleration_label(self):
         xs = []
         for i in range(REACCELERATION_REGIME_MIN_BARS):
             xs.append(
@@ -345,6 +345,81 @@ class OpportunityEpisodeTests(unittest.TestCase):
         self.assertFalse(
             any(e.opportunity_type == OpportunityType.REACCELERATION for e in eps)
         )
+
+    def test_reaction_before_previous_break_does_not_suppress_reacceleration(self):
+        xs = []
+
+        # Mature bull regime.
+        for i in range(REACCELERATION_REGIME_MIN_BARS):
+            xs.append(
+                snap(
+                    i,
+                    map_dir=1,
+                    regime_dir=1,
+                    structure_dir=1,
+                    structural_break_dir=0,
+                    thesis_key=10,
+                )
+            )
+
+        # Historical reaction belongs to an older leg.
+        reaction_bar = len(xs)
+        xs.append(
+            snap(
+                reaction_bar,
+                map_dir=1,
+                regime_dir=1,
+                structure_dir=1,
+                thesis_key=10,
+                retest_event=True,
+            )
+        )
+
+        # Previous same-direction break occurs AFTER that reaction.
+        prior_break = len(xs)
+        xs.append(
+            snap(
+                prior_break,
+                map_dir=1,
+                regime_dir=1,
+                structure_dir=1,
+                structural_break_dir=1,
+                thesis_key=11,
+            )
+        )
+
+        # No new pullback after the prior break; this is continuation/reacceleration.
+        xs.append(
+            snap(
+                len(xs),
+                map_dir=1,
+                regime_dir=1,
+                structure_dir=1,
+                thesis_key=11,
+            )
+        )
+        current_break = len(xs)
+        xs.append(
+            snap(
+                current_break,
+                map_dir=1,
+                regime_dir=1,
+                structure_dir=1,
+                structural_break_dir=1,
+                thesis_key=12,
+            )
+        )
+
+        eps = detect_episodes(
+            xs,
+            [x.close + 1 for x in xs],
+            [x.close - 1 for x in xs],
+        )
+        reacc = [
+            e for e in eps if e.opportunity_type == OpportunityType.REACCELERATION
+        ]
+        self.assertEqual(len(reacc), 1)
+        self.assertEqual(reacc[0].confirmation_bar, current_break)
 
     def test_length_mismatch_is_rejected(self):
         with self.assertRaises(ValueError):
