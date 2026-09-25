@@ -130,6 +130,22 @@ def _rsi_opposes(direction: int, state: RsiState, context_dir: int) -> bool:
     return True
 
 
+def _momentum_deteriorates(direction: int, state: Momentum) -> bool:
+    if direction == 1:
+        return state in {Momentum.UP_DECEL, Momentum.TURN_DOWN, Momentum.DOWN_ACCEL, Momentum.DOWN_DECEL}
+    if direction == -1:
+        return state in {Momentum.DOWN_DECEL, Momentum.TURN_UP, Momentum.UP_ACCEL, Momentum.UP_DECEL}
+    return False
+
+
+def _rsi_deteriorates(direction: int, state: RsiState) -> bool:
+    if direction == 1:
+        return state in {RsiState.FADING_OVERBOUGHT, RsiState.EXTREME_OVERBOUGHT}
+    if direction == -1:
+        return state in {RsiState.RECOVERING_OVERSOLD, RsiState.EXTREME_OVERSOLD}
+    return False
+
+
 def _participation_enum(name: str) -> Participation:
     return Participation[name]
 
@@ -191,6 +207,10 @@ def summarize_integrated(
     destination_near = [i for i in coherent if locations[i] == Location.DESTINATION_NEAR]
 
     location_counts = Counter(locations[i].name for i in coherent)
+    raw_map_events = {
+        "RETEST": sum(int(snap.retest_event) for snap in snapshots),
+        "RECLAIM": sum(int(snap.reclaim_event) for snap in snapshots),
+    }
     readiness_counts = Counter(samples[i].result.state.readiness.name for i in range(rows))
     readiness_coherent = Counter(samples[i].result.state.readiness.name for i in coherent)
     strength_coherent = Counter(samples[i].result.state.strength.name for i in coherent)
@@ -211,6 +231,43 @@ def summarize_integrated(
     event_dir: dict[str, Counter[str]] = defaultdict(Counter)
     confirm_location = Counter()
     cancel_from = Counter()
+    cancel_reasons = Counter()
+
+    def cancel_reason(i: int) -> str:
+        sample = samples[i]
+        snap = snapshots[i]
+        direction = snap.map_dir
+        reasons = []
+
+        if (
+            direction not in (-1, 1)
+            or snap.thesis_invalidated
+            or snap.structural_conflict
+        ):
+            reasons.append("MAP_INVALID")
+        elif (
+            sample.state_before.direction in (-1, 1)
+            and sample.state_before.direction != direction
+        ):
+            reasons.append("MAP_DIRECTION_CHANGE")
+        else:
+            stage = sample.state_before.readiness
+            momentum = Momentum[sample.momentum_state_name]
+            rsi = RsiState[sample.rsi_state_name]
+            participation = _participation_enum(sample.participation_state_name)
+
+            if stage in {Readiness.PREP, Readiness.ARMED} and locations[i] not in RELEVANT_LOCATIONS:
+                reasons.append("LOCATION_LOST")
+            if _momentum_strongly_opposes(direction, momentum):
+                reasons.append("MOMENTUM_OPPOSES")
+            if stage in {Readiness.ARMED, Readiness.ALIGNED} and _rsi_opposes(
+                direction, rsi, context_dirs[i]
+            ):
+                reasons.append("RSI_OPPOSES")
+            if stage in {Readiness.PREP, Readiness.ARMED} and participation == Participation.CONTRARY:
+                reasons.append("PSE_CONTRARY")
+
+        return "+".join(reasons) if reasons else "OTHER"
 
     for i, sample in enumerate(samples):
         ev = sample.result.events
@@ -231,6 +288,7 @@ def summarize_integrated(
             event_counts["CANCELED"] += 1
             event_dir["CANCELED"][dname] += 1
             cancel_from[sample.state_before.readiness.name] += 1
+            cancel_reasons[cancel_reason(i)] += 1
         if ev.reaction_risk_entered:
             event_counts["REACTION_RISK_ENTERED"] += 1
             event_dir["REACTION_RISK_ENTERED"][dname] += 1
@@ -242,6 +300,7 @@ def summarize_integrated(
     # Quick setup churn.
     quick_prep_cancel = {str(n): 0 for n in (1, 2, 3)}
     quick_armed_cancel = {str(n): 0 for n in (1, 2, 3)}
+    quick_armed_cancel_reasons_3 = Counter()
     prep_entries = [i for i, s in enumerate(samples) if s.result.events.preparing_entered]
     armed_entries = [i for i, s in enumerate(samples) if s.result.events.armed_entered]
 
@@ -265,6 +324,8 @@ def summarize_integrated(
                 for n in (1, 2, 3):
                     if gap <= n:
                         quick_armed_cancel[str(n)] += 1
+                if gap <= 3:
+                    quick_armed_cancel_reasons_3[cancel_reason(j)] += 1
                 break
 
     # RSE memory watch: ARMADO entered specifically from the short-lived
@@ -316,6 +377,25 @@ def summarize_integrated(
                         rse_only_quick_cancel[str(n)] += 1
             break
 
+    strength_family_combo_coherent = Counter()
+    strength_family_combo_active = Counter()
+    for i in coherent:
+        direction = snapshots[i].map_dir
+        m = Momentum[samples[i].momentum_state_name]
+        r = RsiState[samples[i].rsi_state_name]
+        p = _participation_enum(samples[i].participation_state_name)
+        families = []
+        if _momentum_deteriorates(direction, m):
+            families.append("MTE")
+        if _rsi_deteriorates(direction, r):
+            families.append("RSI")
+        if p in {Participation.WEAK, Participation.CONTRARY}:
+            families.append("PSE")
+        combo = "+".join(families) if families else "NONE"
+        strength_family_combo_coherent[combo] += 1
+        if i in active_exec:
+            strength_family_combo_active[combo] += 1
+
     reaction_risk = [
         i for i in coherent if samples[i].result.state.strength == Strength.REACTION_RISK
     ]
@@ -331,6 +411,17 @@ def summarize_integrated(
             "relevant_location_bars": len(relevant),
             "relevant_location_pct_of_coherent": pct(len(relevant), len(coherent)),
             "destination_near_bars": len(destination_near),
+            "raw_event_counts": raw_map_events,
+            "event_hold_amplification": {
+                "RETEST": (
+                    None if not raw_map_events["RETEST"]
+                    else location_counts["RETEST"] / raw_map_events["RETEST"]
+                ),
+                "RECLAIM": (
+                    None if not raw_map_events["RECLAIM"]
+                    else location_counts["RECLAIM"] / raw_map_events["RECLAIM"]
+                ),
+            },
             "location_counts": dict(sorted(location_counts.items())),
             "location_pct_of_coherent": {
                 k: pct(v, len(coherent)) for k, v in sorted(location_counts.items())
@@ -351,6 +442,7 @@ def summarize_integrated(
             },
             "confirm_location_counts": dict(sorted(confirm_location.items())),
             "cancel_from": dict(sorted(cancel_from.items())),
+            "cancel_reason_counts": dict(sorted(cancel_reasons.items())),
             "prep_to_armed_pct": pct(armed, prep),
             "armed_to_confirm_pct": pct(confirms, armed),
             "confirm_per_1000_relevant_bars": (
@@ -358,6 +450,9 @@ def summarize_integrated(
             ),
             "quick_prep_cancel_within_bars": quick_prep_cancel,
             "quick_armed_cancel_within_bars": quick_armed_cancel,
+            "quick_armed_cancel_reason_counts_3bar": dict(
+                sorted(quick_armed_cancel_reasons_3.items())
+            ),
         },
         "strength": {
             "coherent_counts": dict(sorted(strength_coherent.items())),
@@ -368,6 +463,16 @@ def summarize_integrated(
             "confirmed_aligned_counts": dict(sorted(strength_active.items())),
             "confirmed_aligned_pct": {
                 k: pct(v, len(active_exec)) for k, v in sorted(strength_active.items())
+            },
+            "family_combo_counts_coherent": dict(sorted(strength_family_combo_coherent.items())),
+            "family_combo_pct_coherent": {
+                k: pct(v, len(coherent))
+                for k, v in sorted(strength_family_combo_coherent.items())
+            },
+            "family_combo_counts_confirmed_aligned": dict(sorted(strength_family_combo_active.items())),
+            "family_combo_pct_confirmed_aligned": {
+                k: pct(v, len(active_exec))
+                for k, v in sorted(strength_family_combo_active.items())
             },
             "reaction_risk_bars": len(reaction_risk),
             "reaction_risk_pct_of_destination_near": pct(
