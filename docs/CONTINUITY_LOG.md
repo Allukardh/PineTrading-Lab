@@ -552,6 +552,59 @@ Causal consequence:
 
 ---
 
+
+### 2026-09-24 — Execution historical research contract promoted
+
+The pre-registered Execution evidence program completed before production Pine existed.
+
+Primary evidence:
+- BTCUSDT 15m / 1h / 4h with 1d / 3d / 1w robustness;
+- unchanged-default ETHUSDT and AVAXUSDT component robustness;
+- validation-only Binance taker-buy imbalance for the historical pressure proxy;
+- accepted MM-0 offline direction/location wired into the canonical Execution state machine.
+
+Final integrated run:
+`36080621108` — PASS.
+
+Static integrity:
+`36080620994` — PASS.
+
+Evidence decisions:
+- MTE-A — **KEEP**;
+- RSE-A — **KEEP**;
+- PSE-A — **KEEP**;
+- readiness state machine — **KEEP**;
+- strength state machine — **KEEP**.
+
+No candidate default was retuned.
+
+Key interpretation locks:
+- MTE TURN is early counter-acceleration/preparation evidence, not a guaranteed reversal;
+- RSE RECOVERING/FADING is a short recent-zone transition semantic, not a label expected to persist until center;
+- PSE pressure remains an OHLC close-location proxy, never real aggressor flow;
+- confirmed events are engineering reachability/timing evidence, not a trade win rate.
+
+Accepted MM integration showed:
+- primary intraday PREP / ARMED / CONFIRMED / ALIGNED states are reachable;
+- confirmations occur across essentially every complete BTC calendar year;
+- most intraday confirmations occur at RETEST, consistent with Execution as a timing layer;
+- REACTION_RISK is rare globally and becomes materially more relevant near DESTINATION_NEAR.
+
+Research PR #12 was promoted to `main`:
+
+`1df7adaf3d39047fd400e4d81a4b30415a2934bd`
+
+Issue #11 was closed as completed.
+
+A new production tracker, Issue #20, owns Execution 0.1.0 implementation and Market Map semantic parity.
+
+Causal consequence:
+- production `execution.pine` is now authorized;
+- implementation must reproduce the accepted contract before any retuning;
+- the next gate is Pine/static semantic parity, followed by targeted TradingView reload/UX validation.
+
+---
+
 ## 9. Current continuation checkpoint
 
 The exact volatile checkpoint belongs in:
