@@ -126,15 +126,22 @@ def main() -> None:
             'string correctionModel = correctionReady ? (useLiveImpulse ? "LIVE/" : "")',
             'f_impulse_acceptance(_startBar, _endBar, _low, _high)',
             'correctionConfluence += f_in_zone(emaMid, primaryTop, primaryBottom, zoneTol) ? 1 : 0',
+            'string responseProfile = input.string("PADRÃO", "Perfil de resposta", options=["PADRÃO", "ANTECIPADO"]',
+            'var int exTrendOppKind = EX_OPP_NONE',
+            'var int exRangeOppStage = EX_OPP_STAGE_NONE',
+            'int exOperatorReadiness = EX_OP_READY_WAIT',
+            'var int exManagementState = EX_MGMT_NONE',
+            'table.cell(panel, 0, 1, "CENÁRIO"',
+            'table.cell(panel, 0, 2, "OPORTUNIDADE"',
+            'table.cell(panel, 0, 3, "LADO"',
+            'table.cell(panel, 0, 4, "AÇÃO"',
+            'table.cell(panel, 0, 5, "ALVO"',
+            'table.cell(panel, 0, 6, "GESTÃO"',
+            'table.cell(panel, 0, 7, "INVALIDA"',
+            'table.cell(panel, 0, 8, correctionActive ? "CORREÇÃO" : ""',
+            'table.cell(panel, 1, 0, "v0.2 • " + responseProfile',
+            '// Direct operator panel — engine semantics stay under the hood',
             'phaseTxt := close > impulseHigh ? "ROMPIMENTO / IMPULSO"',
-            'table.cell(panel, 0, 1, "REGIME"',
-            'table.cell(panel, 0, 4, "CORREÇÃO"',
-            'table.cell(panel, 0, 5, "DESTINO"',
-            'table.cell(panel, 0, 6, "LIQ ↑"',
-            'table.cell(panel, 0, 8, "INVALIDA"',
-            'table.cell(panel, 0, 10, "EXECUÇÃO"',
-            'table.cell(panel, 0, 11, "FORÇA"',
-            'table.cell(panel, 1, 0, "v0.2.0"',
             'liqAboveSource := "PDH"',
             'liqAboveSource := "PWH"',
             'liqBelowSource := "PDL"',
@@ -175,7 +182,6 @@ def main() -> None:
             'plot(diagAmbiguousOutcomes, "MM Hist • Resultados ambíguos"',
             'plot(diagSupersededAfterTouch, "MM Hist • Zona supersedida"',
             'plot(diagZoneReactionPct, "MM Hist • Zona→Destino % (engenharia)"',
-            'table.cell(panel, 0, 5, "DESTINO"',
             'phaseTxt := "FALSO ROMPIMENTO"',
             'bool bullSwingSequence = lastHighType == "HH" and lastLowType == "HL"',
             '"ALTA • REVERSÃO"',
@@ -185,8 +191,6 @@ def main() -> None:
             'var int invalidatedImpulseKey = na',
             'phaseTxt := "TESTE DE INVALIDAÇÃO"',
             'phaseTxt := "TESE INVALIDADA"',
-            'string contextTxt = contextTf + " • HTF CONF" + (correctionActive ? " • " + correctionModel : "")',
-            '// Single semantic panel — no Compact/Full variants',
         ]
         for token in required_mm:
             if token not in mm:
@@ -213,11 +217,12 @@ def main() -> None:
         operator_inputs = [
             line.strip() for line in mm.splitlines()
             if line.strip().startswith(("showMAs = input.", "showPanel = input.", "showStructureDetails = input."))
+            or 'responseProfile = input.string("PADRÃO", "Perfil de resposta"' in line
         ]
-        if len(operator_inputs) != 3:
-            fail(f"Market Map should expose exactly 3 operator controls in MM-0, found {len(operator_inputs)}")
+        if len(operator_inputs) != 4:
+            fail(f"Market Map should expose exactly 4 direct operator controls in Suite 0.2, found {len(operator_inputs)}")
         if 'visualMode = input.' in mm:
-            fail("Market Map visual-mode dropdown should not exist in MM-0")
+            fail("Market Map visual-mode dropdown should not exist")
 
     print("PASS: archive integrity + reboot invariants")
 
