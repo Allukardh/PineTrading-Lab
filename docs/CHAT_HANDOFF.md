@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — structural context partition + REACCELERATION evidence  
+**Checkpoint state:** STABLE  
+**Active product front:** Suite 0.2 — REACCELERATION evidence complete  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,45 +131,43 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — structural context partition / REACCELERATION
+### STABLE result — REACCELERATION opportunity class
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block head: `2437142bcbec23876128895ce11e565a1ed8dbc9`
+- latest durable research head: `fc63622245a179425be2258da1e268ba278a9681`
 
-Closed evidence that must not be redone:
-- frozen 0.1 latency baseline;
-- breakout held/fakeout feature study;
-- BTC/ETH/AVAX breakout acceptance/follow-through;
-- regime-transition discriminant study.
+Closed evidence:
+- breakout acceptance/follow-through;
+- cross-asset breakout/regime discriminants;
+- sequence-based structural context partition;
+- BTC 4H/1D REACCELERATION latency;
+- 15-symbol 1D REACCELERATION robustness.
 
-Exact intended work:
-1. classify structural breaks by contemporaneous market context rather than treating every coherent break as one opportunity class;
-2. define a deterministic `REACCELERATION` episode independent of Execution readiness/results;
-3. distinguish reacceleration from:
-   - fresh breakout/expansion;
-   - pullback/retest;
-   - early regime transition;
-4. use only structural/price context for the episode label where possible; MTE/RSE/PSE remain candidate response/features, not the event oracle;
-5. measure frozen 0.1 PREPARANDO / ARMADO / CONFIRMA coverage and latency on REACCELERATION;
-6. inspect whether reacceleration is currently missed mainly because `LOCATION_NOT_RELEVANT`;
-7. do not change production Pine/defaults;
-8. do not create profiles in this block;
-9. defer RANGE_ROTATION until the trend/continuation partition is stable.
+Key decision:
+- `REACCELERATION` — **KEEP** for Opportunity Engine research.
 
-Expected durable outputs:
-- structural context classifier/reference + tests;
-- REACCELERATION episode contract;
-- 0.1 latency/coverage report on BTC 4H/1D first;
-- KEEP/REFINE/REMOVE decision for the episode contract;
-- exact next discriminant for Opportunity Engine counterfactual or RANGE_ROTATION.
+Daily universe evidence:
+- 238 episodes across 15 symbols;
+- frozen 0.1 CONFIRMA/aligned coverage: 0.84%;
+- dominant miss: `LOCATION_NOT_RELEVANT`;
+- HOLD_2 held recall: 95.90%;
+- HOLD_2 fakeout accepted: 31.86%;
+- held share among accepted resolved: 76.47%.
 
-Recovery:
-- compare the research branch against `2437142...`;
-- inspect only newer commits/runs/artifacts;
-- do not reopen breakout acceptance decisions without a concrete defect.
+Interpretation lock:
+- held/fakeout is a structural diagnostic, not win rate;
+- the opportunity label is known at structural-break close;
+- HOLD_2 is later acceptance and never backdates;
+- no production Pine/default/profile changed.
+
+Detailed worklog:
+`docs/worklog/2026-09-25-suite-0.2-reacceleration.md`
+
+Exact next discriminant:
+- build a research-only Opportunity Engine counterfactual combining accepted pullback/retest behavior with breakout and REACCELERATION lifecycles.
 
 
 ## 7. Continuity protocol
