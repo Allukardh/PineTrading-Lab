@@ -3,7 +3,7 @@
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
 **Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — Phase F2 Thesis Management horizon expansion  
+**Active product front:** Suite 0.2 — Phase F2 15-symbol 3D/1W management robustness  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,48 +131,58 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — Phase F2 Thesis Management V1.1 horizon expansion
+### PREPARED block — Phase F2 15-symbol 3D / 1W management robustness
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `9da5d02b979292bba752d97a2ca2b6d39176a2fc`
+- durable pre-block research head: `85edd0d5d9dce7dcd260fcfb31229ed682266716`
 
-Accepted management baseline:
-- capability-aware Thesis Management V1.1;
-- 4H / 1D already accepted;
-- FULL / INVALIDATION_ONLY / TARGET_ONLY / NONE;
-- no synthetic anchors;
-- FULL-anchor V1 parity required;
-- management begins only from PADRÃO unified CONFIRMA.
+Closed F2 evidence:
+- BTC `36193988587` — PASS;
+- ETH/AVAX `36194315632` — PASS;
+- Static integrity — PASS;
+- worklog: `docs/worklog/2026-09-25-suite-0.2-integrated-evidence.md`.
+
+Accepted from F2 so far:
+- 15m Management V1.1 — KEEP;
+- 1H Management V1.1 — KEEP;
+- same thresholds/semantics across BTC/ETH/AVAX;
+- every PADRÃO confirm creates management;
+- FULL V1 parity 100%;
+- no synthetic anchors.
+
+Remaining uncertainty:
+- 3D has only 13 theses across BTC/ETH/AVAX;
+- 1W has only 3 theses across BTC/ETH/AVAX.
 
 Exact intended work:
-1. run unchanged Management V1.1 on BTC:
-   - 15m;
-   - 1H;
-   - 3D;
-   - 1W;
-2. keep accepted 4H/1D as reference comparators;
-3. measure:
-   - PADRÃO confirms -> management thesis coverage;
-   - anchor-capability distribution;
+1. run unchanged capability-aware V1.1 over the accepted 15-symbol universe on 3D + 1W;
+2. acquire exact canonical 1D / 3D / 1W datasets for each symbol;
+3. no per-symbol or per-timeframe retuning;
+4. aggregate:
+   - confirm/thesis counts;
+   - capability distribution;
    - FULL V1 parity;
    - CONTINUATION / PROTECT / REALIZATION_RISK saturation;
-   - state transition/churn;
-   - invalidated episodes with prior PROTECT;
-   - completed target-capable episodes with REALIZATION_RISK;
-   - REALIZATION persistence;
-   - source/opportunity mix;
-4. do not tune management thresholds by timeframe;
-5. 1M stays outside execution management;
-6. if BTC semantics are coherent, run unchanged ETH/AVAX;
-7. if a horizon needs different operator wording, refine semantics/UX rather than silently changing engine thresholds.
+   - transition/churn rates;
+   - completed / invalidated / superseded outcomes;
+   - invalidated with prior PROTECT;
+   - completed with REALIZATION_RISK;
+   - direction/source breadth;
+5. decide 3D and 1W independently:
+   - KEEP;
+   - KEEP but sparse;
+   - insufficient evidence;
+   - REFINE;
+6. 1M remains excluded from execution management;
+7. then close Phase F2 / Phase F if no further integration defect remains.
 
 Recovery:
-- compare branch with `9da5d02b...`;
-- inspect only newer Phase F2 commits/runs/artifacts;
-- do not reopen Phase E/F1 unless a concrete integration defect points back to them.
+- compare active branch with `85edd0d5d...`;
+- inspect only newer high-horizon management universe commits/runs/artifacts;
+- do not reopen 15m/1H or profile research without a concrete defect.
 
 
 ## 7. Continuity protocol
