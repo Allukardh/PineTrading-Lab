@@ -68,6 +68,7 @@ class ThesisResult:
     outcome: str
     bars_live: int
     first_fading_bar: int | None
+    first_exhausted_bar: int | None
     first_protect_bar: int | None
     first_realization_bar: int | None
     first_target_near_bar: int | None
@@ -76,6 +77,10 @@ class ThesisResult:
     protect_lead_bars: int | None
     realization_lead_bars: int | None
     fading_lead_bars: int | None
+    first_fading_progress: float | None
+    first_exhausted_progress: float | None
+    first_protect_progress: float | None
+    first_structural_warning_progress: float | None
     state_transitions: int
     warning_to_continuation_transitions: int
     protect_bars: int
@@ -276,11 +281,17 @@ def _evaluate(theses,confirm_rows,ctx):
     results=[]
     bar_state_counts=Counter()
     bar_strength_counts=Counter()
+    protect_cause_counts=Counter()
+    target_near_bars=0
+    invalidation_near_bars=0
 
     for th in theses:
         stop_before=next_confirm.get(th.confirm_bar,n)
-        first_fading=first_protect=first_realization=None
+        first_fading=first_exhausted=first_protect=first_realization=None
         first_tnear=first_inear=first_struct=None
+        first_fading_progress=first_exhausted_progress=first_protect_progress=first_struct_progress=None
+        confirm_close=float(data["close"][th.confirm_bar])
+        initial_target_distance=th.direction*(th.target-confirm_close)
         state_trans=warning_back=0
         protect_bars=realization_bars=continuation_bars=fading_bars=0
         prev_nonterminal=None
@@ -307,15 +318,38 @@ def _evaluate(theses,confirm_rows,ctx):
             bar_state_counts[mb.state.value]+=1
             bar_strength_counts[mb.strength.name]+=1
 
+            progress=(
+                None if initial_target_distance<=0
+                else th.direction*(float(data["close"][i])-confirm_close)/initial_target_distance
+            )
+            if mb.target_near:
+                target_near_bars+=1
+            if mb.invalidation_near:
+                invalidation_near_bars+=1
+
             if mb.strength==Strength.FADING:
                 fading_bars+=1
-                if first_fading is None:first_fading=i
+                if first_fading is None:
+                    first_fading=i
+                    first_fading_progress=progress
+            if mb.strength==Strength.EXHAUSTED and first_exhausted is None:
+                first_exhausted=i
+                first_exhausted_progress=progress
             if mb.target_near and first_tnear is None:first_tnear=i
             if mb.invalidation_near and first_inear is None:first_inear=i
-            if mb.structural_warning and first_struct is None:first_struct=i
+            if mb.structural_warning and first_struct is None:
+                first_struct=i
+                first_struct_progress=progress
             if mb.state==ManagementState.PROTECT:
                 protect_bars+=1
-                if first_protect is None:first_protect=i
+                causes=[]
+                if mb.strength==Strength.EXHAUSTED:causes.append("EXHAUSTED")
+                if mb.invalidation_near:causes.append("INVALIDATION_NEAR")
+                if mb.structural_warning:causes.append("STRUCTURAL_WARNING")
+                protect_cause_counts["+".join(causes) if causes else "OTHER"]+=1
+                if first_protect is None:
+                    first_protect=i
+                    first_protect_progress=progress
             elif mb.state==ManagementState.REALIZATION_RISK:
                 realization_bars+=1
                 if first_realization is None:first_realization=i
@@ -360,6 +394,7 @@ def _evaluate(theses,confirm_rows,ctx):
             outcome=outcome,
             bars_live=end-th.confirm_bar+1,
             first_fading_bar=first_fading,
+            first_exhausted_bar=first_exhausted,
             first_protect_bar=first_protect,
             first_realization_bar=first_realization,
             first_target_near_bar=first_tnear,
@@ -368,6 +403,10 @@ def _evaluate(theses,confirm_rows,ctx):
             protect_lead_bars=lead(first_protect),
             realization_lead_bars=lead(first_realization),
             fading_lead_bars=lead(first_fading),
+            first_fading_progress=first_fading_progress,
+            first_exhausted_progress=first_exhausted_progress,
+            first_protect_progress=first_protect_progress,
+            first_structural_warning_progress=first_struct_progress,
             state_transitions=state_trans,
             warning_to_continuation_transitions=warning_back,
             protect_bars=protect_bars,
@@ -376,16 +415,17 @@ def _evaluate(theses,confirm_rows,ctx):
             fading_bars=fading_bars,
         ))
 
-    return results,bar_state_counts,bar_strength_counts
+    return results,bar_state_counts,bar_strength_counts,protect_cause_counts,target_near_bars,invalidation_near_bars
 
 
-def _summary(results,bar_states,bar_strengths):
+def _summary(results,bar_states,bar_strengths,protect_causes=None,target_near_bars=0,invalidation_near_bars=0):
     outcomes=Counter(r.outcome for r in results)
     total_live=sum(r.bars_live for r in results)
     completed=[r for r in results if r.outcome=="COMPLETED"]
     invalidated=[r for r in results if r.outcome=="INVALIDATED"]
     resolved=[r for r in results if r.outcome in {"COMPLETED","INVALIDATED","AMBIGUOUS"}]
 
+    protect_causes=protect_causes or Counter()
     return {
         "episodes":len(results),
         "outcomes":dict(sorted(outcomes.items())),
@@ -398,6 +438,13 @@ def _summary(results,bar_states,bar_strengths):
             k:pct(v,total_live) for k,v in sorted(bar_states.items())
         },
         "bar_strength_counts":dict(sorted(bar_strengths.items())),
+        "protect_cause_counts":dict(sorted(protect_causes.items())),
+        "target_near_bars":target_near_bars,
+        "invalidation_near_bars":invalidation_near_bars,
+        "first_fading_progress":_dist([r.first_fading_progress for r in results]),
+        "first_exhausted_progress":_dist([r.first_exhausted_progress for r in results]),
+        "first_protect_progress":_dist([r.first_protect_progress for r in results]),
+        "first_structural_warning_progress":_dist([r.first_structural_warning_progress for r in results]),
         "state_transitions":sum(r.state_transitions for r in results),
         "warning_to_continuation_transitions":sum(r.warning_to_continuation_transitions for r in results),
         "transitions_per_1000_live_bars":None if not total_live else 1000*sum(r.state_transitions for r in results)/total_live,
@@ -427,7 +474,7 @@ def _summary(results,bar_states,bar_strengths):
 def analyze(tf,datasets,tick):
     ctx=_build_operator_paths(tf,datasets,tick)
     theses,unsupported,confirm_rows=_build_theses(ctx)
-    results,bar_states,bar_strengths=_evaluate(theses,confirm_rows,ctx)
+    results,bar_states,bar_strengths,protect_causes,target_near_bars,invalidation_near_bars=_evaluate(theses,confirm_rows,ctx)
 
     by_source={}
     for source in PATH_NAMES:
@@ -469,7 +516,7 @@ def analyze(tf,datasets,tick):
         "operator_confirm_bars":len(confirm_rows),
         "supported_management_episodes":len(theses),
         "unsupported":dict(sorted(unsupported.items())),
-        "summary":_summary(results,bar_states,bar_strengths),
+        "summary":_summary(results,bar_states,bar_strengths,protect_causes,target_near_bars,invalidation_near_bars),
         "by_source":by_source,
         "examples":examples,
         "results":[asdict(r) for r in results],
@@ -533,6 +580,21 @@ def markdown(report):
             lines.append(
                 f"| {tf} | {source} | {row['episodes']} | {o.get('COMPLETED',0)} | {o.get('INVALIDATED',0)} | {o.get('SUPERSEDED',0)} |"
             )
+
+    lines += [
+        "",
+        "## V0 cause / progress diagnostics",
+        "",
+        "| TF | target-near bars | invalid-near bars | EXHAUSTED-only-ish cause bars | structural-warning cause bars | first FADING progress med | first EXHAUSTED progress med | first PROTECT progress med |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+    ]
+    for tf,x in report["timeframes"].items():
+        s=x["summary"];causes=s["protect_cause_counts"]
+        exhausted=sum(v for k,v in causes.items() if "EXHAUSTED" in k)
+        structural=sum(v for k,v in causes.items() if "STRUCTURAL_WARNING" in k)
+        lines.append(
+            f"| {tf} | {s['target_near_bars']} | {s['invalidation_near_bars']} | {exhausted} | {structural} | {_fmt(s['first_fading_progress']['median'])} | {_fmt(s['first_exhausted_progress']['median'])} | {_fmt(s['first_protect_progress']['median'])} |"
+        )
 
     lines += [
         "",
