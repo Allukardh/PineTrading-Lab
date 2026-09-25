@@ -265,29 +265,46 @@ def acceptance(cs: Sequence[Candle], cur: int, start: int | None, end: int | Non
 
 class Kernel:
 
-    def __init__(self, chart, context, daily, weekly, timeframe, tick=0.01):
+    def __init__(
+        self,
+        chart,
+        context,
+        daily,
+        weekly,
+        timeframe,
+        tick=0.01,
+        *,
+        mid_len=MID_LEN,
+        slow_len=SLOW_LEN,
+    ):
         if timeframe not in CONTEXT_TF:
             raise ValueError(timeframe)
+        if mid_len <= 0 or slow_len <= 0:
+            raise ValueError("EMA lengths must be positive")
+        if mid_len >= slow_len:
+            raise ValueError("mid_len must be smaller than slow_len")
         self.x = list(chart)
         self.ctx = list(context)
         self.d = list(daily)
         self.w = list(weekly)
         self.tf = timeframe
         self.tick = tick
+        self.mid_len = int(mid_len)
+        self.slow_len = int(slow_len)
         self.self_context = CONTEXT_TF[timeframe] == timeframe
         self.day_levels_allowed = timeframe in DAY_LEVEL_TFS
         self.week_levels_allowed = timeframe in WEEK_LEVEL_TFS
         closes = [x.c for x in self.x]
         highs = [x.h for x in self.x]
         lows = [x.l for x in self.x]
-        self.mid = ema(closes, MID_LEN)
-        self.slow = ema(closes, SLOW_LEN)
+        self.mid = ema(closes, self.mid_len)
+        self.slow = ema(closes, self.slow_len)
         self.a = atr(self.x)
         self.ph = [phigh(highs, i) for i in range(len(self.x))]
         self.pl = [plow(lows, i) for i in range(len(self.x))]
         cc = [x.c for x in self.ctx]
-        self.cm = ema(cc, MID_LEN)
-        self.cs = ema(cc, SLOW_LEN)
+        self.cm = ema(cc, self.mid_len)
+        self.cs = ema(cc, self.slow_len)
         self.ct = [x.t for x in self.ctx]
         self.dt = [x.t for x in self.d]
         self.wt = [x.t for x in self.w]
