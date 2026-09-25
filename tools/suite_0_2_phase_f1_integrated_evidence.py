@@ -28,10 +28,12 @@ from tools.responsiveness_profile_reference import (
     anticipated_trend_supported,
     standard_events,
 )
-from tools.suite_0_2_responsiveness_profile_quality import _projections
+from tools.suite_0_2_responsiveness_profile_quality import (
+    TREND_PATH,
+    _projections,
+)
 from tools.suite_0_2_thesis_management_evidence import (
     PATH_NAMES,
-    TREND_PATH,
     _build_operator_paths,
 )
 from tools.suite_0_2_thesis_management_v1_1_evidence import (
