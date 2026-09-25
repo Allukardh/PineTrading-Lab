@@ -5,14 +5,13 @@ indicator("Execution v0.1.0", shorttitle="Execution", overlay=false, max_bars_ba
 // PineTrading-Lab — Execution 0.1.0
 // Production implementation of the accepted Execution research contract.
 //
-// Milestone A:
+// Production kernel:
 //   - MTE-A momentum kernel
 //   - RSE-A local RSI + confirmed HTF context
 //   - PSE-A reload-safe participation measurements
+//   - self-contained accepted Market Map context/location bridge
+//   - readiness + strength state machine
 //   - minimal lower-pane renderer
-//
-// Readiness / Strength are intentionally NOT emitted until the self-contained
-// Market Map direction/location bridge is wired in the next production gate.
 // ============================================================================
 
 // ---------------------------------------------------------------------------
@@ -64,6 +63,23 @@ int RSI_EXTREME_OVERSOLD = -4
 int RSI_FADING_OVERSOLD = -3
 int RSI_FADING_OVERBOUGHT = -2
 int RSI_BEAR = -1
+
+
+int PSE_NEUTRAL = 0
+int PSE_CONFIRM = 1
+int PSE_WEAK = 2
+int PSE_CONTRARY = -1
+
+int READY_WAIT = 0
+int READY_PREP = 1
+int READY_ARMED = 2
+int READY_CONFIRMED = 3
+int READY_ALIGNED = 4
+
+int STRENGTH_NORMAL = 0
+int STRENGTH_FADING = 1
+int STRENGTH_EXHAUSTED = 2
+int STRENGTH_REACTION_RISK = 3
 
 // ---------------------------------------------------------------------------
 // Deterministic research-parity helpers
@@ -258,22 +274,6 @@ int LOC_IN_CORRECTION = 2
 int LOC_RETEST = 3
 int LOC_RECLAIM = 4
 int LOC_DESTINATION_NEAR = 5
-
-int PSE_NEUTRAL = 0
-int PSE_CONFIRM = 1
-int PSE_WEAK = 2
-int PSE_CONTRARY = -1
-
-int READY_WAIT = 0
-int READY_PREP = 1
-int READY_ARMED = 2
-int READY_CONFIRMED = 3
-int READY_ALIGNED = 4
-
-int STRENGTH_NORMAL = 0
-int STRENGTH_FADING = 1
-int STRENGTH_EXHAUSTED = 2
-int STRENGTH_REACTION_RISK = 3
 
 f_mm_sec(_tf, _expr) =>
     float reqSec = timeframe.in_seconds(_tf)
