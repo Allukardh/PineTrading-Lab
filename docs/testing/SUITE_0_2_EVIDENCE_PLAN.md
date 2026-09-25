@@ -41,6 +41,11 @@ Do not change the comparator after seeing 0.2 results.
 - 1W
 - 1M
 
+The accepted Binance lab currently stores through 1W. For 1M evidence:
+- first preference is deterministic calendar-month OHLCV aggregation from the accepted 1D Parquet;
+- add a native 1M pipeline artifact only if parity/reproducibility evidence shows aggregation is insufficient;
+- record the provenance explicitly in every 1M report.
+
 4H / 1D are primary product-development horizons.
 
 3D / 1W / 1M are mandatory robustness/horizon-design evidence, not optional afterthoughts.
