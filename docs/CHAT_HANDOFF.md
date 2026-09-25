@@ -131,62 +131,65 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — RANGE_ROTATION readiness v2
+### PREPARED block — RANGE_ROTATION source-arm readiness variants
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `4826705d72d51133f24e017a5c9bcaa82494b205`
+- durable pre-block research head: `d437069ed7b35b874ab4d5ae4df29e3266544ae4`
 
-Closed diagnostics:
-- generic range integration A/B `36158262670` — PASS;
-- component evidence `36158675194` — PASS;
-- Static integrity `36158675044` — PASS;
-- worklog: `docs/worklog/2026-09-25-suite-0.2-range-rotation.md`.
+Audit correction:
+- strict pre-midpoint component window fixed before implementation;
+- corrected component run `36159037602` — PASS;
+- source ignition run `36159220967` — PASS.
 
-Pre-registered RANGE_ROTATION readiness v2:
+Superseding preregistration:
 
-STRONG:
-- may PREPARAR only when MTE is not strongly opposing;
-- otherwise remain WAIT while structural lifecycle continues.
+**EARLY_ANY1**
+- source EDGE_REJECTION:
+  - dual MTE + local-RSI opposition -> WAIT;
+  - otherwise >=1 ignition family -> ARMADO;
+  - zero ignition -> WAIT;
+- next-bar structural ACCEPTED:
+  - already ARMADO from same source -> CONFIRMA.
 
-ACCEPTED:
-- structural +1 persistence/progress;
-- may ARMAR directly when MTE is not strongly opposing;
-- HTF RSI is not a readiness veto;
-- PSE WEAK/NEUTRAL does not veto acceptance.
+**SELECTIVE_ANY2**
+- source:
+  - dual opposition -> WAIT;
+  - 1 ignition family -> PREPARANDO;
+  - >=2 ignition families -> ARMADO;
+  - zero -> WAIT;
+- next-bar ACCEPTED:
+  - only already ARMADO -> CONFIRMA;
+  - PREPARANDO does not create a late entry.
 
-CONFIRMA:
-- frame remains ACCEPTED;
-- chart close confirmed;
-- at least one ignition family:
-  - MTE aligned; or
-  - local RSI supportive; or
-  - PSE CONFIRM;
-- reject/cancel only when MTE strongly opposing AND local RSI opposing.
+Ignition families:
+- MTE aligned;
+- local RSE supportive;
+- PSE CONFIRM.
 
 Locks:
-- MTE/RSE/PSE state definitions unchanged;
-- breakout/reacceleration Opportunity v2 unchanged;
-- frozen Execution 0.1 unchanged;
+- HTF RSI is context, not readiness veto;
+- structural ACCEPTED mandatory;
 - range detector/thresholds unchanged;
 - no hard regime filter;
+- MTE/RSE/PSE state definitions unchanged;
+- breakout/reacceleration Opportunity v2 unchanged;
+- frozen 0.1 unchanged;
 - no production Pine/default/profile change.
 
 Exact intended work:
-1. implement range-specific readiness v2;
-2. rerun BTC 4H/1D;
-3. require materially earlier/more useful confirmations than generic range integration;
-4. verify no FAILED_BEFORE_MID confirmed cases;
-5. measure confirmation before midpoint and room to opposite edge;
-6. measure churn;
-7. if semantics hold, validate unchanged on ETH/AVAX;
-8. otherwise REFINE without touching accepted base Opportunity v2.
+1. implement both range-specific readiness variants;
+2. run BTC 4H/1D;
+3. compare confirmation breadth/selectivity, +1 timing, midpoint timing, room, churn and structural outcomes;
+4. target zero FAILED_BEFORE_MID confirmations;
+5. choose the better semantic tradeoff;
+6. only then validate unchanged on ETH/AVAX.
 
 Recovery:
-- compare active branch with `4826705d...`;
-- inspect only newer range-readiness-v2 commits/runs/artifacts.
+- compare active branch with `d437069...`;
+- inspect only newer range-readiness source-arm commits/runs/artifacts.
 
 
 ## 7. Continuity protocol
