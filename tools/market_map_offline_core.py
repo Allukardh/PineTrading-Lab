@@ -73,6 +73,20 @@ class IntegrationSnapshot:
     invalidation: float | None = None
     structural_break_level: float | None = None
 
+    # Range-rotation research telemetry. Values are confirmed swing/reclaim
+    # state already known by MM-0 on this bar; exposing them does not change
+    # any production Market Map decision.
+    last_swing_high: float | None = None
+    last_swing_high_bar: int | None = None
+    prev_swing_high: float | None = None
+    prev_swing_high_bar: int | None = None
+    last_swing_low: float | None = None
+    last_swing_low_bar: int | None = None
+    prev_swing_low: float | None = None
+    prev_swing_low_bar: int | None = None
+    raw_upper_reclaim_level: float | None = None
+    raw_lower_reclaim_level: float | None = None
+
 
 @dataclass
 class Pool:
@@ -546,6 +560,16 @@ class Kernel:
                     destination=None if thesis_inv else dest,
                     invalidation=inval if ready else None,
                     structural_break_level=break_level if (bu or bd) else None,
+                    last_swing_high=lsh,
+                    last_swing_high_bar=lshb,
+                    prev_swing_high=psh,
+                    prev_swing_high_bar=pshb,
+                    last_swing_low=lsl,
+                    last_swing_low_bar=lslb,
+                    prev_swing_low=psl,
+                    prev_swing_low_bar=pslb,
+                    raw_upper_reclaim_level=rec_a,
+                    raw_lower_reclaim_level=rec_b,
                 ))
             ts = datetime.fromtimestamp(x.t / 1000000.0, tz=timezone.utc).isoformat().replace('+00:00', 'Z')
             if emit_audit:
