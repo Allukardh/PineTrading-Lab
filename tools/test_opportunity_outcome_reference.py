@@ -72,6 +72,14 @@ class OpportunityOutcomeTests(unittest.TestCase):
         out = classify_breakout(e, xs)
         self.assertEqual(out.outcome, CandidateOutcome.BREAKOUT_UNRESOLVED)
 
+    def test_reacceleration_uses_same_structural_fakeout_contract(self):
+        e = ep(OpportunityType.REACCELERATION, 1, 0)
+        xs = [snap(i) for i in range(FAIL_MAX_BARS + 1)]
+        xs[2] = snap(2, map_dir=0, structure_dir=-1, fakeout_event=True)
+        out = classify_breakout(e, xs)
+        self.assertEqual(out.outcome, CandidateOutcome.BREAKOUT_FAKEOUT)
+        self.assertEqual(out.outcome_bar, 2)
+
     def test_regime_candidate_matures_before_opposite_candidate(self):
         a = ep(OpportunityType.REGIME_TRANSITION_CANDIDATE, 1, 10, "a")
         mature = ep(OpportunityType.REGIME_REVERSAL, 1, 15, "m")
