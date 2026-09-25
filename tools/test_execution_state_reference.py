@@ -261,7 +261,24 @@ class ExecutionStateReferenceTests(unittest.TestCase):
             ),
         )
         self.assertEqual(r.state.readiness, Readiness.ALIGNED)
-        self.assertEqual(r.state.strength, Strength.EXHAUSTED)
+        self.assertEqual(r.state.strength, Strength.FADING)
+
+    def test_weak_participation_is_not_independent_strength_deterioration(self):
+        weak_only = self.ev(
+            location=Location.OUTSIDE,
+            momentum=Momentum.UP_ACCEL,
+            rsi=RsiState.BULL,
+            participation=Participation.WEAK,
+        )
+        self.assertEqual(classify_strength(1, weak_only), Strength.NORMAL)
+
+        contrary_only = self.ev(
+            location=Location.OUTSIDE,
+            momentum=Momentum.UP_ACCEL,
+            rsi=RsiState.BULL,
+            participation=Participation.CONTRARY,
+        )
+        self.assertEqual(classify_strength(1, contrary_only), Strength.FADING)
 
     def test_aligned_cancels_on_two_opposing_directional_families(self):
         prev = State(Readiness.ALIGNED, 1, Strength.NORMAL)
