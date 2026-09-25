@@ -43,7 +43,7 @@ def require(text: str, tokens: list[str], label: str) -> None:
 
 
 PLOT_PRODUCING_CALL_RE = re.compile(
-    r"\\b(?:plot|plotshape|plotchar|plotbar|plotcandle|bgcolor|fill|alertcondition)\\s*\\("
+    r"\b(?:plot|plotshape|plotchar|plotbar|plotcandle|bgcolor|fill|alertcondition)\s*\("
 )
 PLOT_PRODUCING_CALL_BUDGET = 55
 
