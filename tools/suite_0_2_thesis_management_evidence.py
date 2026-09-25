@@ -245,13 +245,24 @@ def _build_theses(ctx):
             if anchor is not None:
                 target,invalidation,source_bar=anchor
                 kind="RANGE_ROTATION"
+            else:
+                unsupported[f"{source}/RANGE_SOURCE_MAPPING_MISSING"]+=1
+                continue
 
-        if target is None or invalidation is None:
-            unsupported["MISSING_ANCHOR"]+=1
+        anchor_prefix=f"{source}/{kind}"
+        if target is None and invalidation is None:
+            unsupported[f"{anchor_prefix}/TARGET_AND_INVALIDATION_MISSING"]+=1
             continue
+        if target is None:
+            unsupported[f"{anchor_prefix}/TARGET_MISSING"]+=1
+            continue
+        if invalidation is None:
+            unsupported[f"{anchor_prefix}/INVALIDATION_MISSING"]+=1
+            continue
+
         target=float(target);invalidation=float(invalidation)
         if not _directional_valid(direction,target,invalidation,close):
-            unsupported["INVALID_GEOMETRY"]+=1
+            unsupported[f"{anchor_prefix}/INVALID_GEOMETRY"]+=1
             continue
 
         theses.append(ThesisEpisode(
