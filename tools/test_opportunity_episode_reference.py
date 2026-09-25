@@ -2,8 +2,11 @@ import unittest
 
 from tools.market_map_offline_core import IntegrationSnapshot
 from tools.opportunity_episode_reference import (
+    BreakContext,
     OpportunityType,
+    REACCELERATION_REGIME_MIN_BARS,
     REVERSAL_PRIOR_REGIME_MIN_BARS,
+    classify_structural_break_context,
     detect_episodes,
 )
 
@@ -205,6 +208,142 @@ class OpportunityEpisodeTests(unittest.TestCase):
         )
         self.assertFalse(
             any(e.opportunity_type == OpportunityType.REGIME_REVERSAL for e in eps)
+        )
+
+    def test_structural_break_context_partitions_reacceleration(self):
+        self.assertEqual(
+            classify_structural_break_context(
+                direction=1,
+                map_dir=1,
+                regime_dir=1,
+                structural_conflict=False,
+                thesis_invalidated=False,
+                regime_age_before_bar=REACCELERATION_REGIME_MIN_BARS,
+                had_prior_same_direction_break=True,
+                recent_pullback_reaction=False,
+                reaction_on_break_bar=False,
+                opposite_mature_regime=False,
+            ),
+            BreakContext.REACCELERATION,
+        )
+
+        self.assertEqual(
+            classify_structural_break_context(
+                direction=1,
+                map_dir=1,
+                regime_dir=1,
+                structural_conflict=False,
+                thesis_invalidated=False,
+                regime_age_before_bar=REACCELERATION_REGIME_MIN_BARS,
+                had_prior_same_direction_break=True,
+                recent_pullback_reaction=True,
+                reaction_on_break_bar=False,
+                opposite_mature_regime=False,
+            ),
+            BreakContext.PULLBACK_RESOLUTION,
+        )
+
+        self.assertEqual(
+            classify_structural_break_context(
+                direction=1,
+                map_dir=0,
+                regime_dir=0,
+                structural_conflict=True,
+                thesis_invalidated=False,
+                regime_age_before_bar=0,
+                had_prior_same_direction_break=False,
+                recent_pullback_reaction=False,
+                reaction_on_break_bar=False,
+                opposite_mature_regime=True,
+            ),
+            BreakContext.EARLY_TRANSITION,
+        )
+
+    def test_reacceleration_requires_mature_same_direction_context_without_recent_pullback(self):
+        xs = []
+        # Establish a mature bullish regime and an initial same-direction
+        # structural break. The first break is fresh expansion, not
+        # reacceleration.
+        for i in range(REACCELERATION_REGIME_MIN_BARS):
+            xs.append(
+                snap(
+                    i,
+                    map_dir=1,
+                    regime_dir=1,
+                    structure_dir=1,
+                    structural_break_dir=1 if i == 1 else 0,
+                    thesis_key=10,
+                )
+            )
+
+        second_break = len(xs)
+        xs.append(
+            snap(
+                second_break,
+                map_dir=1,
+                regime_dir=1,
+                structure_dir=1,
+                structural_break_dir=1,
+                thesis_key=11,
+            )
+        )
+
+        eps = detect_episodes(
+            xs,
+            [x.close + 1 for x in xs],
+            [x.close - 1 for x in xs],
+        )
+        reacc = [
+            e for e in eps if e.opportunity_type == OpportunityType.REACCELERATION
+        ]
+        self.assertEqual(len(reacc), 1)
+        self.assertEqual(reacc[0].confirmation_bar, second_break)
+        self.assertEqual(reacc[0].direction, 1)
+
+    def test_recent_pullback_suppresses_reacceleration_label(self):
+        xs = []
+        for i in range(REACCELERATION_REGIME_MIN_BARS):
+            xs.append(
+                snap(
+                    i,
+                    map_dir=1,
+                    regime_dir=1,
+                    structure_dir=1,
+                    structural_break_dir=1 if i == 1 else 0,
+                    thesis_key=10,
+                )
+            )
+
+        reaction_bar = len(xs)
+        xs.append(
+            snap(
+                reaction_bar,
+                map_dir=1,
+                regime_dir=1,
+                structure_dir=1,
+                thesis_key=10,
+                retest_event=True,
+            )
+        )
+        break_bar = len(xs)
+        xs.append(
+            snap(
+                break_bar,
+                map_dir=1,
+                regime_dir=1,
+                structure_dir=1,
+                structural_break_dir=1,
+                thesis_key=11,
+            )
+        )
+
+        eps = detect_episodes(
+            xs,
+            [x.close + 1 for x in xs],
+            [x.close - 1 for x in xs],
+        )
+        self.assertFalse(
+            any(e.opportunity_type == OpportunityType.REACCELERATION for e in eps)
         )
 
     def test_length_mismatch_is_rejected(self):
