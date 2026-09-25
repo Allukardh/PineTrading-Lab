@@ -86,8 +86,8 @@ def sample(
 class OpportunityLatencyTests(unittest.TestCase):
     def episode(self):
         return OpportunityEpisode(
-            episode_id="BREAKOUT_EXPANSION:+1:0",
-            opportunity_type=OpportunityType.BREAKOUT_EXPANSION,
+            episode_id="BREAKOUT_CANDIDATE:+1:0",
+            opportunity_type=OpportunityType.BREAKOUT_CANDIDATE,
             direction=1,
             onset_bar=0,
             confirmation_bar=0,
