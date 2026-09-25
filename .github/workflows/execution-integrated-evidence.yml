@@ -1,0 +1,90 @@
+name: Execution integrated Market Map evidence
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["research/execution-engine-design"]
+    paths:
+      - ".github/workflows/execution-integrated-evidence.yml"
+      - "tools/execution_integrated_evidence.py"
+      - "tools/execution_candidate_reference.py"
+      - "tools/execution_state_reference.py"
+      - "tools/market_execution_bridge_reference.py"
+      - "tools/market_map_offline_core.py"
+      - "tools/momentum_turn_reference.py"
+      - "tools/rsi_state_reference.py"
+      - "tools/participation_reference.py"
+      - "manifests/execution-research-defaults-v1.json"
+      - "manifests/suite-semantics-v1.json"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  btc-integrated:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      DATA_ROOT: ${{ runner.temp }}/Binance
+      OUT_DIR: ${{ runner.temp }}/execution-integrated
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install market-data dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements-market-data.txt
+
+      - name: Acquire exact canonical BTC snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEST="$DATA_ROOT/spot/BTCUSDT/consolidated"
+          mkdir -p "$DEST" "$OUT_DIR"
+
+          fetch_artifact() {
+            local id="$1"
+            local name="$2"
+            local expected="$3"
+            gh api \
+              -H "Accept: application/vnd.github+json" \
+              "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip" \
+              > "$DEST/$name"
+            echo "$expected  $DEST/$name" | sha256sum -c -
+          }
+
+          fetch_artifact 10811401520 BTCUSDT_15m.parquet cac347638b577b2bcfcd671f66a68af96edb49c614c4dc203d7dc8ea3fb48411
+          fetch_artifact 10810563678 BTCUSDT_1h.parquet 86f2f12b66979d2e0659b44b95b584ec5140050770acce58e6c4643c9b409776
+          fetch_artifact 10811281699 BTCUSDT_4h.parquet 93226923a88861cc56d11d82900801db7f64fbe89920c710843dc26673265e06
+          fetch_artifact 10810907465 BTCUSDT_1d.parquet 1788d075ad21091e279cb68ccfac79935149ca9c444a74dbc971bba00e15fdae
+          fetch_artifact 10811056999 BTCUSDT_3d.parquet e4228da434e9131ae2353147181069d119bc0ef373ec4b93effc5c1dcf9a39d9
+          fetch_artifact 10811406601 BTCUSDT_1w.parquet 960de3600ea7ab8651ec2dbaa51d204e05fce19127eb53bb24fcd59dd010ac46
+
+      - name: Run integrated Market Map conditioned evidence
+        run: |
+          python -m tools.execution_integrated_evidence \
+            --data-root "$DATA_ROOT" \
+            --symbol BTCUSDT \
+            --canonical-manifest manifests/binance-spot-btcusdt.production-2026-09-24.json \
+            --output-json "$OUT_DIR/execution-integrated-btc.json" \
+            --output-md "$OUT_DIR/execution-integrated-btc.md" \
+            --code-sha "$GITHUB_SHA"
+
+      - name: Show integrated evidence summary
+        run: cat "$OUT_DIR/execution-integrated-btc.md"
+
+      - name: Upload integrated evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: execution-integrated-btc-evidence
+          path: |
+            ${{ runner.temp }}/execution-integrated/execution-integrated-btc.json
+            ${{ runner.temp }}/execution-integrated/execution-integrated-btc.md
+          retention-days: 30
