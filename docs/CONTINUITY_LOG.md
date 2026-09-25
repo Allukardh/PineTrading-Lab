@@ -652,6 +652,61 @@ Causal consequence:
 
 ---
 
+### 2026-09-24 — Suite 0.2 direction approved: opportunity coverage, responsiveness and direct operator UX
+
+After the accepted 0.1 suite baseline, the operator clarified the next product objective.
+
+The suite must not remain mainly a correction/retest assistant. It should help identify and act on a broader set of recurring opportunities while preserving the operator's final discretionary decision.
+
+Operational clarification:
+- MEXC / Bitget are primarily used for spot buy/sell;
+- Quantfury may be used long/short;
+- bearish analysis therefore must remain useful both as spot sell/protect/avoid-buy context and as optional short context;
+- no exchange-specific structural engine is required.
+
+Horizon clarification:
+- 4H / 1D are primary swing horizons;
+- 3D / 1W / 1M matter for medium/long regime and opportunity work;
+- 15m / 1H remain valuable for shorter trades and precision entry.
+
+Approved 0.2 product direction:
+- freeze the accepted 0.1 Market Map and Execution baselines as comparators;
+- add an Opportunity Engine research layer without adding a third runtime indicator;
+- research regime reversal, breakout/expansion, pullback/retest, reacceleration, range rotation and exhaustion/exit-risk;
+- measure whether 0.1 confirmation arrives too late before changing timing behavior;
+- only introduce profiles if historical evidence demonstrates meaningful timing/confirmation tradeoffs;
+- candidate profile vocabulary becomes **ANTECIPADO / PADRÃO / CONFIRMADO**, with PADRÃO anchored to 0.1;
+- expand higher-timeframe design explicitly for 3D/1W/1M rather than blindly reusing self-context above 1D;
+- make the visible panel more direct while keeping richer technical semantics behind the scenes;
+- keep the two-indicator topology and prevent complexity growth from leaking into operator UX.
+
+Direct-operator-language target:
+- CENÁRIO;
+- OPORTUNIDADE;
+- LADO;
+- AÇÃO;
+- ALVO;
+- GESTÃO;
+- INVALIDA;
+- CORREÇÃO only when contextually relevant.
+
+Mandatory promotion deliverable:
+- `docs/GUIA_DO_OPERADOR.md` in Portuguese (Brazil), created only after 0.2 semantics stabilize.
+
+Tracking:
+- Issue #23 — Suite 0.2: Opportunity Engine, responsiveness and direct operator UX
+- `docs/roadmap/SUITE_0_2_ROADMAP.md`
+- `docs/design/OPPORTUNITY_ENGINE.md`
+- `docs/testing/SUITE_0_2_EVIDENCE_PLAN.md`
+
+Causal consequence:
+- do not modify the 0.1 production baseline simply to generate more signals;
+- first build deterministic opportunity episode labels and quantify 0.1 latency/missed-opportunity causes;
+- profiles and faster behavior are evidence questions, not pre-decided features;
+- operator-facing simplification is a first-class 0.2 requirement, not a cosmetic afterthought.
+
+---
+
 ## 9. Current continuation checkpoint
 
 The exact volatile checkpoint belongs in:
@@ -659,13 +714,14 @@ The exact volatile checkpoint belongs in:
 `docs/CHAT_HANDOFF.md`
 
 Current durable macro state:
-- Market Map 0.1.0 is accepted on `main`;
-- Execution 0.1.0 is accepted on `main`;
-- final runtime topology is **two indicators**: Market Map overlay + embedded Decision Panel, and Execution lower pane;
-- SignalGate is a preserved engineering donor/baseline, not a final runtime product;
-- Binance historical-data infrastructure is accepted and available for future evidence work;
-- the reboot foundation is complete at the 0.1.0 suite-baseline level;
-- no production gate is currently open;
-- future 0.x changes require a concrete semantic, parity, usability or market-behavior reason.
+- Market Map 0.1.0 is accepted and frozen as a reference baseline;
+- Execution 0.1.0 is accepted and frozen as a reference baseline;
+- final runtime topology remains **two indicators**;
+- Issue #23 owns Suite 0.2 opportunity-expansion research;
+- Suite 0.2 must broaden opportunity coverage without increasing visible clutter;
+- responsiveness/profile changes require measured latency evidence;
+- 4H/1D are primary swing horizons; 3D/1W/1M medium/long behavior is explicitly in scope;
+- 15m/1H remain short/precision horizons;
+- the final 0.2 operator guide in Portuguese is a mandatory promotion artifact.
 
-Future chats must read `CHAT_HANDOFF.md` for the exact current objective instead of reopening completed foundation work.
+Future chats must read `CHAT_HANDOFF.md` for the exact research checkpoint and active branch/PR.
