@@ -29,7 +29,7 @@ The reboot now reduces the six legacy end-user indicators to **two runtime indic
 - **Execution** — lower-pane timing engine for momentum, RSI/exhaustion, volume participation and entry confirmation.
 - **Decision Panel** — a logical synthesis layer embedded in Market Map, **not a third mandatory indicator/script**.
 
-Market Map 0.1.0 is the accepted structural-map baseline on `main`. SignalGate Dashboard 0.1.0 remains preserved as a timing/reload/alert engineering baseline and donor; it is **not** a third final runtime product. The active product focus is now **Execution historical evidence research**. Legacy MA 6x, Fibonacci and the other archived scripts remain research evidence/donors, not compatibility requirements. The exact active checkpoint lives in `docs/CHAT_HANDOFF.md`.
+Market Map 0.1.0 is the accepted structural-map baseline on `main`. SignalGate Dashboard 0.1.0 remains preserved as a timing/reload/alert engineering baseline and donor; it is **not** a third final runtime product. The Execution historical research contract is now accepted on `main`; the active product focus is **Execution 0.1.0 production implementation**. Legacy MA 6x, Fibonacci and the other archived scripts remain research evidence/donors, not compatibility requirements. The exact active checkpoint lives in `docs/CHAT_HANDOFF.md`.
 
 See:
 - `docs/TRADING_SYSTEM_DESIGN.md`
