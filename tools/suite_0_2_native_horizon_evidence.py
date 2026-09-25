@@ -35,7 +35,7 @@ from tools.rsi_state_reference import calculate as calculate_rsi
 
 
 TIMEFRAMES=("15m","1h","3d","1w")
-TF_MINUTES={"15m":15,"1h":60,"3d":3*24*60,"1w":7*24*60}
+TF_MINUTES={"15m":15,"1h":60,"3d":3*24*60,"1w":7*24*60,"1M":30*24*60}
 
 
 def _per1000(n,rows): return None if not rows else n*1000.0/rows
