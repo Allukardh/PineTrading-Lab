@@ -1668,8 +1668,209 @@ if barstate.isconfirmed
     exDir := nextDir
     exStrength := nextStrength
 
-string executionTxt = f_ex_readiness_txt(exReadiness, exDir)
+// ---------------------------------------------------------------------------
+// OPERATOR_READINESS_V1 — embedded projection
+// ---------------------------------------------------------------------------
+bool exFrozenActive = exReadiness != EX_READY_WAIT and exDir != 0
+bool exTrendActive = exTrendReadiness != EX_READY_WAIT and exTrendReadinessDir != 0
+bool exRangeActive = exRangeReadiness != EX_READY_WAIT and exRangeReadinessDir != 0
+
+int exOperatorDirCandidate = 0
+bool exOperatorConflict = false
+if exFrozenActive
+    exOperatorDirCandidate := exDir
+if exTrendActive
+    if exOperatorDirCandidate != 0 and exTrendReadinessDir != exOperatorDirCandidate
+        exOperatorConflict := true
+    else if exOperatorDirCandidate == 0
+        exOperatorDirCandidate := exTrendReadinessDir
+if exRangeActive
+    if exOperatorDirCandidate != 0 and exRangeReadinessDir != exOperatorDirCandidate
+        exOperatorConflict := true
+    else if exOperatorDirCandidate == 0
+        exOperatorDirCandidate := exRangeReadinessDir
+
+int exFrozenUrgency = exFrozenActive ? f_ex_ready_urgency(exReadiness) : 0
+int exTrendUrgency = exTrendActive ? f_ex_ready_urgency(exTrendReadiness) : 0
+int exRangeUrgency = exRangeActive ? f_ex_ready_urgency(exRangeReadiness) : 0
+int exOperatorMaxUrgency = math.max(exFrozenUrgency, math.max(exTrendUrgency, exRangeUrgency))
+
+bool exSelectFrozen = exFrozenActive and exFrozenUrgency == exOperatorMaxUrgency
+bool exSelectTrend = exTrendActive and exTrendUrgency == exOperatorMaxUrgency
+bool exSelectRange = exRangeActive and exRangeUrgency == exOperatorMaxUrgency
+int exSelectedPathCount = (exSelectFrozen ? 1 : 0) + (exSelectTrend ? 1 : 0) + (exSelectRange ? 1 : 0)
+
+int exOperatorReadiness = EX_OP_READY_WAIT
+int exOperatorDir = 0
+int exOperatorSourcePath = EX_PATH_NONE
+int exOperatorOppKind = EX_OPP_NONE
+
+if exOperatorConflict
+    exOperatorReadiness := EX_OP_READY_CONFLICT
+else if exOperatorDirCandidate != 0 and exOperatorMaxUrgency > 0
+    exOperatorDir := exOperatorDirCandidate
+    exOperatorReadiness := exSelectFrozen ? exReadiness : exSelectTrend ? exTrendReadiness : exRangeReadiness
+    exOperatorSourcePath := exSelectedPathCount > 1 ? EX_PATH_MULTI : exSelectFrozen ? EX_PATH_FROZEN_0_1 : exSelectTrend ? EX_PATH_TREND_V2 : EX_PATH_RANGE_ANY1
+    exOperatorOppKind := exSelectTrend and not exSelectRange ? exTrendOppKind :
+         exSelectRange and not exSelectTrend ? EX_OPP_RANGE_ROTATION : EX_OPP_NONE
+
+bool exOperatorConfirmEvent = barstate.isconfirmed and not exOperatorConflict and exOperatorDir != 0 and
+     ((exConfirmEvent and exDir == exOperatorDir) or
+      (exTrendConfirmEvent and exTrendReadinessDir == exOperatorDir) or
+      (exRangeConfirmEvent and exRangeReadinessDir == exOperatorDir))
+
+bool exOperatorArmedEntered = barstate.isconfirmed and exOperatorReadiness == EX_OP_READY_ARMED and
+     (nz(exOperatorReadiness[1], EX_OP_READY_WAIT) != EX_OP_READY_ARMED or nz(exOperatorDir[1], 0) != exOperatorDir)
+
+bool exAnticipatedTfSupported = timeframe.period == "15" or timeframe.period == "60" or timeframe.period == "240" or timeframe.period == "D" or timeframe.period == "3D"
+bool exAnticipatedKindSupported = exTrendOppKind == EX_OPP_BREAKOUT_EXPANSION or exTrendOppKind == EX_OPP_REACCELERATION
+bool exAnticipatedPosture = responseProfile == "ANTECIPADO" and exAnticipatedTfSupported and exOperatorSourcePath == EX_PATH_TREND_V2 and exAnticipatedKindSupported and exOperatorReadiness == EX_OP_READY_ARMED and not exOperatorConflict
+bool exAnticipatedEvent = exAnticipatedPosture and exOperatorArmedEntered
+
+// ---------------------------------------------------------------------------
+// Thesis Management V1.1 — embedded projection
+// ---------------------------------------------------------------------------
+bool exConfirmingFrozen = exOperatorConfirmEvent and exConfirmEvent and exDir == exOperatorDir
+bool exConfirmingTrend = exOperatorConfirmEvent and exTrendConfirmEvent and exTrendReadinessDir == exOperatorDir
+bool exConfirmingRange = exOperatorConfirmEvent and exRangeConfirmEvent and exRangeReadinessDir == exOperatorDir
+int exConfirmingSourceCount = (exConfirmingFrozen ? 1 : 0) + (exConfirmingTrend ? 1 : 0) + (exConfirmingRange ? 1 : 0)
+
+var bool exManagementActive = false
+var int exManagementState = EX_MGMT_NONE
+var int exManagementDir = 0
+var int exManagementSourcePath = EX_PATH_NONE
+var int exManagementOppKind = EX_OPP_NONE
+var int exManagementConfirmBar = na
+var float exManagementConfirmClose = na
+var float exManagementTarget = na
+var float exManagementInvalidation = na
+var int exManagementCapability = EX_CAP_NONE
+
+bool exManagementNewThesis = false
+bool exManagementCompletedEvent = false
+bool exManagementInvalidatedEvent = false
+bool exManagementAmbiguousEvent = false
+float exManagementPathProgress = na
+float exManagementTargetRoomAtr = na
+float exManagementInvalidationBufferAtr = na
+int exManagementStrength = EX_STRENGTH_NORMAL
+
+if barstate.isconfirmed
+    if exOperatorConfirmEvent and exOperatorDir != 0 and exConfirmingSourceCount > 0
+        float mergedTarget = na
+        float mergedInvalidation = na
+        bool targetConflict = false
+        bool invalidationConflict = false
+
+        float frozenTarget = exConfirmingFrozen ? destination1 : na
+        float frozenInvalidation = exConfirmingFrozen ? invalidation : na
+        float trendTarget = exConfirmingTrend ? destination1 : na
+        float trendInvalidation = exConfirmingTrend ? invalidation : na
+        float rangeTarget = exConfirmingRange ? (exOperatorDir == 1 ? exRangeOppHigh - exRangeOppEdge : exRangeOppLow + exRangeOppEdge) : na
+        float rangeInvalidation = exConfirmingRange ? (exOperatorDir == 1 ? exRangeOppLow : exRangeOppHigh) : na
+
+        if f_ex_target_usable(exOperatorDir, close, frozenTarget)
+            mergedTarget := frozenTarget
+        if f_ex_target_usable(exOperatorDir, close, trendTarget)
+            if na(mergedTarget)
+                mergedTarget := trendTarget
+            else if not f_ex_same_level(mergedTarget, trendTarget)
+                targetConflict := true
+        if f_ex_target_usable(exOperatorDir, close, rangeTarget)
+            if na(mergedTarget)
+                mergedTarget := rangeTarget
+            else if not f_ex_same_level(mergedTarget, rangeTarget)
+                targetConflict := true
+
+        if f_ex_invalidation_usable(exOperatorDir, close, frozenInvalidation)
+            mergedInvalidation := frozenInvalidation
+        if f_ex_invalidation_usable(exOperatorDir, close, trendInvalidation)
+            if na(mergedInvalidation)
+                mergedInvalidation := trendInvalidation
+            else if not f_ex_same_level(mergedInvalidation, trendInvalidation)
+                invalidationConflict := true
+        if f_ex_invalidation_usable(exOperatorDir, close, rangeInvalidation)
+            if na(mergedInvalidation)
+                mergedInvalidation := rangeInvalidation
+            else if not f_ex_same_level(mergedInvalidation, rangeInvalidation)
+                invalidationConflict := true
+
+        if targetConflict
+            mergedTarget := na
+        if invalidationConflict
+            mergedInvalidation := na
+
+        exManagementActive := true
+        exManagementState := EX_MGMT_CONTINUATION
+        exManagementDir := exOperatorDir
+        exManagementSourcePath := exConfirmingSourceCount > 1 ? EX_PATH_MULTI : exConfirmingFrozen ? EX_PATH_FROZEN_0_1 : exConfirmingTrend ? EX_PATH_TREND_V2 : EX_PATH_RANGE_ANY1
+        exManagementOppKind := exConfirmingSourceCount > 1 ? EX_OPP_NONE : exConfirmingTrend ? exTrendOppKind : exConfirmingRange ? EX_OPP_RANGE_ROTATION : EX_OPP_NONE
+        exManagementConfirmBar := bar_index
+        exManagementConfirmClose := close
+        exManagementTarget := mergedTarget
+        exManagementInvalidation := mergedInvalidation
+        exManagementCapability := not na(mergedTarget) and not na(mergedInvalidation) ? EX_CAP_FULL :
+             not na(mergedInvalidation) ? EX_CAP_INVALIDATION_ONLY :
+             not na(mergedTarget) ? EX_CAP_TARGET_ONLY : EX_CAP_NONE
+        exManagementNewThesis := true
+
+    if exManagementActive and exManagementDir != 0
+        bool targetHit = not na(exManagementTarget) and (exManagementDir == 1 ? high >= exManagementTarget : low <= exManagementTarget)
+        bool invalidated = not na(exManagementInvalidation) and (exManagementDir == 1 ? close < exManagementInvalidation : close > exManagementInvalidation)
+
+        exManagementTargetRoomAtr := not na(exManagementTarget) and atr > 0 ? exManagementDir * (exManagementTarget - close) / atr : na
+        exManagementInvalidationBufferAtr := not na(exManagementInvalidation) and atr > 0 ? exManagementDir * (close - exManagementInvalidation) / atr : na
+        bool targetNear = not targetHit and not na(exManagementTargetRoomAtr) and exManagementTargetRoomAtr >= 0 and exManagementTargetRoomAtr <= EX_MGMT_TARGET_NEAR_ATR
+        bool invalidationNear = not invalidated and not na(exManagementInvalidationBufferAtr) and exManagementInvalidationBufferAtr >= 0 and exManagementInvalidationBufferAtr <= EX_MGMT_INVALID_WARN_ATR
+
+        float initialTargetDistance = not na(exManagementTarget) ? exManagementDir * (exManagementTarget - exManagementConfirmClose) : na
+        exManagementPathProgress := not na(initialTargetDistance) and initialTargetDistance > 0 ? exManagementDir * (close - exManagementConfirmClose) / initialTargetDistance : na
+
+        int managementPse = f_ex_pse_state_dir(exManagementDir, exPseReady, exRelativeVolume, exPressureProxy)
+        exManagementStrength := f_ex_strength_for_dir(exManagementDir, targetNear, exMteState, exRsiState, managementPse)
+
+        if targetHit and invalidated
+            exManagementState := EX_MGMT_AMBIGUOUS
+            exManagementAmbiguousEvent := true
+            exManagementActive := false
+        else if targetHit
+            exManagementState := EX_MGMT_COMPLETED
+            exManagementCompletedEvent := true
+            exManagementActive := false
+        else if invalidated
+            exManagementState := EX_MGMT_INVALIDATED
+            exManagementInvalidatedEvent := true
+            exManagementActive := false
+        else if invalidationNear
+            exManagementState := EX_MGMT_PROTECT
+        else if (targetNear and exManagementStrength == EX_STRENGTH_REACTION_RISK) or
+             (not na(exManagementPathProgress) and exManagementPathProgress >= 0.50 and
+              (exManagementStrength == EX_STRENGTH_FADING or exManagementStrength == EX_STRENGTH_EXHAUSTED or exManagementStrength == EX_STRENGTH_REACTION_RISK))
+            exManagementState := EX_MGMT_REALIZATION_RISK
+        else if exManagementStrength == EX_STRENGTH_EXHAUSTED
+            exManagementState := EX_MGMT_PROTECT
+        else
+            exManagementState := EX_MGMT_CONTINUATION
+    else if not exManagementNewThesis and exManagementState != EX_MGMT_NONE
+        exManagementState := EX_MGMT_NONE
+        exManagementDir := 0
+        exManagementSourcePath := EX_PATH_NONE
+        exManagementOppKind := EX_OPP_NONE
+        exManagementConfirmBar := na
+        exManagementConfirmClose := na
+        exManagementTarget := na
+        exManagementInvalidation := na
+        exManagementCapability := EX_CAP_NONE
+        exManagementPathProgress := na
+        exManagementTargetRoomAtr := na
+        exManagementInvalidationBufferAtr := na
+        exManagementStrength := EX_STRENGTH_NORMAL
+
+string executionTxt = f_ex_operator_txt(exOperatorReadiness, exOperatorDir)
 string strengthTxt = f_ex_strength_txt(exStrength)
+string opportunityTxt = exOperatorOppKind != EX_OPP_NONE ? f_ex_opp_txt(exOperatorOppKind) :
+     exOperatorSourcePath == EX_PATH_FROZEN_0_1 ? (exLocation == EX_LOC_RETEST or exLocation == EX_LOC_RECLAIM ? "RETESTE / RECLAIM" : "CORREÇÃO") : "—"
+string managementTxt = f_ex_management_txt(exManagementState)
 
 // ---------------------------------------------------------------------------
 // Historical engineering telemetry — Data Window only
