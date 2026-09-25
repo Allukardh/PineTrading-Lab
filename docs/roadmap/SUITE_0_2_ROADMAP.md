@@ -211,6 +211,11 @@ The 0.2 design should make these timeframes first-class rather than merely scale
 - **1W**
 - **1M**
 
+Historical-lab note:
+- the accepted consolidated dataset currently ends at 1W;
+- 1M research must therefore use a deterministic calendar-month aggregation from the accepted 1D candles, or add an explicit 1M dataset to the historical pipeline if Pine/offline parity requires a native timeframe;
+- never silently substitute 1W self-context for a monthly study.
+
 Use cases:
 - regime transition;
 - cycle expansion/contraction;
