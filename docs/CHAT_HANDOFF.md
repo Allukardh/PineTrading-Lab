@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — EARLY_ANY1 15-symbol daily robustness  
+**Checkpoint state:** STABLE  
+**Active product front:** Suite 0.2 — RANGE_ROTATION readiness accepted  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,54 +131,40 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — EARLY_ANY1 15-symbol 1D robustness
+### STABLE result — RANGE_ROTATION EARLY_ANY1 readiness
 
-Active research:
+Research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `827798c9f09472d67ed4bd609fdb2bb9738ad329`
+- accepted readiness research head: `bac1d0374a141dfe80fb1307540e7ef84682ddc8`
 
-Closed cross-asset 4H gate:
+Evidence:
 - BTC source-arm `36159790705` — PASS;
 - ETH/AVAX robustness `36160074161` — PASS;
-- Static integrity `36160074111` — PASS;
+- 15-symbol daily universe `36160698176` — PASS;
+- Static integrity `36160702117` — PASS;
 - worklog: `docs/worklog/2026-09-25-suite-0.2-range-rotation.md`.
 
-Accepted research decision:
-- EARLY_ANY1 4H — **KEEP**;
-- SELECTIVE_ANY2 — **REMOVE** from active candidate path;
-- EARLY_ANY1 1D — **INSUFFICIENT EVIDENCE** across only BTC/ETH/AVAX.
-
-EARLY_ANY1 contract remains frozen:
-- EDGE_REJECTION source;
-- dual MTE + local-RSI opposition -> WAIT;
-- otherwise >=1 ignition family (MTE aligned / local RSI supportive / PSE CONFIRM) -> ARMADO;
-- next-bar structural ACCEPTED from same source -> CONFIRMA;
+Accepted RANGE_ROTATION research contract:
+- stable confirmed structural range;
+- primary trigger EDGE_REJECTION;
+- source dual MTE + local-RSI opposition -> awareness only;
+- otherwise >=1 ignition family -> ARMADO;
+- next-bar compatible-range persistence + directional progress -> ACCEPTED;
+- ACCEPTED chart close -> CONFIRMA only for same-source armed setup;
 - HTF RSI is context, not veto;
-- no hard regime filter.
+- raw SWEEP_RECLAIM auxiliary only;
+- no hard regime filter;
+- SELECTIVE_ANY2 removed.
 
-Exact intended work:
-1. run unchanged EARLY_ANY1 on the accepted 15-symbol 1D universe;
-2. use exact SHA-256-verified 1D/1W production Parquets;
-3. no symbol-specific tuning;
-4. aggregate:
-   - EDGE_REJECTION episodes and +1 ACCEPTED breadth;
-   - CONFIRMA count/rate and number of symbols with confirmations;
-   - FAILED_BEFORE_MID confirmations;
-   - confirmed midpoint/opposite/censored outcome split;
-   - LONG/SHORT balance;
-   - before/same/after-midpoint timing;
-   - room to opposite edge;
-   - per-symbol cancellation/event load;
-5. decide EARLY_ANY1 1D KEEP / awareness-only / insufficient;
-6. if accepted, close RANGE_ROTATION readiness research and move to overall Opportunity-v2 arbitration/presentation;
-7. no production Pine/default/profile change.
+Status:
+- EARLY_ANY1 4H — KEEP;
+- EARLY_ANY1 1D — KEEP;
+- no production Pine/default/profile change.
 
-Recovery:
-- compare active branch with `827798c9f0...`;
-- inspect only newer daily-universe commits/runs/artifacts;
-- do not retune RANGE_ROTATION or reopen accepted 4H evidence.
+Next architecture frontier:
+- quantify overlap/conflict among accepted opportunity paths and define one deterministic operator-facing arbitration layer.
 
 
 ## 7. Continuity protocol
