@@ -158,8 +158,18 @@ Execution 0.2 standalone status:
 Known non-defect:
 - Static integrity is expected to remain red until `tools/check_execution_pine_contract.py` is upgraded from literal 0.1 tokens to the 0.2 production contract.
 
+Current compile defect discovered after the recorded milestone:
+- PR #27 head `bd3233326f7615882a2b9de19259257eafb45480`;
+- Static integrity PASS;
+- Pine compile FAIL run `36198248541`;
+- Market Map compiles;
+- Execution fails because the monthly macro block references `f_sec` and `MM_MID_LEN/MM_SLOW_LEN` before the Execution Market Map consumer/helper/constants are declared;
+- fix is relocation only; do not change semantics.
+
 Exact intended work:
-1. do **not** reopen the compiled Execution semantics unless a parity/compile defect appears;
+1. relocate the Execution monthly-macro calculation after `MM_*` constants + `f_mm_sec`, preserving the formula exactly;
+2. require Pine compile PASS + Static integrity PASS;
+3. do **not** reopen the compiled Execution semantics unless a parity/compile defect appears;
 2. mirror the same accepted 0.2 semantics into Market Map's embedded Execution consumer using its already-computed structural variables;
 3. expose the direct panel vocabulary:
    - CENÁRIO
