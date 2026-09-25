@@ -87,10 +87,16 @@ def _pair_summary(a,b,rows):
     ae=confirm_events(a); be=confirm_events(b)
     same=match_near_confirms(ae,be,window_bars=3)
     opp=match_near_opposite_confirms(ae,be,window_bars=3)
+    combos=Counter(
+        f"{sa.result.state.readiness.name}__{sb.result.state.readiness.name}"
+        for sa,sb in zip(a,b)
+        if readiness_active(sa) and readiness_active(sb)
+    )
     x.update({
         "both_active_pct":pct(x["both_active_bars"],rows),
         "same_direction_active_pct":pct(x["same_direction_active_bars"],rows),
         "opposite_direction_active_pct":pct(x["opposite_direction_active_bars"],rows),
+        "state_combination_counts":dict(sorted(combos.items())),
         "near_same_direction_confirms_3":len(same),
         "near_opposite_direction_confirms_3":len(opp),
         "near_same_distance_counts":dict(sorted(Counter(m.distance_bars for m in same).items())),
