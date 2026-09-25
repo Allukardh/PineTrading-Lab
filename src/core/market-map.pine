@@ -1,8 +1,8 @@
 //@version=6
-indicator("Market Map v0.1.0", shorttitle="Market Map", overlay=true, max_bars_back=5000, max_boxes_count=50, max_lines_count=100, max_labels_count=100)
+indicator("Market Map v0.2.0", shorttitle="Market Map", overlay=true, max_bars_back=5000, max_boxes_count=50, max_lines_count=100, max_labels_count=100)
 
 // ============================================================================
-// Market Map MM-0
+// Market Map 0.2.0 — MM-0 structural baseline + embedded Execution semantics
 // Clean-room implementation for PineTrading-Lab.
 // Purpose: trend/regime + confirmed structure + structural liquidity +
 //          correction zones + concise map.
@@ -79,6 +79,24 @@ int EX_LOC_IN_CORRECTION = 2
 int EX_LOC_RETEST = 3
 int EX_LOC_RECLAIM = 4
 int EX_LOC_DESTINATION_NEAR = 5
+
+int EX_MTE_NEUTRAL = 0
+int EX_MTE_TURN_UP = 1
+int EX_MTE_UP_ACCEL = 2
+int EX_MTE_UP_DECEL = 3
+int EX_MTE_TURN_DOWN = -1
+int EX_MTE_DOWN_ACCEL = -2
+int EX_MTE_DOWN_DECEL = -3
+
+int EX_RSI_NEUTRAL = 0
+int EX_RSI_BULL = 1
+int EX_RSI_RECOVERING_OVERSOLD = 2
+int EX_RSI_RECOVERING_OVERBOUGHT = 3
+int EX_RSI_EXTREME_OVERBOUGHT = 4
+int EX_RSI_EXTREME_OVERSOLD = -4
+int EX_RSI_FADING_OVERSOLD = -3
+int EX_RSI_FADING_OVERBOUGHT = -2
+int EX_RSI_BEAR = -1
 
 int EX_PSE_NEUTRAL = 0
 int EX_PSE_CONFIRM = 1
@@ -833,16 +851,16 @@ float exMteNeutralBand = exMteReady ? EX_MTE_NEUTRAL_FACTOR * exMteActivity : na
 float exMteTurnBand = exMteReady ? math.max(EX_MTE_TURN_FLOOR, EX_MTE_TURN_FACTOR * exMteAccelActivity) : na
 float exMteAccelSemantic = exMteReady and math.abs(exMteAccel) <= EX_MTE_ACCEL_EPS ? 0.0 : exMteAccel
 
-int exMteState = 0
+int exMteState = EX_MTE_NEUTRAL
 if exMteReady
     if math.abs(exMteCore) <= exMteNeutralBand
-        exMteState := 0
+        exMteState := EX_MTE_NEUTRAL
     else if exMteCore > 0.0
-        exMteState := exMteAccelSemantic < -exMteTurnBand ? -1 :
-             exMteAccelSemantic < 0.0 ? 3 : 2
+        exMteState := exMteAccelSemantic < -exMteTurnBand ? EX_MTE_TURN_DOWN :
+             exMteAccelSemantic < 0.0 ? EX_MTE_UP_DECEL : EX_MTE_UP_ACCEL
     else
-        exMteState := exMteAccelSemantic > exMteTurnBand ? 1 :
-             exMteAccelSemantic > 0.0 ? -3 : -2
+        exMteState := exMteAccelSemantic > exMteTurnBand ? EX_MTE_TURN_UP :
+             exMteAccelSemantic > 0.0 ? EX_MTE_DOWN_DECEL : EX_MTE_DOWN_ACCEL
 
 // RSE-A
 float exRsiLocal = f_ex_rsi(close)
@@ -853,24 +871,24 @@ float exRecentRsiMax = ta.highest(exRsiLocal, EX_RSI_ZONE_MEMORY_BARS + 1)
 bool exRecentOversold = exRsiReady and not na(exRecentRsiMin) and exRecentRsiMin <= EX_RSI_OVERSOLD
 bool exRecentOverbought = exRsiReady and not na(exRecentRsiMax) and exRecentRsiMax >= EX_RSI_OVERBOUGHT
 
-int exRsiState = 0
+int exRsiState = EX_RSI_NEUTRAL
 if exRsiReady
     if exRsiLocal >= EX_RSI_EXTREME_OVERBOUGHT_LEVEL
-        exRsiState := 4
+        exRsiState := EX_RSI_EXTREME_OVERBOUGHT
     else if exRsiLocal <= EX_RSI_EXTREME_OVERSOLD_LEVEL
-        exRsiState := -4
+        exRsiState := EX_RSI_EXTREME_OVERSOLD
     else if exRecentOversold and exRsiLocal < EX_RSI_CENTER_HIGH and exRsiStep >= EX_RSI_MIN_STEP
-        exRsiState := 2
+        exRsiState := EX_RSI_RECOVERING_OVERSOLD
     else if exRecentOverbought and exRsiLocal > EX_RSI_CENTER_LOW and exRsiStep <= -EX_RSI_MIN_STEP
-        exRsiState := -2
+        exRsiState := EX_RSI_FADING_OVERBOUGHT
     else if exRsiLocal >= EX_RSI_OVERBOUGHT and exRsiStep >= EX_RSI_MIN_STEP
-        exRsiState := 3
+        exRsiState := EX_RSI_RECOVERING_OVERBOUGHT
     else if exRsiLocal <= EX_RSI_OVERSOLD and exRsiStep <= -EX_RSI_MIN_STEP
-        exRsiState := -3
+        exRsiState := EX_RSI_FADING_OVERSOLD
     else if exRsiLocal >= EX_RSI_CENTER_HIGH
-        exRsiState := 1
+        exRsiState := EX_RSI_BULL
     else if exRsiLocal <= EX_RSI_CENTER_LOW
-        exRsiState := -1
+        exRsiState := EX_RSI_BEAR
 
 float exRsiContextValue = f_sec(contextTf, f_ex_rsi(close))
 int exRsiContextDir = na(exRsiContextValue) ? 0 :
@@ -949,21 +967,21 @@ if exCoherentMap
 
 bool exRelevantLocation = exLocation == EX_LOC_APPROACHING or exLocation == EX_LOC_IN_CORRECTION or exLocation == EX_LOC_RETEST or exLocation == EX_LOC_RECLAIM
 
-bool exMomentumAligned = mapDir == 1 ? (exMteState == 1 or exMteState == 2) :
-     mapDir == -1 ? (exMteState == -1 or exMteState == -2) : false
-bool exMomentumStronglyOpposes = mapDir == 1 ? (exMteState == -1 or exMteState == -2) :
-     mapDir == -1 ? (exMteState == 1 or exMteState == 2) : true
-bool exMomentumDeteriorates = mapDir == 1 ? (exMteState == 3 or exMteState == -1 or exMteState == -2 or exMteState == -3) :
-     mapDir == -1 ? (exMteState == -3 or exMteState == 1 or exMteState == 2 or exMteState == 3) : false
+bool exMomentumAligned = mapDir == 1 ? (exMteState == EX_MTE_TURN_UP or exMteState == EX_MTE_UP_ACCEL) :
+     mapDir == -1 ? (exMteState == EX_MTE_TURN_DOWN or exMteState == EX_MTE_DOWN_ACCEL) : false
+bool exMomentumStronglyOpposes = mapDir == 1 ? (exMteState == EX_MTE_TURN_DOWN or exMteState == EX_MTE_DOWN_ACCEL) :
+     mapDir == -1 ? (exMteState == EX_MTE_TURN_UP or exMteState == EX_MTE_UP_ACCEL) : true
+bool exMomentumDeteriorates = mapDir == 1 ? (exMteState == EX_MTE_UP_DECEL or exMteState == EX_MTE_TURN_DOWN or exMteState == EX_MTE_DOWN_ACCEL or exMteState == EX_MTE_DOWN_DECEL) :
+     mapDir == -1 ? (exMteState == EX_MTE_DOWN_DECEL or exMteState == EX_MTE_TURN_UP or exMteState == EX_MTE_UP_ACCEL or exMteState == EX_MTE_UP_DECEL) : false
 
-bool exRsiLocalSupportive = mapDir == 1 ? (exRsiState == 1 or exRsiState == 2 or exRsiState == 3) :
-     mapDir == -1 ? (exRsiState == -1 or exRsiState == -2 or exRsiState == -3) : false
+bool exRsiLocalSupportive = mapDir == 1 ? (exRsiState == EX_RSI_BULL or exRsiState == EX_RSI_RECOVERING_OVERSOLD or exRsiState == EX_RSI_RECOVERING_OVERBOUGHT) :
+     mapDir == -1 ? (exRsiState == EX_RSI_BEAR or exRsiState == EX_RSI_FADING_OVERBOUGHT or exRsiState == EX_RSI_FADING_OVERSOLD) : false
 bool exRsiSupportive = exRsiLocalSupportive and exRsiContextDir != -mapDir
-bool exRsiLocalOpposes = mapDir == 1 ? (exRsiState == -1 or exRsiState == -2 or exRsiState == 4) :
-     mapDir == -1 ? (exRsiState == 1 or exRsiState == 2 or exRsiState == -4) : true
+bool exRsiLocalOpposes = mapDir == 1 ? (exRsiState == EX_RSI_BEAR or exRsiState == EX_RSI_FADING_OVERBOUGHT or exRsiState == EX_RSI_EXTREME_OVERBOUGHT) :
+     mapDir == -1 ? (exRsiState == EX_RSI_BULL or exRsiState == EX_RSI_RECOVERING_OVERSOLD or exRsiState == EX_RSI_EXTREME_OVERSOLD) : true
 bool exRsiOpposes = exRsiLocalOpposes or (mapDir != 0 and exRsiContextDir == -mapDir)
-bool exRsiDeteriorates = mapDir == 1 ? (exRsiState == -2 or exRsiState == 4) :
-     mapDir == -1 ? (exRsiState == 2 or exRsiState == -4) : false
+bool exRsiDeteriorates = mapDir == 1 ? (exRsiState == EX_RSI_FADING_OVERBOUGHT or exRsiState == EX_RSI_EXTREME_OVERBOUGHT) :
+     mapDir == -1 ? (exRsiState == EX_RSI_RECOVERING_OVERSOLD or exRsiState == EX_RSI_EXTREME_OVERSOLD) : false
 
 int exGenericDeterioration = (exMomentumDeteriorates ? 1 : 0) + (exRsiDeteriorates ? 1 : 0) + (exParticipationState == EX_PSE_CONTRARY ? 1 : 0)
 int exDestinationDeterioration = (exMomentumDeteriorates ? 1 : 0) + (exRsiDeteriorates ? 1 : 0) + ((exParticipationState == EX_PSE_WEAK or exParticipationState == EX_PSE_CONTRARY) ? 1 : 0)
@@ -1374,7 +1392,7 @@ if barstate.islast
         color phaseColor = phaseTxt == "CORREÇÃO" or phaseTxt == "CORREÇÃO PROFUNDA" ? color.orange : phaseTxt == "RETESTE" ? color.aqua : color.white
 
         table.cell(panel, 0, 0, "MARKET MAP", text_color=color.white, text_size=size.small, bgcolor=color.new(color.blue, 72))
-        table.cell(panel, 1, 0, "v0.1.0", text_color=color.silver, text_size=size.tiny, bgcolor=color.new(color.blue, 72))
+        table.cell(panel, 1, 0, "v0.2.0", text_color=color.silver, text_size=size.tiny, bgcolor=color.new(color.blue, 72))
 
         table.cell(panel, 0, 1, "REGIME", text_color=color.silver, text_size=size.tiny)
         table.cell(panel, 1, 1, regimeTxt, text_color=regimeColor, text_size=size.small)
