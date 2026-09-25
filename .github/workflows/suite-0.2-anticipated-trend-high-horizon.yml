@@ -1,0 +1,139 @@
+name: Suite 0.2 15-symbol 3D 1W ANTECIPADO_TREND
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["research/suite-0.2-opportunity-evidence"]
+    paths:
+      - ".github/workflows/suite-0.2-anticipated-trend-high-horizon.yml"
+      - "tools/suite_0_2_anticipated_trend_high_horizon_universe.py"
+      - "tools/suite_0_2_responsiveness_profile_quality.py"
+      - "tools/responsiveness_profile_reference.py"
+      - "tools/operator_readiness_reference.py"
+      - "tools/suite_0_2_thesis_management_evidence.py"
+      - "tools/opportunity_execution_counterfactual.py"
+      - "tools/opportunity_readiness_reference.py"
+      - "tools/opportunity_episode_reference.py"
+      - "tools/opportunity_outcome_reference.py"
+      - "tools/range_rotation_opportunity_reference.py"
+      - "tools/range_rotation_readiness_reference.py"
+      - "tools/range_rotation_reference.py"
+      - "tools/execution_candidate_reference.py"
+      - "tools/execution_state_reference.py"
+      - "tools/execution_integrated_evidence.py"
+      - "tools/execution_historical_evidence.py"
+      - "tools/market_map_offline_core.py"
+      - "tools/momentum_turn_reference.py"
+      - "tools/rsi_state_reference.py"
+      - "tools/participation_reference.py"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  high-horizon-universe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      DATA_ROOT: /tmp/Binance
+      OUT_DIR: /tmp/suite-0.2-anticipated-trend-high
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements-market-data.txt
+
+      - name: Acquire exact canonical 3D and 1W universe
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$OUT_DIR"
+
+          fetch_artifact() {
+            local symbol="$1"
+            local tf="$2"
+            local id="$3"
+            local expected="$4"
+            local dest="$DATA_ROOT/spot/$symbol/consolidated"
+            mkdir -p "$dest"
+            local file="$dest/${symbol}_${tf}.parquet"
+            gh api \
+              -H "Accept: application/vnd.github+json" \
+              "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip" \
+              > "$file"
+            echo "$expected  $file" | sha256sum -c -
+          }
+
+          fetch_artifact BTCUSDT 3d 10811056999 e4228da434e9131ae2353147181069d119bc0ef373ec4b93effc5c1dcf9a39d9
+          fetch_artifact BTCUSDT 1w 10811406601 960de3600ea7ab8651ec2dbaa51d204e05fce19127eb53bb24fcd59dd010ac46
+
+          fetch_artifact ETHUSDT 3d 10813671832 53c147c7e909f3ac611db9d0a67570551b10a6ae1141df52134292cacc6d0833
+          fetch_artifact ETHUSDT 1w 10813522300 885484db14e9c9355cf35fba150dfbbbcd783b811854b32ce80e012b07fe9b66
+
+          fetch_artifact AVAXUSDT 3d 10813626557 e520d146ee995ce42cf464495b16ebdc689f38cbfac7646771755a7d7eb149e3
+          fetch_artifact AVAXUSDT 1w 10813776971 24b7f47ad6681edb39eb33d9ba06f7c9d230680f254657bad3640f3d10d21582
+
+          fetch_artifact DOGEUSDT 3d 10814305407 e7f674a76353a165d3ba135e44831a1a25bc34ccc5a9b7d3309906cd26c990cc
+          fetch_artifact DOGEUSDT 1w 10814140275 4af2e022c5dfc8b74d8964b47cea10f8f6ad35c81ce99456ec81f04d3d4890f1
+
+          fetch_artifact DOTUSDT 3d 10813352612 c1425b2cbce698aa83172cdd84e10accda60e742b4a3c06927a9ce25ba9002fe
+          fetch_artifact DOTUSDT 1w 10814085500 d20923d4acc0edd88add3f095af38a455a1da38f23f7bf72a1a1f5b7a488fc81
+
+          fetch_artifact ADAUSDT 3d 10814255377 940d08e83296f8076c94ca0f96fefc68083c77edeb750155511590071c611b28
+          fetch_artifact ADAUSDT 1w 10814265396 365352fe9eec46bf748388e2502966ea8840e4d5097dfd386b29f845f5c01059
+
+          fetch_artifact XRPUSDT 3d 10813646356 56d2a7835e82a8646fa2e5e953c179b6c3ec1dc31a61e0c02d6de4cfe6907619
+          fetch_artifact XRPUSDT 1w 10813631468 79bf635bb1a70baa06edbe73f4b9f644b67985aebb2526110ceb17eb0192e475
+
+          fetch_artifact SOLUSDT 3d 10813337327 cec08b0903e8616979e12df358c4b51f3777741aa3d6297bf74c83a8a6455874
+          fetch_artifact SOLUSDT 1w 10813641060 c3ff672723f9e1782aeacfc0915c92b975c95fcf3b134a65607ffa2a6f0daeb0
+
+          fetch_artifact UNIUSDT 3d 10813233081 a46125adab3de102819f2db17476f3710f046b2582aa6bea947651c554d6a7f9
+          fetch_artifact UNIUSDT 1w 10813417080 f1ed73203d5428d61bedaf23cbb1f0286b85b9b08db6a983d32671f2da3e8a1c
+
+          fetch_artifact NEARUSDT 3d 10814065391 a69cdb98b34bf1745ecbc4e817c4b8e1ccaffa7b5db7f7c901a450083d6164da
+          fetch_artifact NEARUSDT 1w 10814060324 b826567d2e0553247c6fd5314ca213a58ebcc0457d9338728f73e42675c5fe42
+
+          fetch_artifact AAVEUSDT 3d 10814060422 440b1a377a8b507a1190be41f51428ca5d573f61da7078d54683157491f709d1
+          fetch_artifact AAVEUSDT 1w 10813810800 82851baf3be8fa99f5ca934f2507e617e441c206ba40d1da7e9c077ffa272e1c
+
+          fetch_artifact HBARUSDT 3d 10813991098 105dd3854121aaf2e6136f7ed56861576eecff91b98681914b41411ee4466568
+          fetch_artifact HBARUSDT 1w 10813596944 cb7a651d7c04c969d8d4b8208f2a76911b411f6545839abcef47334eebdf0229
+
+          fetch_artifact LINKUSDT 3d 10813836099 fd74bcdbbdba50eb5d0aa7c3e5d5ec3626ea39cea764b9ea31e00f0da36c7f97
+          fetch_artifact LINKUSDT 1w 10814075686 8bd15e035620224735a975632bc0fad62bcf89d8ef4c96c4afbdcff7bc855c8d
+
+          fetch_artifact SUIUSDT 3d 10813750517 1ee7b65df3127444786921d92c9b8eb60cac51f7675f8590d2189d4bf4f4c692
+          fetch_artifact SUIUSDT 1w 10813357186 b36c9b5d6357d53f3c8f9aec15841fcf47d6775036383859f21b93181715820e
+
+          fetch_artifact LTCUSDT 3d 10813224691 26a0d795e70ca4dd58f4e27a538eb06a529759e8ee5e232b2c60aeee162a2606
+          fetch_artifact LTCUSDT 1w 10814245762 5c9eccbf15cca0a3bb49da316188fdc5b56dd355275349cd2f2dca6d6c8d4fb8
+
+      - name: Run 15-symbol 3D 1W ANTECIPADO_TREND
+        run: |
+          python -m tools.suite_0_2_anticipated_trend_high_horizon_universe \
+            --data-root "$DATA_ROOT" \
+            --output-json "$OUT_DIR/suite-0.2-anticipated-trend-high-horizon.json" \
+            --output-md "$OUT_DIR/suite-0.2-anticipated-trend-high-horizon.md" \
+            --code-sha "$GITHUB_SHA"
+
+      - name: Show summary
+        run: cat "$OUT_DIR/suite-0.2-anticipated-trend-high-horizon.md"
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: suite-0.2-anticipated-trend-high-horizon
+          path: |
+            /tmp/suite-0.2-anticipated-trend-high/suite-0.2-anticipated-trend-high-horizon.json
+            /tmp/suite-0.2-anticipated-trend-high/suite-0.2-anticipated-trend-high-horizon.md
+          retention-days: 30
