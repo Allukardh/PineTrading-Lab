@@ -54,23 +54,31 @@ def main() -> int:
     require(
         ex,
         [
-            'indicator("Execution v0.1.0"',
-            "int EXECUTION_CONTRACT = 1",
+            'indicator("Execution v0.2.0"',
+            "int EXECUTION_CONTRACT = 2",
             "int EXECUTION_DEFAULTS_VERSION = 2",
+            'string responseProfile = input.string("PADRÃO", "Perfil de resposta", options=["PADRÃO", "ANTECIPADO"]',
             "_expr[1], barmerge.gaps_off, barmerge.lookahead_on",
             "if barstate.isconfirmed",
-            "bool confirmLong = confirmEvent and executionDir == 1",
-            "bool confirmShort = confirmEvent and executionDir == -1",
-            "executionLocation == LOC_DESTINATION_NEAR and destinationDeterioration >= 2",
-            "participationState == PSE_CONTRARY ? 1 : 0",
-            "participationState == PSE_WEAK or participationState == PSE_CONTRARY",
-            "int EX_EVENT_HOLD_MAX_MS = 12 * 60 * 60 * 1000",
-            "int EX_EVENT_HOLD_BARS = 3",
+            "bool confirmLong = operatorConfirmEvent and operatorDir == 1",
+            "bool confirmShort = operatorConfirmEvent and operatorDir == -1",
+            "var int trendOppKind = OPP_NONE",
+            "var int rangeOppStage = OPP_STAGE_NONE",
+            "var int trendReadiness = READY_WAIT",
+            "var int rangeReadiness = READY_WAIT",
+            "int operatorReadiness = OP_READY_WAIT",
+            "bool operatorConflict = false",
+            "bool anticipatedPosture = responseProfile == \"ANTECIPADO\"",
+            "var bool managementActive = false",
+            "var int managementState = MGMT_NONE",
+            "managementCapability := not na(mergedTarget) and not na(mergedInvalidation) ? CAP_FULL",
+            "rangeIgnitionCount >= 1",
+            "trendOppStage >= OPP_STAGE_ACCEPTED",
+            "plot(operatorReadiness, \"EX 0.2 • Operator readiness\"",
+            "plot(managementState, \"EX 0.2 • Gestão estado\"",
             "plot(mteReady ? mteCore : na, \"Momentum\"",
-            'plot(executionReadiness, "EX • Readiness"',
-            'plot(executionStrength, "EX • Força"',
             'var table statusCue = table.new(position.top_right, 1, 1',
-            'string statusText = f_execution_txt(executionReadiness, executionDir) + " • " + f_strength_txt(executionStrength)',
+            "f_operator_txt(operatorReadiness, operatorDir)",
         ],
         "Execution",
     )
@@ -90,13 +98,23 @@ def main() -> int:
             fail(f"forbidden Execution production pattern present: {token}")
 
     # Threshold/configuration inputs must not leak into normal operator UX.
+    # Suite 0.2 intentionally exposes exactly one semantic posture selector.
     threshold_inputs = [
         line.strip()
         for line in ex.splitlines()
         if re.search(r"\binput\.(?:int|float|string|source)\(", line)
+        and "Perfil de resposta" not in line
     ]
     if threshold_inputs:
         fail(f"Execution exposes forbidden normal threshold/source inputs: {threshold_inputs}")
+
+    profile_inputs = [
+        line.strip()
+        for line in ex.splitlines()
+        if "input.string(" in line and "Perfil de resposta" in line
+    ]
+    if len(profile_inputs) != 1:
+        fail(f"Execution must expose exactly one response-profile selector: {profile_inputs}")
 
     # Exact accepted component defaults.
     mte = defaults["momentum_turn"]
@@ -254,20 +272,79 @@ def main() -> int:
                 f"{execution_name}={a} {market_name}={b}"
             )
 
+    suite_02_pairs = [
+        ("OPP_NONE", "EX_OPP_NONE"),
+        ("OPP_BREAKOUT_EXPANSION", "EX_OPP_BREAKOUT_EXPANSION"),
+        ("OPP_REACCELERATION", "EX_OPP_REACCELERATION"),
+        ("OPP_REGIME_REVERSAL", "EX_OPP_REGIME_REVERSAL"),
+        ("OPP_RANGE_ROTATION", "EX_OPP_RANGE_ROTATION"),
+        ("OPP_STAGE_NONE", "EX_OPP_STAGE_NONE"),
+        ("OPP_STAGE_CANDIDATE", "EX_OPP_STAGE_CANDIDATE"),
+        ("OPP_STAGE_STRONG", "EX_OPP_STAGE_STRONG"),
+        ("OPP_STAGE_ACCEPTED", "EX_OPP_STAGE_ACCEPTED"),
+        ("OP_READY_WAIT", "EX_OP_READY_WAIT"),
+        ("OP_READY_PREP", "EX_OP_READY_PREP"),
+        ("OP_READY_ARMED", "EX_OP_READY_ARMED"),
+        ("OP_READY_CONFIRMED", "EX_OP_READY_CONFIRMED"),
+        ("OP_READY_ALIGNED", "EX_OP_READY_ALIGNED"),
+        ("OP_READY_CONFLICT", "EX_OP_READY_CONFLICT"),
+        ("PATH_NONE", "EX_PATH_NONE"),
+        ("PATH_FROZEN_0_1", "EX_PATH_FROZEN_0_1"),
+        ("PATH_TREND_V2", "EX_PATH_TREND_V2"),
+        ("PATH_RANGE_ANY1", "EX_PATH_RANGE_ANY1"),
+        ("PATH_MULTI", "EX_PATH_MULTI"),
+        ("REVERSAL_PRIOR_REGIME_MIN_BARS", "EX_REVERSAL_PRIOR_REGIME_MIN_BARS"),
+        ("REACCELERATION_REGIME_MIN_BARS", "EX_REACCELERATION_REGIME_MIN_BARS"),
+        ("BREAK_DECISIVE_ATR", "EX_BREAK_DECISIVE_ATR"),
+        ("RANGE_BOUNDARY_DRIFT_MAX", "EX_RANGE_BOUNDARY_DRIFT_MAX"),
+        ("RANGE_MIN_HEIGHT_ATR", "EX_RANGE_MIN_HEIGHT_ATR"),
+        ("RANGE_EDGE_FRACTION", "EX_RANGE_EDGE_FRACTION"),
+        ("MGMT_TARGET_NEAR_ATR", "EX_MGMT_TARGET_NEAR_ATR"),
+        ("MGMT_INVALID_WARN_ATR", "EX_MGMT_INVALID_WARN_ATR"),
+        ("CAP_NONE", "EX_CAP_NONE"),
+        ("CAP_TARGET_ONLY", "EX_CAP_TARGET_ONLY"),
+        ("CAP_INVALIDATION_ONLY", "EX_CAP_INVALIDATION_ONLY"),
+        ("CAP_FULL", "EX_CAP_FULL"),
+    ]
+    for execution_name, market_name in suite_02_pairs:
+        a = number(ex, execution_name)
+        b = number(mm, market_name)
+        if a != b:
+            fail(
+                f"Suite 0.2 Execution/Market Map drift: "
+                f"{execution_name}={a} {market_name}={b}"
+            )
+
     require(
         mm,
         [
+            'indicator("Market Map v0.2.0"',
+            'string responseProfile = input.string("PADRÃO", "Perfil de resposta", options=["PADRÃO", "ANTECIPADO"]',
             "float exMteCore = not na(exMteFast) and not na(exMteSlow)",
             "float exRsiLocal = f_ex_rsi(close)",
-            "float exDirectionalPressure = exPseReady and mapDir != 0 ? exPressureProxy * mapDir : na",
-            "int exGenericDeterioration = (exMomentumDeteriorates ? 1 : 0) + (exRsiDeteriorates ? 1 : 0) + (exParticipationState == EX_PSE_CONTRARY ? 1 : 0)",
-            "exLocation == EX_LOC_DESTINATION_NEAR and exDestinationDeterioration >= 2",
-            "if barstate.isconfirmed",
-            "else if prevReadiness == EX_READY_ARMED",
-            "exParticipationState == EX_PSE_CONFIRM",
-            'table.cell(panel, 0, 10, "EXECUÇÃO"',
-            'table.cell(panel, 0, 11, "FORÇA"',
-            "table.clear(panel, 0, 0, 1, 11)",
+            "var int exTrendOppKind = EX_OPP_NONE",
+            "var int exRangeOppStage = EX_OPP_STAGE_NONE",
+            "var int exTrendReadiness = EX_READY_WAIT",
+            "var int exRangeReadiness = EX_READY_WAIT",
+            "int exOperatorReadiness = EX_OP_READY_WAIT",
+            "bool exOperatorConflict = false",
+            "bool exAnticipatedPosture = responseProfile == \"ANTECIPADO\"",
+            "var bool exManagementActive = false",
+            "var int exManagementState = EX_MGMT_NONE",
+            "exManagementCapability := not na(mergedTarget) and not na(mergedInvalidation) ? EX_CAP_FULL",
+            "exRangeIgnitionCount >= 1",
+            "exTrendOppStage >= EX_OPP_STAGE_ACCEPTED",
+            'table.cell(panel, 0, 1, "CENÁRIO"',
+            'table.cell(panel, 0, 2, "OPORTUNIDADE"',
+            'table.cell(panel, 0, 3, "LADO"',
+            'table.cell(panel, 0, 4, "AÇÃO"',
+            'table.cell(panel, 0, 5, "ALVO"',
+            'table.cell(panel, 0, 6, "GESTÃO"',
+            'table.cell(panel, 0, 7, "INVALIDA"',
+            'table.cell(panel, 0, 8, correctionActive ? "CORREÇÃO" : ""',
+            "table.clear(panel, 0, 0, 1, 8)",
+            'plot(exOperatorReadiness, "MM EX 0.2 • Operator readiness"',
+            'plot(exManagementState, "MM EX 0.2 • Gestão estado"',
         ],
         "Market Map embedded Execution consumer",
     )
@@ -329,7 +406,7 @@ def main() -> int:
         for semantic_name, pine_name in mapping.items():
             expect_num(ex, pine_name, expected_by_name[semantic_name])
 
-    print("PASS: Execution Pine v0.1.0 contract/default/context parity")
+    print("PASS: Suite 0.2 Pine contract/default/cross-script parity")
     return 0
 
 
