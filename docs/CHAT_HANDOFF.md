@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** STABLE  
-**Active product front:** Suite 0.2 opportunity expansion + responsiveness research — roadmap defined  
+**Checkpoint state:** PREPARED  
+**Active product front:** Suite 0.2 — 0.1 latency / missed-opportunity baseline  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,46 +131,44 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### Suite 0.2 roadmap — durable state
+### PREPARED research block — 0.1 latency / missed-opportunity baseline
 
-Tracking:
-- Issue #23 — `Suite 0.2: Opportunity Engine, responsiveness and direct operator UX`
-- documentation PR #24 — `docs/suite-0.2-roadmap`
-
-Frozen comparators:
-- Market Map 0.1.0 — `0eeb0d37b256a950cfb38f627fa3521bb213d380`
-- Execution 0.1.0 — `a7557df2d0142441ea782dba4b8c3f95ebc38371`
-
-Roadmap artifacts:
+Canonical roadmap:
+- Issue #23
 - `docs/roadmap/SUITE_0_2_ROADMAP.md`
 - `docs/design/OPPORTUNITY_ENGINE.md`
 - `docs/testing/SUITE_0_2_EVIDENCE_PLAN.md`
 
-Accepted 0.2 research direction:
-- opportunity classes: regime reversal, breakout/expansion, pullback/retest, reacceleration, range rotation;
-- management/exit-risk is a thesis-management output, not a mandatory position command;
-- 4H/1D are primary swing horizons;
-- 3D/1W/1M are explicit medium/long research horizons;
-- 15m/1H remain short/precision horizons;
-- engine remains directional/exchange-agnostic;
-- visible language becomes more direct while richer semantics remain behind the scenes;
-- profiles are not pre-approved features: ANTECIPADO / PADRÃO / CONFIRMADO are research candidates only;
-- `docs/GUIA_DO_OPERADOR.md` in Portuguese is mandatory before 0.2 promotion.
+Frozen 0.1 comparators:
+- Market Map 0.1.0 — `0eeb0d37b256a950cfb38f627fa3521bb213d380`
+- Execution 0.1.0 — `a7557df2d0142441ea782dba4b8c3f95ebc38371`
 
-Exact next research block after PR #24 is promoted:
-1. create a dedicated 0.2 research branch from current `main`;
-2. define deterministic historical opportunity-episode labels before changing Pine;
-3. build the **0.1 latency/missed-opportunity baseline**;
-4. quantify bars/ATR displacement from opportunity onset to PREPARANDO / ARMADO / CONFIRMA;
-5. classify why 0.1 misses opportunities;
-6. only then design/test earlier opportunity logic or profiles.
+Exact intended work:
+1. create `research/suite-0.2-opportunity-evidence` from current `main`;
+2. audit/reuse the accepted offline Market Map + Execution reference kernels;
+3. define deterministic opportunity-episode labels before changing candidate behavior;
+4. establish the frozen 0.1 response baseline around those episodes;
+5. measure bars + ATR displacement to PREPARANDO / ARMADO / CONFIRMA;
+6. classify missed-opportunity causes;
+7. keep 0.1 Pine/defaults untouched;
+8. do not create ANTECIPADO/CONFIRMADO behavior until the baseline shows what problem actually exists.
 
-No production Pine/default change is authorized during that baseline-measurement block.
+Initial horizon priority:
+- primary: 4H / 1D;
+- then 15m / 1H precision;
+- then 3D / 1W / derived 1M medium-long context.
 
-Recovery:
-- if interrupted before PR #24 merges, inspect PR #24 and its checks;
-- if PR #24 is already merged, do not redo the roadmap;
-- resume from the opportunity-episode / 0.1-latency evidence block.
+Expected durable outputs:
+- deterministic episode-label reference model + tests;
+- 0.1 latency evidence runner;
+- machine-readable baseline report;
+- explicit evidence about whether profiles/opportunity expansion are justified.
+
+Recovery if interrupted:
+- compare active research branch with this checkpoint;
+- inspect only newer commits/runs/artifacts;
+- do not repeat roadmap work;
+- do not mutate the 0.1 production Pine files.
 
 
 ## 7. Continuity protocol
