@@ -93,6 +93,18 @@ class ThesisResult:
     protect_strict_transitions: int
     favorable_fading_transitions: int
     favorable_exhausted_transitions: int
+    first_protect_core_bar: int | None
+    first_protect_core_progress: float | None
+    first_midpath_fading_bar: int | None
+    first_midpath_fading_progress: float | None
+    first_midpath_exhausted_bar: int | None
+    first_midpath_exhausted_progress: float | None
+    protect_core_bars: int
+    midpath_fading_bars: int
+    midpath_exhausted_bars: int
+    protect_core_transitions: int
+    midpath_fading_transitions: int
+    midpath_exhausted_transitions: int
     state_transitions: int
     warning_to_continuation_transitions: int
     protect_bars: int
@@ -304,13 +316,18 @@ def _evaluate(theses,confirm_rows,ctx):
         first_fading_progress=first_exhausted_progress=first_protect_progress=first_struct_progress=None
         first_protect_strict=first_favorable_fading=first_favorable_exhausted=None
         first_protect_strict_progress=first_favorable_fading_progress=first_favorable_exhausted_progress=None
+        first_protect_core=first_midpath_fading=first_midpath_exhausted=None
+        first_protect_core_progress=first_midpath_fading_progress=first_midpath_exhausted_progress=None
         confirm_close=float(data["close"][th.confirm_bar])
         initial_target_distance=th.direction*(th.target-confirm_close)
         state_trans=warning_back=0
         protect_bars=realization_bars=continuation_bars=fading_bars=0
         protect_strict_bars=favorable_fading_bars=favorable_exhausted_bars=0
         protect_strict_trans=favorable_fading_trans=favorable_exhausted_trans=0
+        protect_core_bars=midpath_fading_bars=midpath_exhausted_bars=0
+        protect_core_trans=midpath_fading_trans=midpath_exhausted_trans=0
         prev_protect_strict=prev_favorable_fading=prev_favorable_exhausted=False
+        prev_protect_core=prev_midpath_fading=prev_midpath_exhausted=False
         prev_nonterminal=None
         outcome="OPEN_END"
         end=min(n-1,stop_before-1)
@@ -383,6 +400,33 @@ def _evaluate(theses,confirm_rows,ctx):
                 }
             )
 
+            protect_core=bool(
+                not terminal
+                and (
+                    mb.invalidation_near
+                    or mb.strength==Strength.EXHAUSTED
+                )
+            )
+            midpath_fading=bool(
+                not terminal
+                and progress is not None
+                and progress>=0.50
+                and mb.strength in {
+                    Strength.FADING,
+                    Strength.EXHAUSTED,
+                    Strength.REACTION_RISK,
+                }
+            )
+            midpath_exhausted=bool(
+                not terminal
+                and progress is not None
+                and progress>=0.50
+                and mb.strength in {
+                    Strength.EXHAUSTED,
+                    Strength.REACTION_RISK,
+                }
+            )
+
             if protect_strict:
                 protect_strict_bars+=1
                 if first_protect_strict is None:
@@ -399,13 +443,35 @@ def _evaluate(theses,confirm_rows,ctx):
                     first_favorable_exhausted=i
                     first_favorable_exhausted_progress=progress
 
+            if protect_core:
+                protect_core_bars+=1
+                if first_protect_core is None:
+                    first_protect_core=i
+                    first_protect_core_progress=progress
+            if midpath_fading:
+                midpath_fading_bars+=1
+                if first_midpath_fading is None:
+                    first_midpath_fading=i
+                    first_midpath_fading_progress=progress
+            if midpath_exhausted:
+                midpath_exhausted_bars+=1
+                if first_midpath_exhausted is None:
+                    first_midpath_exhausted=i
+                    first_midpath_exhausted_progress=progress
+
             if i>th.confirm_bar:
                 protect_strict_trans+=int(protect_strict!=prev_protect_strict)
                 favorable_fading_trans+=int(favorable_fading!=prev_favorable_fading)
                 favorable_exhausted_trans+=int(favorable_exhausted!=prev_favorable_exhausted)
+                protect_core_trans+=int(protect_core!=prev_protect_core)
+                midpath_fading_trans+=int(midpath_fading!=prev_midpath_fading)
+                midpath_exhausted_trans+=int(midpath_exhausted!=prev_midpath_exhausted)
             prev_protect_strict=protect_strict
             prev_favorable_fading=favorable_fading
             prev_favorable_exhausted=favorable_exhausted
+            prev_protect_core=protect_core
+            prev_midpath_fading=midpath_fading
+            prev_midpath_exhausted=midpath_exhausted
 
             if mb.strength==Strength.FADING:
                 fading_bars+=1
@@ -499,6 +565,18 @@ def _evaluate(theses,confirm_rows,ctx):
             protect_strict_transitions=protect_strict_trans,
             favorable_fading_transitions=favorable_fading_trans,
             favorable_exhausted_transitions=favorable_exhausted_trans,
+            first_protect_core_bar=first_protect_core,
+            first_protect_core_progress=first_protect_core_progress,
+            first_midpath_fading_bar=first_midpath_fading,
+            first_midpath_fading_progress=first_midpath_fading_progress,
+            first_midpath_exhausted_bar=first_midpath_exhausted,
+            first_midpath_exhausted_progress=first_midpath_exhausted_progress,
+            protect_core_bars=protect_core_bars,
+            midpath_fading_bars=midpath_fading_bars,
+            midpath_exhausted_bars=midpath_exhausted_bars,
+            protect_core_transitions=protect_core_trans,
+            midpath_fading_transitions=midpath_fading_trans,
+            midpath_exhausted_transitions=midpath_exhausted_trans,
             state_transitions=state_trans,
             warning_to_continuation_transitions=warning_back,
             protect_bars=protect_bars,
@@ -580,6 +658,18 @@ def _summary(results,bar_states,bar_strengths,protect_causes=None,target_near_ba
             "FAVORABLE_EXHAUSTED":_channel_summary(
                 results,"first_favorable_exhausted_bar","first_favorable_exhausted_progress",
                 "favorable_exhausted_bars","favorable_exhausted_transitions"
+            ),
+            "PROTECT_CORE":_channel_summary(
+                results,"first_protect_core_bar","first_protect_core_progress",
+                "protect_core_bars","protect_core_transitions"
+            ),
+            "MIDPATH_FADING":_channel_summary(
+                results,"first_midpath_fading_bar","first_midpath_fading_progress",
+                "midpath_fading_bars","midpath_fading_transitions"
+            ),
+            "MIDPATH_EXHAUSTED":_channel_summary(
+                results,"first_midpath_exhausted_bar","first_midpath_exhausted_progress",
+                "midpath_exhausted_bars","midpath_exhausted_transitions"
             ),
         },
         "state_transitions":sum(r.state_transitions for r in results),
