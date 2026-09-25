@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — thesis-management warning-channel discrimination  
+**Checkpoint state:** STABLE  
+**Active product front:** Suite 0.2 — capability-aware Thesis Management V1.1 accepted in research  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,67 +131,57 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — capability-aware Thesis Management V1.1
+### STABLE result — capability-aware Thesis Management V1.1
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `e4f2d668b23d6992b96e9f4005644928c16d0f19`
+- accepted research head: `5bcc6efa167fe336a76b6684fe9888ce8b0b5e82`
 
-Closed gates:
-- V1 BTC/ETH/AVAX 4H/1D `36180275644` — PASS;
-- anchor-diagnostic V1 rerun `36180610740` — PASS;
-- 15-symbol 1D V1 `36180744281` — PASS;
+Evidence:
+- BTC/ETH/AVAX V1.1 `36181579092` — PASS;
+- 15-symbol 1D V1.1 `36184683360` — PASS;
 - Static integrity — PASS;
 - worklog: `docs/worklog/2026-09-25-suite-0.2-thesis-management.md`.
 
-Current decisions:
-- 4H PROTECT V1 — KEEP;
-- 4H REALIZATION_RISK V1 — KEEP for continued robustness;
-- 1D PROTECT — KEEP for capability-aware validation;
-- 1D REALIZATION_RISK — REFINE / role not yet established;
-- binary target+invalidation requirement — REFINE;
-- synthetic fallback anchors — DO NOT CREATE.
-
-Anchor findings:
-- BTC/ETH/AVAX 4H: 380 operator confirms; 303 FULL anchors;
-  - invalidation-capable: 379 / 380;
-  - target-capable: 304 / 380.
-- 15-symbol 1D: 86 confirms;
-  - FULL 63;
-  - INVALIDATION_ONLY 10;
-  - TARGET_ONLY 12;
-  - NONE 1.
-
-Preregistered V1.1 architecture:
+Accepted research decisions:
 - every unified directional CONFIRMA creates a management thesis;
-- freeze each honestly available anchor independently;
-- explicit anchor class:
+- target/invalidation capabilities are independent;
+- anchor classes:
   - FULL
   - INVALIDATION_ONLY
   - TARGET_ONLY
   - NONE
-- no synthetic target/invalidation;
-- Strength-based CONTINUATION / PROTECT can operate without both anchors;
-- invalidation-near + INVALIDATED require invalidation capability;
-- midpoint/destination REALIZATION_RISK + COMPLETED require target capability;
-- FULL-anchor episodes must preserve exact V1 semantics.
+- no synthetic target or invalidation;
+- FULL episodes preserve exact V1 parity;
+- 4H PROTECT — KEEP;
+- 4H REALIZATION_RISK — KEEP as selective management warning;
+- 1D PROTECT — KEEP;
+- 1D REALIZATION_RISK — internal mature-thesis/profit-protection evidence; direct `REALIZAÇÃO` wording not promoted;
+- no production Pine/default/profile/panel change.
 
-Exact intended work:
-1. implement anchor-capability reference + tests;
-2. implement V1.1 episode builder with optional target/invalidation;
-3. verify FULL-anchor semantic parity with V1;
-4. rerun BTC/ETH/AVAX 4H/1D unchanged;
-5. rerun 15-symbol 1D unchanged;
-6. report capability-aware denominators separately;
-7. diagnose 1D REALIZATION_RISK persistence/run lengths;
-8. no per-asset retuning;
-9. no production Pine/default/profile/panel change.
+15-symbol 1D V1.1:
+- 86/86 confirms managed;
+- FULL 63;
+- INVALIDATION_ONLY 10;
+- TARGET_ONLY 12;
+- NONE 1;
+- target-capable 87.21%;
+- invalidation-capable 84.88%;
+- FULL V1 parity 100%;
+- invalidated with prior PROTECT 15/18 = 83.33%;
+- invalidated with REALIZATION_RISK 0/18;
+- completed target-capable with REALIZATION_RISK 2/61 = 3.28%.
 
-Recovery:
-- compare active branch with `e4f2d668...`;
-- inspect only newer V1.1 capability commits/runs/artifacts.
+Daily REALIZATION persistence:
+- 3 episodes on 3/15 symbols;
+- AAVE SHORT dominates: 224 live bars, 57 REALIZATION bars, 19 entries/runs, first warning ~0.62 path progress and 115 daily bars before target;
+- this supports horizon-aware operator wording rather than threshold retuning.
+
+Next roadmap frontier:
+- Phase E responsiveness/profile counterfactuals;
+- profiles remain unapproved until a coherent timing/confirmation tradeoff is demonstrated.
 
 
 ## 7. Continuity protocol
