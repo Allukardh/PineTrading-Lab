@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** PREPARED  
-**Active product front:** Execution evidence research — historical validation block in flight — branch reconciliation + pre-registered Binance evidence block  
+**Checkpoint state:** STABLE  
+**Active product front:** Execution evidence research — component gate complete — branch reconciliation + pre-registered Binance evidence block  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -108,6 +108,32 @@ Important contracts:
 - no Compact/Full panels;
 - no required `input.source()` wiring;
 - Market Map location vocabulary is the context bridge.
+
+
+## 3A. Execution component evidence — STABLE RESULT
+
+PR #12 / `research/execution-engine-design` has completed the pre-registered component evidence gate.
+
+Latest research head:
+`4ac244a8456c3018137d3a3833f0085d4df59189`
+
+Evidence:
+- BTC/ETH/AVAX matrix run `36077909903` — PASS;
+- Static integrity `36077909923` — PASS;
+- post-report Static integrity `36078246088` / `36078245806` — PASS;
+- exact SHA-256-verified production Parquets;
+- candidate defaults unchanged.
+
+Decisions:
+- MTE-A — **KEEP**;
+- RSE-A — **KEEP**;
+- PSE-A — **KEEP**;
+- final readiness/strength mapping — **INSUFFICIENT EVIDENCE** until actual Market Map direction/location is applied.
+
+Detailed report:
+`docs/worklog/2026-09-24-execution-historical-evidence.md`
+
+Do not rerun or reinterpret the hypothetical-direction component gate unless a concrete implementation defect is discovered.
 
 ## 4. Exact next atomic work
 
