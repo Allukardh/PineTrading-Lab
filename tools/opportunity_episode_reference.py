@@ -12,8 +12,8 @@ families already observable from accepted MM-0 semantics:
 - BREAKOUT_CANDIDATE
 - PULLBACK_RETEST
 
-REACCELERATION and RANGE_ROTATION are deferred until these episode semantics
-and the 0.1 latency harness are proven stable.
+REACCELERATION is now under explicit structural-sequence research.
+RANGE_ROTATION remains deferred until trend/continuation partitioning is stable.
 """
 from __future__ import annotations
 
@@ -21,12 +21,11 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Sequence
 
-from tools.market_map_offline_core import IntegrationSnapshot, RETEST_MAX_BARS
+from tools.market_map_offline_core import IntegrationSnapshot
 
 
 REVERSAL_PRIOR_REGIME_MIN_BARS = 8
 REACCELERATION_REGIME_MIN_BARS = 8
-REACCELERATION_PULLBACK_LOOKBACK_BARS = RETEST_MAX_BARS
 
 
 class OpportunityType(str, Enum):
@@ -77,7 +76,7 @@ def classify_structural_break_context(
     thesis_invalidated: bool,
     regime_age_before_bar: int,
     had_prior_same_direction_break: bool,
-    recent_pullback_reaction: bool,
+    pullback_since_prior_same_break: bool,
     reaction_on_break_bar: bool,
     opposite_mature_regime: bool,
 ) -> BreakContext:
@@ -97,7 +96,7 @@ def classify_structural_break_context(
     if not coherent:
         return BreakContext.OTHER
 
-    if recent_pullback_reaction or reaction_on_break_bar:
+    if pullback_since_prior_same_break or reaction_on_break_bar:
         return BreakContext.PULLBACK_RESOLUTION
 
     if (
@@ -227,9 +226,14 @@ def detect_episodes(
                 )
             )
             last_reaction = last_reaction_bar[break_dir]
-            recent_pullback = bool(
-                last_reaction is not None
-                and 0 < i - last_reaction <= REACCELERATION_PULLBACK_LOOKBACK_BARS
+            # Structural sequencing, not a fixed bar clock:
+            # a reaction belongs to the current continuation leg only when it
+            # occurred after the previous same-direction structural break.
+            # This makes the distinction horizon-agnostic (4H/1D/3D/1W).
+            pullback_since_prior_break = bool(
+                previous_same_break is not None
+                and last_reaction is not None
+                and previous_same_break < last_reaction < i
             )
 
             break_regime_age = (
@@ -251,7 +255,7 @@ def detect_episodes(
                 thesis_invalidated=snap.thesis_invalidated,
                 regime_age_before_bar=break_regime_age,
                 had_prior_same_direction_break=previous_same_break is not None,
-                recent_pullback_reaction=recent_pullback,
+                pullback_since_prior_same_break=pullback_since_prior_break,
                 reaction_on_break_bar=reaction_on_break_bar,
                 opposite_mature_regime=mature_dir == -break_dir,
             )
