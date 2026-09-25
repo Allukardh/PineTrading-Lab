@@ -400,6 +400,16 @@ string contextTf = chartSec <= tf15Sec ? "60" :
      chartSec <= tfDSec ? "W" :
      timeframe.period
 
+// High-horizon macro context: prior completed calendar month only.
+// It is descriptive context and never a hard execution filter.
+bool monthlyMacroOnly = timeframe.ismonthly
+bool monthlyMacroContextEnabled = timeframe.period == "3D" or timeframe.period == "W"
+float monthlyMacroRaw = monthlyMacroContextEnabled ? f_sec("M",
+     ta.ema(close, MID_LEN) > ta.ema(close, SLOW_LEN) and ta.ema(close, SLOW_LEN) >= ta.ema(close, SLOW_LEN)[3] and close > ta.ema(close, SLOW_LEN) ? 1.0 :
+     ta.ema(close, MID_LEN) < ta.ema(close, SLOW_LEN) and ta.ema(close, SLOW_LEN) <= ta.ema(close, SLOW_LEN)[3] and close < ta.ema(close, SLOW_LEN) ? -1.0 : 0.0) : na
+bool monthlyMacroAvailable = monthlyMacroContextEnabled and not na(monthlyMacroRaw)
+int monthlyMacroDir = monthlyMacroAvailable ? int(monthlyMacroRaw) : 0
+
 // ---------------------------------------------------------------------------
 // Trend / regime layer
 // ---------------------------------------------------------------------------
@@ -1671,9 +1681,10 @@ if barstate.isconfirmed
 // ---------------------------------------------------------------------------
 // OPERATOR_READINESS_V1 — embedded projection
 // ---------------------------------------------------------------------------
-bool exFrozenActive = exReadiness != EX_READY_WAIT and exDir != 0
-bool exTrendActive = exTrendReadiness != EX_READY_WAIT and exTrendReadinessDir != 0
-bool exRangeActive = exRangeReadiness != EX_READY_WAIT and exRangeReadinessDir != 0
+bool exExecutionHorizonEnabled = not monthlyMacroOnly
+bool exFrozenActive = exExecutionHorizonEnabled and exReadiness != EX_READY_WAIT and exDir != 0
+bool exTrendActive = exExecutionHorizonEnabled and exTrendReadiness != EX_READY_WAIT and exTrendReadinessDir != 0
+bool exRangeActive = exExecutionHorizonEnabled and exRangeReadiness != EX_READY_WAIT and exRangeReadinessDir != 0
 
 int exOperatorDirCandidate = 0
 bool exOperatorConflict = false
@@ -2212,6 +2223,10 @@ plot(exOperatorOppKind, "MM EX 0.2 • Operator oportunidade", color=color.new(c
 plot(exOperatorConfirmEvent ? 1 : 0, "MM EX 0.2 • Operator confirma", color=color.new(color.white, 100), display=display.data_window)
 plot(exAnticipatedPosture ? 1 : 0, "MM EX 0.2 • Perfil antecipado ativo", color=color.new(color.white, 100), display=display.data_window)
 plot(exAnticipatedEvent ? 1 : 0, "MM EX 0.2 • Evento antecipado", color=color.new(color.white, 100), display=display.data_window)
+plot(monthlyMacroContextEnabled ? 1 : 0, "MM EX 0.2 • Macro mensal habilitado", color=color.new(color.white, 100), display=display.data_window)
+plot(monthlyMacroAvailable ? 1 : 0, "MM EX 0.2 • Macro mensal disponível", color=color.new(color.white, 100), display=display.data_window)
+plot(monthlyMacroDir, "MM EX 0.2 • Macro mensal direção", color=color.new(color.white, 100), display=display.data_window)
+plot(monthlyMacroOnly ? 1 : 0, "MM EX 0.2 • Mensal macro-only", color=color.new(color.white, 100), display=display.data_window)
 
 plot(exManagementActive ? 1 : 0, "MM EX 0.2 • Gestão ativa", color=color.new(color.white, 100), display=display.data_window)
 plot(exManagementState, "MM EX 0.2 • Gestão estado", color=color.new(color.white, 100), display=display.data_window)
@@ -2250,13 +2265,15 @@ if barstate.islast
         bool awarenessRange = exRangeOppStage != EX_OPP_STAGE_NONE and exRangeOppDir != 0
         bool awarenessFrozen = exRelevantLocation and mapDir != 0
 
-        string scenarioTxt = exOperatorConflict ? "CONFLITO" :
+        string scenarioBaseTxt = exOperatorConflict ? "CONFLITO" :
              exRangeBoxValid and regimeDir == 0 ? "RANGE" :
              regimeStructureConflict ? "MISTO / CONFLITO" :
              regimeDir == 1 ? "ALTA" :
              regimeDir == -1 ? "BAIXA" :
              mapDir == 1 ? "TRANSIÇÃO ↑" :
-             mapDir == -1 ? "TRANSIÇÃO ↓" : "TRANSIÇÃO"
+             mapDir == -1 ? "TRANSIÇÃO ↓" : monthlyMacroOnly ? "MACRO / CICLO" : "TRANSIÇÃO"
+        string macroScenarioSuffix = monthlyMacroContextEnabled ? (monthlyMacroAvailable ? (monthlyMacroDir == 1 ? " • MACRO ALTA" : monthlyMacroDir == -1 ? " • MACRO BAIXA" : " • MACRO NEUTRO") : " • MACRO —") : ""
+        string scenarioTxt = scenarioBaseTxt + macroScenarioSuffix
 
         int awarenessDir = exOperatorDir != 0 ? exOperatorDir :
              awarenessTrend ? exTrendOppDir :
