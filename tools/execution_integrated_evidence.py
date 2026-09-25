@@ -165,6 +165,7 @@ def build_market_locations(
                 atr=snap.atr,
                 close=snap.close,
                 correction_active=snap.correction_active,
+                bar_time_ms=snap.time // 1000,
                 thesis_invalidated=snap.thesis_invalidated,
                 structural_conflict=snap.structural_conflict,
                 t1_top=snap.t1_top,
@@ -646,7 +647,7 @@ def main() -> int:
     mm_candles = {tf: to_mm_candles(datasets[tf]) for tf in TIMEFRAMES}
     rsi_cache = {tf: calculate_rsi(datasets[tf]["close"]) for tf in TIMEFRAMES}
 
-    defaults_path = Path("manifests/execution-research-defaults-v1.json")
+    defaults_path = Path("manifests/execution-research-defaults-v2.json")
     semantics_path = Path("manifests/suite-semantics-v1.json")
     defaults = json.loads(defaults_path.read_text(encoding="utf-8"))
     semantics = json.loads(semantics_path.read_text(encoding="utf-8"))
