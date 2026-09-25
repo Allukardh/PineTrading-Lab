@@ -14,7 +14,7 @@ on:
       - "tools/momentum_turn_reference.py"
       - "tools/rsi_state_reference.py"
       - "tools/participation_reference.py"
-      - "manifests/execution-research-defaults-v1.json"
+      - "manifests/execution-research-defaults-v2.json"
       - "manifests/suite-semantics-v1.json"
 
 permissions:
