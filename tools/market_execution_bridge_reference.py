@@ -13,6 +13,10 @@ from tools.execution_state_reference import Location
 
 APPROACH_ATR = 0.50
 EVENT_HOLD_BARS = 3
+# Preserve the original 3-bar memory through the primary 15m/1h/4h
+# Execution matrix, but never let a reaction event remain "fresh" for days
+# or weeks solely because the chart timeframe is large.
+EVENT_HOLD_MAX_MS = 12 * 60 * 60 * 1000
 
 
 @dataclass(frozen=True)
@@ -23,6 +27,7 @@ class MapEvidence:
     close: float | None
 
     correction_active: bool
+    bar_time_ms: int | None = None
     thesis_invalidated: bool = False
     structural_conflict: bool = False
 
@@ -43,6 +48,8 @@ class BridgeMemory:
     direction: int = 0
     last_retest_bar: int | None = None
     last_reclaim_bar: int | None = None
+    last_retest_time_ms: int | None = None
+    last_reclaim_time_ms: int | None = None
 
 
 @dataclass(frozen=True)
@@ -81,8 +88,22 @@ def _envelope(e: MapEvidence) -> tuple[float, float] | None:
     return top, bottom
 
 
-def _event_is_fresh(last_bar: int | None, current_bar: int) -> bool:
-    return last_bar is not None and 0 <= current_bar - last_bar <= EVENT_HOLD_BARS
+def _event_is_fresh(
+    last_bar: int | None,
+    last_time_ms: int | None,
+    current_bar: int,
+    current_time_ms: int | None,
+) -> bool:
+    if last_bar is None or not (0 <= current_bar - last_bar <= EVENT_HOLD_BARS):
+        return False
+
+    # Synthetic/unit callers may omit timestamps; preserve the original
+    # bar-count contract in that case. Real integrated evidence supplies time.
+    if last_time_ms is None or current_time_ms is None:
+        return True
+
+    elapsed = current_time_ms - last_time_ms
+    return 0 <= elapsed <= EVENT_HOLD_MAX_MS
 
 
 def classify(previous: BridgeMemory, evidence: MapEvidence) -> BridgeResult:
@@ -99,23 +120,40 @@ def classify(previous: BridgeMemory, evidence: MapEvidence) -> BridgeResult:
 
     last_retest = previous.last_retest_bar
     last_reclaim = previous.last_reclaim_bar
+    last_retest_time = previous.last_retest_time_ms
+    last_reclaim_time = previous.last_reclaim_time_ms
 
     if evidence.retest_event:
         last_retest = evidence.bar_index
+        last_retest_time = evidence.bar_time_ms
     if evidence.reclaim_event:
         last_reclaim = evidence.bar_index
+        last_reclaim_time = evidence.bar_time_ms
 
     memory = BridgeMemory(
         direction=evidence.map_dir,
         last_retest_bar=last_retest,
         last_reclaim_bar=last_reclaim,
+        last_retest_time_ms=last_retest_time,
+        last_reclaim_time_ms=last_reclaim_time,
     )
 
-    # Specific confirmed reaction semantics outrank geometry.
-    if _event_is_fresh(last_reclaim, evidence.bar_index):
+    # Specific confirmed reaction semantics outrank geometry while they remain
+    # fresh in both chart bars and real elapsed time.
+    if _event_is_fresh(
+        last_reclaim,
+        last_reclaim_time,
+        evidence.bar_index,
+        evidence.bar_time_ms,
+    ):
         return BridgeResult(Location.RECLAIM, memory)
 
-    if _event_is_fresh(last_retest, evidence.bar_index):
+    if _event_is_fresh(
+        last_retest,
+        last_retest_time,
+        evidence.bar_index,
+        evidence.bar_time_ms,
+    ):
         return BridgeResult(Location.RETEST, memory)
 
     env = _envelope(evidence) if evidence.correction_active else None
