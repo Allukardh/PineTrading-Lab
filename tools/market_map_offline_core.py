@@ -9,15 +9,18 @@ SLOW_LEN = 200
 ATR_LEN = 14
 PIVOT_LEN = 3
 POOL_MAX = 24
+RETEST_MAX_BARS = 24
 FAIL_MAX_BARS = 6
 PULLBACK_SAMPLE_MAX = 24
 PULLBACK_MIN_SAMPLES = 5
 ACCEPTANCE_BINS = 20
 ACCEPTANCE_MAX_BARS = 240
 EQ_TOL_ATR = 0.12
+RETEST_TOL_ATR = 0.18
 FAIL_TOL_ATR = 0.08
 INVALID_TOL_ATR = 0.12
 TARGET_MERGE_ATR = 0.1
+TARGET_NEAR_ATR = 0.30
 PULLBACK_MIN_DEPTH = 0.12
 PULLBACK_MAX_DEPTH = 0.9
 AUDIT_HEADER = ['Time', 'Open', 'High', 'Low', 'Close', 'MM Audit • Schema', 'MM Audit • Confirmado', 'MM Audit • MapDir', 'MM Audit • ATR', 'MM Audit • Modelo', 'MM Audit • Amostras adaptativas', 'MM Audit • Correção topo', 'MM Audit • Correção fundo', 'MM Audit • Destino 1', 'MM Audit • Invalidação', 'MM Audit • Confluências', 'MM Audit • Nova tese evt', 'MM Audit • Toque zona evt', 'MM Audit • Zona→Destino evt', 'MM Audit • Zona→Invalidação evt', 'MM Audit • Ambíguo evt', 'MM Audit • Sweep reclaim evt']
@@ -37,6 +40,27 @@ class Candle:
     @property
     def hlc3(self):
         return (self.h + self.l + self.c) / 3
+
+@dataclass(frozen=True)
+class IntegrationSnapshot:
+    bar_index: int
+    time: int
+    map_dir: int
+    atr: float | None
+    close: float
+    correction_active: bool
+    thesis_invalidated: bool
+    structural_conflict: bool
+    t1_top: float | None
+    t1_bottom: float | None
+    primary_top: float | None
+    primary_bottom: float | None
+    t3_top: float | None
+    t3_bottom: float | None
+    retest_event: bool
+    reclaim_event: bool
+    destination_near: bool
+
 
 @dataclass
 class Pool:
@@ -242,7 +266,7 @@ class Kernel:
         self.dt = [x.t for x in self.d]
         self.wt = [x.t for x in self.w]
 
-    def run(self):
+    def run(self, integration_rows: list[IntegrationSnapshot] | None = None):
         rows = []
         hp = []
         lp = []
@@ -345,6 +369,8 @@ class Kernel:
                 live_hi = max(live_hi, x.h)
             if live_dir == -1 and live_lo is not None:
                 live_lo = min(live_lo, x.l)
+            retest_up = break_dir == 1 and break_bar is not None and (a is not None) and (i > break_bar) and (i - break_bar <= RETEST_MAX_BARS) and (x.l <= break_level + a * RETEST_TOL_ATR) and (x.c >= break_level)
+            retest_down = break_dir == -1 and break_bar is not None and (a is not None) and (i > break_bar) and (i - break_bar <= RETEST_MAX_BARS) and (x.h >= break_level - a * RETEST_TOL_ATR) and (x.c <= break_level)
             fu = break_dir == 1 and break_bar is not None and (a is not None) and (i > break_bar) and (i - break_bar <= FAIL_MAX_BARS) and (x.c < break_level - a * FAIL_TOL_ATR)
             fd = break_dir == -1 and break_bar is not None and (a is not None) and (i > break_bar) and (i - break_bar <= FAIL_MAX_BARS) and (x.c > break_level + a * FAIL_TOL_ATR)
             if fu or fd:
@@ -420,18 +446,27 @@ class Kernel:
             samples = len(bulls) if mdir == 1 else len(bears) if mdir == -1 else 0
             emp, shallow, deep = adaptive(bulls if mdir == 1 else bears if mdir == -1 else [])
             top = bot = fibt = fibb = None
+            t1_top = t1_bottom = t3_top = t3_bottom = None
             model = 0
             if ready:
                 if mdir == 1:
+                    fib382 = ihi - rng * 0.382
+                    fib500 = ihi - rng * 0.500
+                    fib618 = ihi - rng * 0.618
+                    fib786 = ihi - rng * 0.786
                     a1 = ihi - rng * shallow
                     a2 = ihi - rng * deep
-                    f1 = ihi - rng * 0.5
-                    f2 = ihi - rng * 0.618
                 else:
+                    fib382 = ilo + rng * 0.382
+                    fib500 = ilo + rng * 0.500
+                    fib618 = ilo + rng * 0.618
+                    fib786 = ilo + rng * 0.786
                     a1 = ilo + rng * shallow
                     a2 = ilo + rng * deep
-                    f1 = ilo + rng * 0.5
-                    f2 = ilo + rng * 0.618
+                f1 = fib500
+                f2 = fib618
+                t1_top, t1_bottom = (max(fib382, fib500), min(fib382, fib500))
+                t3_top, t3_bottom = (max(fib618, fib786), min(fib618, fib786))
                 top, bot = (max(a1, a2), min(a1, a2))
                 fibt, fibb = (max(f1, f2), min(f1, f2))
                 model = 4 if use_live and emp else 3 if use_live else 2 if emp else 1
@@ -444,6 +479,9 @@ class Kernel:
                     invalid_key = key
             thesis_inv = ready and key is not None and (invalid_key == key)
             active = ready and (not thesis_inv)
+            destination_near = bool(dest is not None and a is not None and a > 0 and abs(dest - x.c) / a <= TARGET_NEAR_ATR and not thesis_inv)
+            retest_evt = bool((mdir == 1 and retest_up) or (mdir == -1 and retest_down))
+            reclaim_aligned_evt = bool(reclaim_evt == mdir and mdir in (-1, 1))
             new = ready and key is not None and (key != tr.key)
             if new:
                 tr.start(key, mdir)
@@ -463,6 +501,26 @@ class Kernel:
             reaction = rel_rec if rel_rec is not None else lbv if mdir == 1 else la if mdir == -1 else None
             conf += int(in_zone(reaction, top, bot, tol))
             conf += int(tb >= 8 and tv is not None and (in_zone(tv, top, bot, tol) or in_zone(tn, top, bot, tol)))
+            if integration_rows is not None:
+                integration_rows.append(IntegrationSnapshot(
+                    bar_index=i,
+                    time=x.t,
+                    map_dir=mdir,
+                    atr=a,
+                    close=x.c,
+                    correction_active=bool(active),
+                    thesis_invalidated=bool(thesis_inv),
+                    structural_conflict=bool(conflict),
+                    t1_top=t1_top if active else None,
+                    t1_bottom=t1_bottom if active else None,
+                    primary_top=top if active else None,
+                    primary_bottom=bot if active else None,
+                    t3_top=t3_top if active else None,
+                    t3_bottom=t3_bottom if active else None,
+                    retest_event=retest_evt,
+                    reclaim_event=reclaim_aligned_evt,
+                    destination_near=destination_near,
+                ))
             ts = datetime.fromtimestamp(x.t / 1000000.0, tz=timezone.utc).isoformat().replace('+00:00', 'Z')
             rows.append(dict(zip(AUDIT_HEADER, [ts, x.o, x.h, x.l, x.c, AUDIT_SCHEMA, 1, mdir, a, model, samples, top if active else None, bot if active else None, None if thesis_inv else dest, inval if ready else None, conf, int(new), int(touch),int(de),int(ie),int(amb), reclaim_evt])))
             prev_close = x.c
