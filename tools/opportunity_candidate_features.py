@@ -30,12 +30,15 @@ class CandidateFeatures:
     candle_range_atr: float | None
     close_location_directional: float | None
 
+    momentum_state: str
     mte_core_directional: float | None
     mte_acceleration_directional: float | None
+    rsi_state: str
     rsi_center_directional: float | None
     rsi_step_directional: float | None
     htf_context_alignment: int
 
+    participation_state: str
     relative_volume: float | None
     directional_pressure: float | None
     strong_volume_expansion: bool | None
@@ -130,12 +133,14 @@ def extract_features(
         candle_body_direction_atr=body,
         candle_range_atr=bar_range,
         close_location_directional=close_location,
+        momentum_state=m.state.name,
         mte_core_directional=(
             None if m.core is None else direction * m.core
         ),
         mte_acceleration_directional=(
             None if m.acceleration is None else direction * m.acceleration
         ),
+        rsi_state=rr.state.name,
         rsi_center_directional=(
             None if rr.value is None else direction * (rr.value - 50.0)
         ),
@@ -143,6 +148,7 @@ def extract_features(
             None if rr.step is None else direction * rr.step
         ),
         htf_context_alignment=direction * int(context_dirs[i]),
+        participation_state=p.state.name,
         relative_volume=p.relative_volume,
         directional_pressure=p.directional_pressure,
         strong_volume_expansion=(
