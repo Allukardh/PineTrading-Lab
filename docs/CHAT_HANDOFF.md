@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** STABLE  
-**Active product front:** Suite 0.2 — RANGE_ROTATION structural class accepted  
+**Checkpoint state:** PREPARED  
+**Active product front:** Suite 0.2 — RANGE_ROTATION Opportunity v2 integration A/B  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,42 +131,55 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### STABLE result — RANGE_ROTATION structural class
+### PREPARED block — RANGE_ROTATION Opportunity v2 integration A/B
 
-Research:
+Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- accepted range research head: `905fc9adf190b0c1b12d17d2109027302ee8a410`
+- accepted RANGE_ROTATION research head: `905fc9adf190b0c1b12d17d2109027302ee8a410`
 
-Evidence:
-- BTC 4H/1D `36153024231` — PASS;
-- ETH/AVAX robustness `36153274614` — PASS;
-- 15-symbol 1D universe `36153654841` — PASS;
-- Static integrity `36153654694`, `36153661271` — PASS;
-- worklog: `docs/worklog/2026-09-25-suite-0.2-range-rotation.md`.
-
-Accepted research decisions:
-- stable structural range box — KEEP;
-- EDGE_REJECTION — KEEP as primary RANGE_ROTATION trigger;
-- raw SWEEP_RECLAIM standalone trigger — REMOVE;
-- RANGE_ROTATION 4H — KEEP;
-- RANGE_ROTATION 1D — KEEP;
-- regime relation — KEEP as context / integration discriminant;
+Locks:
+- accepted Opportunity v2 breakout/reacceleration composition is not reopened;
+- RANGE_ROTATION primary trigger = EDGE_REJECTION;
+- SWEEP_RECLAIM is auxiliary only;
 - frozen Execution 0.1 remains independent;
-- Opportunity v2 breakout/reacceleration baseline remains accepted and unchanged;
-- no production Pine/default/profile changes.
+- MTE/RSE/PSE meanings unchanged;
+- no production Pine/default/profile change.
 
-15-symbol daily EDGE_REJECTION:
-- 94 episodes across 15/15 symbols;
-- midpoint+ 67.02%;
-- opposite edge 32.98%;
-- failed before midpoint 9.57%;
-- frozen 0.1 covered 1.06%;
-- LONG/SHORT 51/43.
+Pre-registered integration variants:
 
-Next:
-- integrate RANGE_ROTATION into research-only Opportunity v2 with A/B regime-context comparison before any production work.
+**A — ALL_EDGE**
+- every confirmed EDGE_REJECTION may enter Opportunity readiness.
+
+**B — CONTEXT_GUARDED**
+- NEUTRAL and WITH_REGIME EDGE_REJECTION may enter Opportunity readiness;
+- AGAINST_REGIME remains awareness-only.
+
+Range lifecycle for both:
+1. confirmed EDGE_REJECTION starts as STRONG;
+2. next-bar structural persistence + directional progress inside the same compatible range is required for ACCEPTED;
+3. invalidation / incompatible range change clears the frame;
+4. no backdating.
+
+Exact intended work:
+1. extend research OpportunityFrame with range identity/geometry only as needed;
+2. build range-specific frame timeline without changing breakout/reacceleration frames;
+3. run both A/B on BTC 4H/1D;
+4. compare:
+   - RANGE_ROTATION opportunity-only coverage;
+   - PREP/ARMED/CONFIRMA latency;
+   - quick cancellation/churn;
+   - midpoint/opposite/failure split among confirmed vs not confirmed;
+   - ALL_EDGE vs CONTEXT_GUARDED discrimination;
+5. preserve exact frozen 0.1 path;
+6. only if useful, expand unchanged integration to ETH/AVAX;
+7. no Pine or profiles.
+
+Recovery:
+- compare active branch with `905fc9ad...`;
+- inspect only newer range-integration commits/runs/artifacts;
+- do not reopen accepted range detector or Opportunity-v2 base composition unless a concrete defect appears.
 
 
 ## 7. Continuity protocol
