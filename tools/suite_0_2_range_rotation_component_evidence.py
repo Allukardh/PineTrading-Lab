@@ -117,26 +117,28 @@ def analyze(tf,datasets,tick):
             end=o.outcome_bar
         else:
             end=min(len(frames)-1,ab+24)
-        end=max(ab,end)
 
         flags={
             "any_mte_aligned":False,"any_rsi_supportive":False,"any_pse_confirm":False,
             "any_one_family":False,"any_two_families_same_bar":False,"any_three_families_same_bar":False,
         }
-        for i in range(ab,end+1):
-            fm=frames[i]
-            if fm.source_bar!=e.confirmation_bar:
-                break
-            ma=_momentum_aligned(e.direction,mte[i].state)
-            rs=local_supports(e.direction,rse[i].state) and ctx[i] != -e.direction
-            pc=pse[i].state==Participation.CONFIRM
-            families=int(ma)+int(rs)+int(pc)
-            flags["any_mte_aligned"] |= ma
-            flags["any_rsi_supportive"] |= rs
-            flags["any_pse_confirm"] |= pc
-            flags["any_one_family"] |= families>=1
-            flags["any_two_families_same_bar"] |= families>=2
-            flags["any_three_families_same_bar"] |= families>=3
+        # Strictly exclude the midpoint bar. If midpoint is reached on the
+        # ACCEPTED bar itself, the pre-midpoint window is empty.
+        if end >= ab:
+            for i in range(ab,end+1):
+                fm=frames[i]
+                if fm.source_bar!=e.confirmation_bar:
+                    break
+                ma=_momentum_aligned(e.direction,mte[i].state)
+                rs=local_supports(e.direction,rse[i].state) and ctx[i] != -e.direction
+                pc=pse[i].state==Participation.CONFIRM
+                families=int(ma)+int(rs)+int(pc)
+                flags["any_mte_aligned"] |= ma
+                flags["any_rsi_supportive"] |= rs
+                flags["any_pse_confirm"] |= pc
+                flags["any_one_family"] |= families>=1
+                flags["any_two_families_same_bar"] |= families>=2
+                flags["any_three_families_same_bar"] |= families>=3
         window_rows.append(flags); grouped_win[label].append(flags)
 
     return {
