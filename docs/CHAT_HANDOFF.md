@@ -142,14 +142,14 @@ Active research:
 Closed monthly gate:
 - deterministic 1M run `36170246108` — PASS;
 - derived monthly datasets are reproducible;
-- fixed 21/50/200 monthly regime cannot mature because 0/15 symbols have 200 months.
+- 0/15 symbols have the full nominal 200-month observation span; zero monthly trend confirmations are real, but code audit showed the offline EMA is recursively seeded, so the absence of 200 rows is **not by itself** proof that the fixed regime cannot produce values.
 
 Preregistered variants:
 
 **FIXED_21_50_200**
 - control;
 - accepted lower-horizon bar-count baseline;
-- known monthly maturity limitation.
+- direct regime occupancy/churn must be measured; fewer than 200 observed months means incomplete nominal span, not automatic EMA unavailability.
 
 **WEEK_EQUIV_5_12_46**
 - monthly-only research candidate;
@@ -167,10 +167,11 @@ Locks:
 - no production Pine/default change.
 
 Exact intended work:
-1. parameterize **research-only** Market Map EMA basis for 1M without changing defaults elsewhere;
-2. preserve control 21/50/200 exactly;
-3. test WEEK_EQUIV_5_12_46 on the same deterministic 15-symbol 1M datasets;
-4. report:
+1. first audit direct fixed-21/50/200 1M regime occupancy/churn rather than inferring the zero-confirm cause from history length;
+2. parameterize **research-only** Market Map EMA basis for 1M without changing defaults elsewhere;
+3. preserve control 21/50/200 exactly;
+4. test WEEK_EQUIV_5_12_46 on the same deterministic 15-symbol 1M datasets;
+5. report:
    - bars/symbols with regime readiness;
    - regime occupancy and LONG/SHORT balance;
    - regime churn/transitions;
@@ -179,9 +180,9 @@ Exact intended work:
    - confirmation latency in monthly bars;
    - RANGE_ROTATION / OPERATOR parity/conflicts;
    - short-history behavior, especially SUI;
-5. do not select a candidate merely because it creates more signals;
-6. require semantic improvement: mature regime availability + non-pathological churn + preserved structural discrimination;
-7. no production implementation until this research gate closes.
+6. do not select a candidate merely because it creates more signals;
+7. require semantic improvement: mature regime availability + non-pathological churn + preserved structural discrimination;
+8. no production implementation until this research gate closes.
 
 Recovery:
 - compare active branch with `9c47c227...`;
