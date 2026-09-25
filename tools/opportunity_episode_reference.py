@@ -58,6 +58,10 @@ class OpportunityEpisode:
     destination: float | None
     invalidation: float | None
     prior_regime_bars: int | None = None
+    break_context: str | None = None
+    regime_age_before_bar: int | None = None
+    reaction_gap_bars: int | None = None
+    prior_same_break_gap_bars: int | None = None
 
 
 def _valid_direction(value: int) -> bool:
@@ -162,6 +166,10 @@ def detect_episodes(
         snap: IntegrationSnapshot,
         *,
         prior_regime_bars: int | None = None,
+        break_context: BreakContext | None = None,
+        regime_age_before_bar: int | None = None,
+        reaction_gap_bars: int | None = None,
+        prior_same_break_gap_bars: int | None = None,
     ) -> None:
         episodes.append(
             OpportunityEpisode(
@@ -176,10 +184,19 @@ def detect_episodes(
                 destination=snap.destination,
                 invalidation=snap.invalidation,
                 prior_regime_bars=prior_regime_bars,
+                break_context=(None if break_context is None else break_context.value),
+                regime_age_before_bar=regime_age_before_bar,
+                reaction_gap_bars=reaction_gap_bars,
+                prior_same_break_gap_bars=prior_same_break_gap_bars,
             )
         )
 
     for i, snap in enumerate(snapshots):
+        break_context_for_bar: BreakContext | None = None
+        break_regime_age: int | None = None
+        break_reaction_gap: int | None = None
+        break_prior_same_gap: int | None = None
+
         if snap.structural_break_dir in (-1, 1):
             break_dir = snap.structural_break_dir
             previous_same_break = last_break_bar[break_dir]
@@ -215,22 +232,30 @@ def detect_episodes(
                 and 0 < i - last_reaction <= REACCELERATION_PULLBACK_LOOKBACK_BARS
             )
 
+            break_regime_age = (
+                current_regime_len
+                if current_regime_dir == break_dir
+                else 0
+            )
+            break_reaction_gap = (
+                None if last_reaction is None else i - last_reaction
+            )
+            break_prior_same_gap = (
+                None if previous_same_break is None else i - previous_same_break
+            )
             context = classify_structural_break_context(
                 direction=break_dir,
                 map_dir=snap.map_dir,
                 regime_dir=snap.regime_dir,
                 structural_conflict=snap.structural_conflict,
                 thesis_invalidated=snap.thesis_invalidated,
-                regime_age_before_bar=(
-                    current_regime_len
-                    if current_regime_dir == break_dir
-                    else 0
-                ),
+                regime_age_before_bar=break_regime_age,
                 had_prior_same_direction_break=previous_same_break is not None,
                 recent_pullback_reaction=recent_pullback,
                 reaction_on_break_bar=reaction_on_break_bar,
                 opposite_mature_regime=mature_dir == -break_dir,
             )
+            break_context_for_bar = context
 
             if context == BreakContext.EARLY_TRANSITION:
                 add(
@@ -244,6 +269,10 @@ def detect_episodes(
                         if current_regime_dir == mature_dir
                         else previous_regime_len
                     ),
+                    break_context=context,
+                    regime_age_before_bar=break_regime_age,
+                    reaction_gap_bars=break_reaction_gap,
+                    prior_same_break_gap_bars=break_prior_same_gap,
                 )
 
             if context == BreakContext.REACCELERATION:
@@ -254,6 +283,10 @@ def detect_episodes(
                     i,
                     snap,
                     prior_regime_bars=current_regime_len,
+                    break_context=context,
+                    regime_age_before_bar=break_regime_age,
+                    reaction_gap_bars=break_reaction_gap,
+                    prior_same_break_gap_bars=break_prior_same_gap,
                 )
 
             last_break_bar[break_dir] = i
@@ -272,6 +305,10 @@ def detect_episodes(
                 i,
                 i,
                 snap,
+                break_context=break_context_for_bar,
+                regime_age_before_bar=break_regime_age,
+                reaction_gap_bars=break_reaction_gap,
+                prior_same_break_gap_bars=break_prior_same_gap,
             )
 
         # First correction-zone/retest/reclaim reaction per MM thesis.
