@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** PREPARED  
-**Active product front:** Execution 0.1.0 promotion  
+**Checkpoint state:** STABLE  
+**Active product front:** none — accepted two-indicator suite baseline complete  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -14,23 +14,43 @@ Read in this order:
 2. `docs/CANONICAL_STATE.md`
 3. `docs/CONTINUITY_LOG.md`
 4. this file
-5. Issue #20 and the production branch/PR named below
-6. only then the detailed Execution design/evidence docs needed by the active gate
+5. only then open a new issue/branch for the next concrete product objective
 
-GitHub is canonical. Do not reconstruct from old chats unless canonical evidence contains an unresolved contradiction.
+GitHub is canonical. Do not reconstruct from old chats unless canonical project evidence contains an unresolved contradiction.
 
-## 2. Accepted suite state
+## 2. Accepted suite baseline
 
 Final runtime topology:
 
-1. **Market Map overlay + embedded Decision Panel**
-2. **Execution lower pane**
+1. **Market Map 0.1.0**
+   - overlay
+   - trend/regime
+   - structure
+   - structural liquidity
+   - correction/retest/reclaim
+   - destination
+   - invalidation
+   - embedded semantic Decision Panel
+   - embedded Execution rows: `EXECUÇÃO` + `FORÇA`
 
-Decision Panel is a logical synthesis layer, not a third mandatory Pine script.
+2. **Execution 0.1.0**
+   - lower pane
+   - MTE-A momentum timing
+   - RSE-A RSI recovery/exhaustion + confirmed HTF context
+   - PSE-A participation / reload-safe pressure proxy
+   - readiness states: AGUARDAR / PREPARANDO / ARMADO / CONFIRMA / ALINHADO
+   - strength states: NORMAL / PERDENDO FORÇA / EXAUSTÃO / RISCO DE REAÇÃO
+   - compact one-line semantic cue only; no second full Decision Panel
 
-SignalGate Dashboard 0.1.0 remains a timing/reload/alert engineering donor/baseline only.
+Decision Panel remains a logical synthesis layer embedded in Market Map, not a third runtime Pine script.
 
-### Market Map 0.1.0 — ACCEPTED
+SignalGate Dashboard 0.1.0 remains preserved as a timing/reload/alert engineering donor/baseline only.
+
+## 3. Accepted promotion refs
+
+### Market Map 0.1.0
+
+PR #10 merged.
 
 Promotion merge:
 
@@ -38,154 +58,120 @@ Promotion merge:
 
 Do not reopen MM-0 lifecycle/tuning without a concrete new defect.
 
-### Execution research contract — ACCEPTED
+### Execution research contract
 
-Research PR #12 is merged.
+PR #12 merged.
 
 Promotion merge:
 
 `1df7adaf3d39047fd400e4d81a4b30415a2934bd`
 
-Final integrated evidence:
-- workflow `36080621108` — PASS
-- Static integrity `36080620994` — PASS
+Final research decisions:
 - MTE-A — KEEP
 - RSE-A — KEEP
 - PSE-A — KEEP
 - readiness state machine — KEEP
 - strength state machine — KEEP
-- no defaults retuned
 
-Detailed evidence:
+### Execution 0.1.0 production
 
-`docs/worklog/2026-09-24-execution-historical-evidence.md`
+PR #21 merged.
 
-Important semantic locks:
-- MTE TURN = early counter-acceleration/preparation evidence, not guaranteed reversal;
-- RSE RECOVERING/FADING = short recent-zone transition semantic;
-- PSE pressure = OHLC close-location proxy, never true aggressor buy/sell volume;
-- all actionable state transitions remain close-confirmed;
-- HTF RSI context remains confirmed;
-- realtime-only delta cannot alter reload-safe confirmed history.
+Promotion merge:
 
-## 3. Active production tracker
+`a7557df2d0142441ea782dba4b8c3f95ebc38371`
 
-**Issue #20:** Execution 0.1.0 — production implementation + Market Map semantic parity
+Issue #20 is closed as completed.
 
-Production block PREPARED.
+Final reconciled production gates:
+- Static integrity `36084356518` — PASS
+- Pine compile `36084356547` — PASS
+- branch was 0 commits behind `main` before promotion
 
-Current production branch: `feat/execution-0.1.0`  
-Draft PR: #21  
-Current verified head: `5fdea1e7be173ea9cec500eba70f00e35c153b67`
-
-Durable milestone already complete:
-- `src/core/execution.pine` exists;
-- accepted MTE-A / RSE-A / PSE-A v2 defaults implemented;
-- accepted MM-0 context + location bridge implemented self-contained;
-- readiness + strength state machine implemented;
-- Pine compile PASS: run `36082085355`;
-- Execution contract/default/context checker PASS inside Static integrity: run `36082085365`.
-
-Durable production result:
-- `src/core/execution.pine` implements the accepted lower-pane kernel;
-- Market Map embeds the same semantic Execution kernel as `EXECUÇÃO` + `FORÇA`;
-- cross-script Data Window parity fields are present;
-- accepted Market Map structural semantics were not retuned;
-- Static integrity `36083522996` — PASS;
-- Pine compile `36083523054` — PASS.
-
-Exact next discriminant:
-- perform one **batched TradingView visual/reload parity gate** with both scripts loaded together;
-- compare Market Map `EXECUÇÃO/FORÇA` against the standalone Execution status cue;
-- if stable before/after reload and no material UX/parity defect appears, promote Execution 0.1.0 without inventing another manual test cycle.
-
-The accepted defaults are frozen by:
-
-`manifests/execution-research-defaults-v2.json`
-
-The semantic contract is frozen by:
-
-`manifests/suite-semantics-v1.json`
-
-## 4. Exact next atomic work
-
-### PREPARED promotion block — 2026-09-24
-
-Operator TradingView parity evidence is complete and PASS:
-
+Final TradingView cross-script parity:
 - BTCUSDT 4H before reload:
-  - Market Map EXECUÇÃO = `AGUARDAR`
-  - Market Map FORÇA = `NORMAL`
-  - standalone Execution cue = `AGUARDAR • NORMAL`
-
+  - Market Map = `AGUARDAR / NORMAL`
+  - standalone Execution = `AGUARDAR • NORMAL`
 - BTCUSDT 4H after reload:
-  - same semantic state across both scripts;
-  - no material reload mismatch observed.
-
+  - same confirmed semantic state
 - BTCUSDT 1D after reload:
-  - Market Map EXECUÇÃO = `PREPARANDO LONG`
-  - Market Map FORÇA = `NORMAL`
-  - standalone Execution cue = `PREPARANDO LONG • NORMAL`
+  - Market Map = `PREPARANDO LONG / NORMAL`
+  - standalone Execution = `PREPARANDO LONG • NORMAL`
 
-No additional manual test cycle is justified without a concrete defect.
+No additional manual promotion gate is open.
 
-Current PR #21 head:
-`5fdea1e7be173ea9cec500eba70f00e35c153b67`
+## 4. Semantic locks
 
-Promotion sequence:
-1. reconcile PR #21 with current `main` if needed;
-2. re-run Static integrity + Pine compile on the reconciled head;
-3. mark PR #21 ready;
-4. merge Execution 0.1.0;
-5. close Issue #20;
-6. update README / CANONICAL_STATE / CHANGELOG / CONTINUITY_LOG / this handoff to the accepted two-indicator suite state.
+Do not silently change these without new evidence:
 
-Recovery if interrupted:
-- inspect PR #21 head vs this checkpoint;
-- inspect only newer commits/checks;
-- do not repeat TradingView screenshots;
-- continue from the first incomplete promotion step.
+- MTE TURN = early counter-acceleration / preparation evidence, not a guaranteed reversal.
+- RSE RECOVERING/FADING = short recent-zone transition semantic.
+- PSE pressure = OHLC close-location proxy, never true aggressor buy/sell flow.
+- actionable state transitions are chart-close confirmed.
+- HTF RSI context is confirmed.
+- realtime-only delta cannot alter reload-safe confirmed history.
+- Decision Panel is embedded in Market Map, not a third script.
+- no Compact/Full panel split.
+- no mandatory profile selector.
+- no opaque probability/score.
+- do not resurrect six legacy scripts as six final products.
+- do not retune from aggregate historical percentages alone.
 
+## 5. Repository state
 
-## 5. Continuity protocol
+Completed product/research trackers:
+- Issue #4 SignalGate live-observation tracker — closed as superseded
+- Issue #9 Market Map foundation — closed completed
+- Issue #11 Execution research — closed completed
+- Issue #20 Execution production — closed completed
 
-Before a substantial block:
-- set this file to **PREPARED**;
-- record exact refs, intended action, expected durable result and recovery rule.
+Historical merged branches may remain visible. They are not competing active implementations.
 
-After a meaningful durable result:
-- persist the real work first;
-- return this file to **STABLE** with actual refs/results and the next discriminant.
+Preserve useful donor/history refs unless branch retention becomes a real maintenance problem.
 
-If interrupted while PREPARED:
-1. compare recorded refs with GitHub;
-2. inspect only new commits/runs/artifacts;
-3. infer completed work;
-4. continue from the delta.
+## 6. Exact next action
 
-## 6. Working contract
+There is **no automatic engineering action pending**.
 
-Preserve the Chat-01 rhythm:
+When work resumes, first identify the next real product objective from:
+- observed live-use defect;
+- UX friction;
+- semantic/parity mismatch;
+- new evidence question;
+- explicitly chosen 0.x improvement.
+
+Before that next substantial block, write a new PREPARED checkpoint here with:
+- exact objective;
+- current refs;
+- expected durable evidence;
+- recovery rule.
+
+Do not reopen completed Market Map/Execution foundation work merely to keep the project moving.
+
+## 7. Continuity protocol
+
+For every substantial future block:
+
+1. set this file to **PREPARED** before the risky/in-progress work;
+2. record refs + exact intended action + expected evidence + recovery rule;
+3. persist the real work/results first;
+4. return this file to **STABLE** after the milestone.
+
+If interruption occurs while PREPARED:
+- compare recorded refs with GitHub;
+- inspect only newer commits/runs/artifacts;
+- infer completed work from the durable delta;
+- continue from the first incomplete step.
+
+`CONTINUITY_LOG.md` remains slow causal memory, not a per-commit diary.
+
+## 8. Working contract
+
+Preserve the established rhythm:
 - product/trading usefulness first;
 - broad assistant engineering autonomy;
 - user is not QA for trivial changes;
-- batch operator validation into meaningful gates;
+- batch TradingView validation into meaningful gates;
 - “continue” means advance to the next real evidence boundary;
 - hide engine complexity unless exposing it improves the decision;
 - GitHub supports the work; it must not turn the conversation into project-manager ceremony.
-
-
-### Prepared-block durability
-
-Expected durable output before returning STABLE:
-- production branch + PR tied to Issue #20;
-- `src/core/execution.pine` with accepted defaults/semantics;
-- static/reference parity guards;
-- Pine compile PASS;
-- no Market Map embedded-panel change until lower-pane semantics compile and stabilize.
-
-Recovery if interrupted:
-- inspect Issue #20 and `feat/execution-0.1.0`;
-- compare actual branch head with this checkpoint;
-- inspect only new commits/checks;
-- do not reopen historical evidence or retune defaults.
