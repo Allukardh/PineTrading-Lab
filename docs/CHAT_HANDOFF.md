@@ -131,50 +131,67 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — Thesis Management V1 daily universe + anchor coverage
+### PREPARED block — capability-aware Thesis Management V1.1
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `a07344d5bd51b7b769aee81d019b20fbae8aa57f`
+- durable pre-block research head: `e4f2d668b23d6992b96e9f4005644928c16d0f19`
 
-Closed V1 cross-asset gate:
-- workflow `36180275644` — PASS;
-- Static integrity `36180275561` — PASS;
+Closed gates:
+- V1 BTC/ETH/AVAX 4H/1D `36180275644` — PASS;
+- anchor-diagnostic V1 rerun `36180610740` — PASS;
+- 15-symbol 1D V1 `36180744281` — PASS;
+- Static integrity — PASS;
 - worklog: `docs/worklog/2026-09-25-suite-0.2-thesis-management.md`.
 
-4H V1 decision:
-- KEEP for next robustness gate;
-- BTC/ETH/AVAX PROTECT saturation ~7.6–7.9%;
-- invalidation PROTECT reach 78–88%;
-- REALIZATION_RISK ~1.2–2.3% live-bar load;
-- completed realization reach ~9–11%;
-- invalidated REALIZATION_RISK = 0 across all three assets.
+Current decisions:
+- 4H PROTECT V1 — KEEP;
+- 4H REALIZATION_RISK V1 — KEEP for continued robustness;
+- 1D PROTECT — KEEP for capability-aware validation;
+- 1D REALIZATION_RISK — REFINE / role not yet established;
+- binary target+invalidation requirement — REFINE;
+- synthetic fallback anchors — DO NOT CREATE.
 
-Open questions:
-1. 1D sample across BTC/ETH/AVAX is too small;
-2. only ~80% of 4H operator confirms have frozen target+invalidation anchors.
+Anchor findings:
+- BTC/ETH/AVAX 4H: 380 operator confirms; 303 FULL anchors;
+  - invalidation-capable: 379 / 380;
+  - target-capable: 304 / 380.
+- 15-symbol 1D: 86 confirms;
+  - FULL 63;
+  - INVALIDATION_ONLY 10;
+  - TARGET_ONLY 12;
+  - NONE 1.
+
+Preregistered V1.1 architecture:
+- every unified directional CONFIRMA creates a management thesis;
+- freeze each honestly available anchor independently;
+- explicit anchor class:
+  - FULL
+  - INVALIDATION_ONLY
+  - TARGET_ONLY
+  - NONE
+- no synthetic target/invalidation;
+- Strength-based CONTINUATION / PROTECT can operate without both anchors;
+- invalidation-near + INVALIDATED require invalidation capability;
+- midpoint/destination REALIZATION_RISK + COMPLETED require target capability;
+- FULL-anchor episodes must preserve exact V1 semantics.
 
 Exact intended work:
-1. improve unsupported-anchor telemetry by source/cause only;
-2. rerun BTC/ETH/AVAX V1 unchanged to locate anchor gaps;
-3. run unchanged V1 on full accepted 15-symbol 1D universe;
-4. aggregate:
-   - support rate;
-   - CONTINUATION / PROTECT / REALIZATION load;
-   - invalidated PROTECT reach/lead;
-   - completed REALIZATION_RISK reach/lead;
-   - invalidated REALIZATION contamination;
-   - direction balance;
-   - source breadth;
-5. diagnose anchor gaps before inventing any fallback;
-6. if daily robustness is acceptable and anchor cause is understood, mark V1 accepted research baseline;
-7. no production Pine/default/profile/panel change.
+1. implement anchor-capability reference + tests;
+2. implement V1.1 episode builder with optional target/invalidation;
+3. verify FULL-anchor semantic parity with V1;
+4. rerun BTC/ETH/AVAX 4H/1D unchanged;
+5. rerun 15-symbol 1D unchanged;
+6. report capability-aware denominators separately;
+7. diagnose 1D REALIZATION_RISK persistence/run lengths;
+8. no per-asset retuning;
+9. no production Pine/default/profile/panel change.
 
 Recovery:
-- compare active branch with `a07344d...`;
-- inspect only newer anchor-diagnostic / daily-universe commits, runs and artifacts.
+- compare active branch with `e4f2d668...`;
+- inspect only newer V1.1 capability commits/runs/artifacts.
 
 
 ## 7. Continuity protocol
