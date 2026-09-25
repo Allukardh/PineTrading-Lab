@@ -209,12 +209,24 @@ def _trend_early_quality(ctx,projections,path_rows):
 
     converted=[r for r in rows if r["converted"]]
     nonconverted=[r for r in rows if not r["converted"]]
+    quick_nonconverted=sum(
+        r["nonconverted_duration_bars"] is not None
+        and r["nonconverted_duration_bars"]<=3
+        for r in nonconverted
+    )
     return {
         "events":len(rows),
         "unmatched_events":unmatched,
         "converted":len(converted),
         "conversion_pct":pct(len(converted),len(rows)),
         "nonconverted":len(nonconverted),
+        "quick_nonconverted_le_3":quick_nonconverted,
+        "quick_nonconverted_le_3_pct_of_nonconverted":pct(
+            quick_nonconverted,len(nonconverted)
+        ),
+        "direction_counts":dict(sorted(Counter(
+            "LONG" if r["direction"]==1 else "SHORT" for r in rows
+        ).items())),
         "by_kind":groups,
         "rows":rows,
     }
@@ -331,6 +343,20 @@ def markdown(report):
             lines.append(
                 f"| {tf} | {kind} | {g['all']['events']} | {_fmt(g['conversion_pct'])} | {c['held']}/{c['fakeout']} | {_fmt(c['held_pct_resolved'])} | {n['held']}/{n['fakeout']} | {_fmt(n['held_pct_resolved'])} | {_fmt(g['bars_saved']['median'])} | {_fmt(g['move_waiting_atr']['median'])} |"
             )
+
+    lines += [
+        "",
+        "## ANTECIPADO_TREND load",
+        "",
+        "| TF | events | converted % | nonconverted | quick nonconverted <=3 % | LONG | SHORT |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+    ]
+    for tf,x in report["timeframes"].items():
+        a=x["ANTECIPADO_TREND"]
+        d=a["direction_counts"]
+        lines.append(
+            f"| {tf} | {a['events']} | {_fmt(a['conversion_pct'])} | {a['nonconverted']} | {_fmt(a['quick_nonconverted_le_3_pct_of_nonconverted'])} | {d.get('LONG',0)} | {d.get('SHORT',0)} |"
+        )
 
     lines += [
         "",
