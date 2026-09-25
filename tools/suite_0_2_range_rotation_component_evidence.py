@@ -30,15 +30,23 @@ TIMEFRAMES=("4h","1d")
 
 
 def _feature_row(direction, mte, rse, ctx, pse):
+    mte_aligned = _momentum_aligned(direction, mte.state)
+    rsi_supportive = local_supports(direction, rse.state)
+    pse_confirm = pse.state == Participation.CONFIRM
+    families = int(mte_aligned) + int(rsi_supportive) + int(pse_confirm)
     return {
         "mte_state": mte.state.name,
-        "mte_aligned": _momentum_aligned(direction, mte.state),
+        "mte_aligned": mte_aligned,
         "mte_opposed": _momentum_strongly_opposes(direction, mte.state),
         "rsi_state": rse.state.name,
-        "rsi_local_supportive": local_supports(direction, rse.state),
+        "rsi_local_supportive": rsi_supportive,
         "rsi_local_opposing": local_opposes(direction, rse.state),
         "htf_relation": "ALIGNED" if ctx==direction else "OPPOSING" if ctx==-direction else "NEUTRAL",
         "pse_state": pse.state.name,
+        "ignition_family_count": families,
+        "any_one_ignition": families >= 1,
+        "any_two_ignition": families >= 2,
+        "all_three_ignition": families >= 3,
     }
 
 
@@ -57,6 +65,9 @@ def _aggregate(rows):
         "mte_opposed_pct":pct(count_bool("mte_opposed"),n),
         "rsi_local_supportive_pct":pct(count_bool("rsi_local_supportive"),n),
         "rsi_local_opposing_pct":pct(count_bool("rsi_local_opposing"),n),
+        "any_one_ignition_pct":pct(count_bool("any_one_ignition"),n),
+        "any_two_ignition_pct":pct(count_bool("any_two_ignition"),n),
+        "all_three_ignition_pct":pct(count_bool("all_three_ignition"),n),
     }
 
 
@@ -175,6 +186,13 @@ def markdown(report):
         pse=pct(p.get("CONFIRM",0),n) if n else None
         lines.append(f"| {tf} | {x['episodes']} | {_fmt(x['accepted_next_bar_pct'])} | {_fmt(x['source'].get('mte_aligned_pct'))} | {_fmt(x['source'].get('mte_opposed_pct'))} | {_fmt(x['accepted'].get('rsi_local_supportive_pct'))} | {_fmt(x['accepted'].get('rsi_local_opposing_pct'))} | {_fmt(pse)} |")
 
+    lines+=["","## Source-bar ignition","",
+            "| TF | episodes | any 1 family % | any 2 families % | all 3 % |",
+            "| --- | ---: | ---: | ---: | ---: |"]
+    for tf,x in report["timeframes"].items():
+        z=x["source"]
+        lines.append(f"| {tf} | {z['episodes']} | {_fmt(z.get('any_one_ignition_pct'))} | {_fmt(z.get('any_two_ignition_pct'))} | {_fmt(z.get('all_three_ignition_pct'))} |")
+
     lines+=["","## Evidence observable before midpoint","",
             "| TF | accepted episodes | any MTE aligned % | any RSI supportive % | any PSE confirm % | any 1 family % | any 2 same bar % | all 3 same bar % |",
             "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"]
@@ -189,6 +207,7 @@ def markdown(report):
             a=row["accepted"]; w=row["pre_midpoint_window"]
             lines += [
                 f"- **{outcome}** — accepted episodes: {a.get('episodes',0)}",
+                f"  - source ignition any 1 / any 2 / all 3: {_fmt(row['source'].get('any_one_ignition_pct'))}% / {_fmt(row['source'].get('any_two_ignition_pct'))}% / {_fmt(row['source'].get('all_three_ignition_pct'))}%",
                 f"  - RSI states: {a.get('rsi_states',{})}",
                 f"  - HTF relation: {a.get('htf_relation',{})}",
                 f"  - PSE states: {a.get('pse_states',{})}",
