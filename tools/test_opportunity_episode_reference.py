@@ -59,7 +59,7 @@ class OpportunityEpisodeTests(unittest.TestCase):
             snap(2, structural_break_dir=0),
         ]
         eps = detect_episodes(xs, [101, 102, 103], [99, 100, 101])
-        breaks = [e for e in eps if e.opportunity_type == OpportunityType.BREAKOUT_EXPANSION]
+        breaks = [e for e in eps if e.opportunity_type == OpportunityType.BREAKOUT_CANDIDATE]
         self.assertEqual(len(breaks), 1)
         self.assertEqual(breaks[0].onset_bar, 1)
         self.assertEqual(breaks[0].confirmation_bar, 1)
