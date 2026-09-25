@@ -131,69 +131,50 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — Thesis Management V1 validation
+### PREPARED block — Thesis Management V1 daily universe + anchor coverage
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `66c25e9d89d275569faefb345025c2db41a510b9`
+- durable pre-block research head: `a07344d5bd51b7b769aee81d019b20fbae8aa57f`
 
-Closed midpoint discrimination:
-- workflow `36179810231` — PASS;
-- Static integrity — PASS;
+Closed V1 cross-asset gate:
+- workflow `36180275644` — PASS;
+- Static integrity `36180275561` — PASS;
 - worklog: `docs/worklog/2026-09-25-suite-0.2-thesis-management.md`.
 
-Preregistered Management V1:
+4H V1 decision:
+- KEEP for next robustness gate;
+- BTC/ETH/AVAX PROTECT saturation ~7.6–7.9%;
+- invalidation PROTECT reach 78–88%;
+- REALIZATION_RISK ~1.2–2.3% live-bar load;
+- completed realization reach ~9–11%;
+- invalidated REALIZATION_RISK = 0 across all three assets.
 
-Terminal precedence:
-1. AMBIGUOUS
-2. COMPLETED
-3. INVALIDATED
-
-PROTECT:
-- invalidation <= accepted 0.20 ATR; OR
-- Strength EXHAUSTED;
-- but favorable mature deterioration is classified as REALIZATION_RISK instead.
-
-REALIZATION_RISK:
-- existing destination-near REACTION_RISK; OR
-- frozen confirmation-to-target progress >= 0.50 and Strength FADING or worse;
-- invalidation-near always keeps PROTECT precedence.
-
-CONTINUATION:
-- otherwise.
-
-Structural warning:
-- diagnostics only;
-- no structure-only visible PROTECT.
-
-Locks:
-- 0.50 = structural midpoint, not outcome-optimized;
-- V0 preserved as comparator;
-- MTE/RSE/PSE unchanged;
-- target/invalidation anchors frozen at operator CONFIRMA;
-- no production Pine/default/profile/panel change.
+Open questions:
+1. 1D sample across BTC/ETH/AVAX is too small;
+2. only ~80% of 4H operator confirms have frozen target+invalidation anchors.
 
 Exact intended work:
-1. implement Management V1 as separate research reference + tests;
-2. verify BTC 4H/1D against preregistered channel evidence;
-3. validate unchanged on ETHUSDT 4H/1D and AVAXUSDT 4H/1D;
-4. compare:
-   - state saturation;
-   - transitions/churn;
-   - completed vs invalidated warning reach;
-   - lead time;
-   - source/path breadth;
+1. improve unsupported-anchor telemetry by source/cause only;
+2. rerun BTC/ETH/AVAX V1 unchanged to locate anchor gaps;
+3. run unchanged V1 on full accepted 15-symbol 1D universe;
+4. aggregate:
+   - support rate;
+   - CONTINUATION / PROTECT / REALIZATION load;
+   - invalidated PROTECT reach/lead;
+   - completed REALIZATION_RISK reach/lead;
+   - invalidated REALIZATION contamination;
    - direction balance;
-   - unsupported anchors;
-5. no per-asset retuning;
-6. if robust, mark Management V1 KEEP as accepted research baseline;
-7. otherwise REFINE from the observed failure mode only.
+   - source breadth;
+5. diagnose anchor gaps before inventing any fallback;
+6. if daily robustness is acceptable and anchor cause is understood, mark V1 accepted research baseline;
+7. no production Pine/default/profile/panel change.
 
 Recovery:
-- compare active branch with `66c25e9...`;
-- inspect only newer V1 implementation/workflow/artifacts.
+- compare active branch with `a07344d...`;
+- inspect only newer anchor-diagnostic / daily-universe commits, runs and artifacts.
 
 
 ## 7. Continuity protocol
