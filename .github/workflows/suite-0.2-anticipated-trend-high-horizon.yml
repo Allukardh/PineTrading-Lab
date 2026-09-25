@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/workflows/suite-0.2-anticipated-trend-high-horizon.yml"
       - "tools/suite_0_2_anticipated_trend_high_horizon_universe.py"
+      - "tools/test_suite_0_2_anticipated_trend_high_horizon_universe.py"
       - "tools/suite_0_2_responsiveness_profile_quality.py"
       - "tools/responsiveness_profile_reference.py"
       - "tools/operator_readiness_reference.py"
@@ -51,6 +52,9 @@ jobs:
 
       - name: Install dependencies
         run: python -m pip install --disable-pip-version-check -r requirements-market-data.txt
+
+      - name: Run high-horizon aggregation regression tests
+        run: python -m unittest tools.test_suite_0_2_anticipated_trend_high_horizon_universe -v
 
       - name: Acquire exact canonical 3D and 1W universe
         shell: bash
