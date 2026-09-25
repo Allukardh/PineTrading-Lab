@@ -164,7 +164,7 @@ class OpportunityLatencyTests(unittest.TestCase):
         self.assertEqual(r.missed_reason, "LOCATION_NOT_RELEVANT")
         self.assertIsNone(r.prep_bar)
 
-    def test_thesis_replacement_terminates_episode(self):
+    def test_same_direction_thesis_replacement_does_not_truncate_episode(self):
         xs = [
             snap(0, thesis_key=10),
             snap(1, thesis_key=11, new_thesis_event=True),
@@ -172,8 +172,8 @@ class OpportunityLatencyTests(unittest.TestCase):
         ]
         samples = [
             sample(Readiness.PREP, prep=True, participation="NEUTRAL"),
-            sample(Readiness.WAIT, direction=0, participation="NEUTRAL"),
-            sample(Readiness.WAIT, direction=0, participation="NEUTRAL"),
+            sample(Readiness.ARMED, armed=True, participation="NEUTRAL"),
+            sample(Readiness.CONFIRMED, confirm=True),
         ]
         r = measure_episode(
             self.episode(),
@@ -184,9 +184,10 @@ class OpportunityLatencyTests(unittest.TestCase):
             [100.0, 101.0, 102.0],
             response_window_bars=2,
         )
-        self.assertEqual(r.terminated_by, "THESIS_REPLACED")
-        self.assertEqual(r.missed_reason, "THESIS_REPLACED")
-        self.assertEqual(r.window_end_bar, 1)
+        self.assertEqual(r.terminated_by, "CONFIRMED")
+        self.assertIsNone(r.missed_reason)
+        self.assertEqual(r.confirm_latency_bars, 2)
+        self.assertEqual(r.same_direction_thesis_replacements, 1)
 
 
 if __name__ == "__main__":
