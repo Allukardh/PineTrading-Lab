@@ -1,0 +1,123 @@
+name: Suite 0.2 15-symbol daily ANTECIPADO_TREND
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["research/suite-0.2-opportunity-evidence"]
+    paths:
+      - ".github/workflows/suite-0.2-anticipated-trend-universe.yml"
+      - "tools/suite_0_2_anticipated_trend_universe.py"
+      - "tools/suite_0_2_responsiveness_profile_quality.py"
+      - "tools/responsiveness_profile_reference.py"
+      - "tools/operator_readiness_reference.py"
+      - "tools/suite_0_2_thesis_management_evidence.py"
+      - "tools/suite_0_2_thesis_management_v1_1_evidence.py"
+      - "tools/thesis_management_anchor_reference.py"
+      - "tools/opportunity_episode_reference.py"
+      - "tools/opportunity_outcome_reference.py"
+      - "tools/opportunity_execution_counterfactual.py"
+      - "tools/opportunity_readiness_reference.py"
+      - "tools/range_rotation_opportunity_reference.py"
+      - "tools/range_rotation_readiness_reference.py"
+      - "tools/range_rotation_reference.py"
+      - "tools/execution_candidate_reference.py"
+      - "tools/execution_state_reference.py"
+      - "tools/execution_integrated_evidence.py"
+      - "tools/market_map_offline_core.py"
+      - "tools/momentum_turn_reference.py"
+      - "tools/rsi_state_reference.py"
+      - "tools/participation_reference.py"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  universe-1d:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      DATA_ROOT: /tmp/Binance
+      OUT_DIR: /tmp/suite-0.2-anticipated-trend-universe
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements-market-data.txt
+
+      - name: Run responsiveness profile tests
+        run: python -m unittest tools.test_responsiveness_profile_reference -v
+
+      - name: Acquire exact canonical 1D/1W universe
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$OUT_DIR"
+
+          fetch_artifact() {
+            local symbol="$1"
+            local tf="$2"
+            local id="$3"
+            local expected="$4"
+            local dest="$DATA_ROOT/spot/$symbol/consolidated"
+            mkdir -p "$dest"
+            local file="$dest/${symbol}_${tf}.parquet"
+            gh api               -H "Accept: application/vnd.github+json"               "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip"               > "$file"
+            echo "$expected  $file" | sha256sum -c -
+          }
+
+          fetch_artifact BTCUSDT 1d 10810907465 1788d075ad21091e279cb68ccfac79935149ca9c444a74dbc971bba00e15fdae
+          fetch_artifact BTCUSDT 1w 10811406601 960de3600ea7ab8651ec2dbaa51d204e05fce19127eb53bb24fcd59dd010ac46
+          fetch_artifact ETHUSDT 1d 10813576769 6d6eca8ac9be5ea451bb848a78a0dbd33f0eb755fdab448ef8862b9e45ba3871
+          fetch_artifact ETHUSDT 1w 10813522300 885484db14e9c9355cf35fba150dfbbbcd783b811854b32ce80e012b07fe9b66
+          fetch_artifact AVAXUSDT 1d 10813144664 39945d0806fdf89182121f1ab9cf2cf1b05171d032887c575e094dca302ff5d4
+          fetch_artifact AVAXUSDT 1w 10813776971 24b7f47ad6681edb39eb33d9ba06f7c9d230680f254657bad3640f3d10d21582
+          fetch_artifact DOGEUSDT 1d 10812899539 b802f417a2d0a3c70a163b6debe0de40e9eb5e4b6ba5533dd6a2a9f5bcf3ad64
+          fetch_artifact DOGEUSDT 1w 10814140275 4af2e022c5dfc8b74d8964b47cea10f8f6ad35c81ce99456ec81f04d3d4890f1
+          fetch_artifact DOTUSDT 1d 10813476959 fd8d0294835bffb80e42d2e7668107f0f2bcd8d83d846b7ebdce7a04775c4a30
+          fetch_artifact DOTUSDT 1w 10814085500 d20923d4acc0edd88add3f095af38a455a1da38f23f7bf72a1a1f5b7a488fc81
+          fetch_artifact ADAUSDT 1d 10813911172 a5e8623789895ab105a2402f8e0a2d88f434505804c1f6744092ad6d07e05699
+          fetch_artifact ADAUSDT 1w 10814265396 365352fe9eec46bf748388e2502966ea8840e4d5097dfd386b29f845f5c01059
+          fetch_artifact XRPUSDT 1d 10813536663 4b57ad2fb2655ac608ea74e8a7e01dbc085c52edd78de19728307f8c0ec12b68
+          fetch_artifact XRPUSDT 1w 10813631468 79bf635bb1a70baa06edbe73f4b9f644b67985aebb2526110ceb17eb0192e475
+          fetch_artifact SOLUSDT 1d 10813700747 2a9241caf72c9eace2ecc121db7b7804f02e6fe7516e1fd58f6814fcaa4ff406
+          fetch_artifact SOLUSDT 1w 10813641060 c3ff672723f9e1782aeacfc0915c92b975c95fcf3b134a65607ffa2a6f0daeb0
+          fetch_artifact UNIUSDT 1d 10813093889 bb71b05115903263e5e4c04bf5ba07a826a51387b43e75e2fe73bff506114b0a
+          fetch_artifact UNIUSDT 1w 10813417080 f1ed73203d5428d61bedaf23cbb1f0286b85b9b08db6a983d32671f2da3e8a1c
+          fetch_artifact NEARUSDT 1d 10812694894 d977d262a662f9639abecaa35ff6780eb1d0b482d938f221450d922ac7375c30
+          fetch_artifact NEARUSDT 1w 10814060324 b826567d2e0553247c6fd5314ca213a58ebcc0457d9338728f73e42675c5fe42
+          fetch_artifact AAVEUSDT 1d 10812799657 4d5da6e0de4a1e624997aa5c5ce3cde731a6ad1259123f2f3fd4fd43326343d9
+          fetch_artifact AAVEUSDT 1w 10813810800 82851baf3be8fa99f5ca934f2507e617e441c206ba40d1da7e9c077ffa272e1c
+          fetch_artifact HBARUSDT 1d 10813144824 85abd444458498e4ce32948bd55884001888f4c1763e3cbfa4197c08894d9c96
+          fetch_artifact HBARUSDT 1w 10813596944 cb7a651d7c04c969d8d4b8208f2a76911b411f6545839abcef47334eebdf0229
+          fetch_artifact LINKUSDT 1d 10813352762 4bb73af3228f8336f091f50186f15e2a3b7ca060140aff6da58d942a9613404f
+          fetch_artifact LINKUSDT 1w 10814075686 8bd15e035620224735a975632bc0fad62bcf89d8ef4c96c4afbdcff7bc855c8d
+          fetch_artifact SUIUSDT 1d 10814085043 c4fecb49738baa7855785a8b31179f6ce19a59a871a9d3625a12b2f5cf40d73e
+          fetch_artifact SUIUSDT 1w 10813357186 b36c9b5d6357d53f3c8f9aec15841fcf47d6775036383859f21b93181715820e
+          fetch_artifact LTCUSDT 1d 10814280857 c1ac13b65aaaa4aad5ae9d6221f13b4a40d1e0c8e21f42b84aeef5c0256300e2
+          fetch_artifact LTCUSDT 1w 10814245762 5c9eccbf15cca0a3bb49da316188fdc5b56dd355275349cd2f2dca6d6c8d4fb8
+
+      - name: Run 15-symbol daily ANTECIPADO_TREND
+        run: |
+          python -m tools.suite_0_2_anticipated_trend_universe \
+            --data-root "$DATA_ROOT" \
+            --output-json "$OUT_DIR/suite-0.2-anticipated-trend-universe-1d.json" \
+            --output-md "$OUT_DIR/suite-0.2-anticipated-trend-universe-1d.md" \
+            --code-sha "$GITHUB_SHA"
+
+      - name: Show summary
+        run: cat "$OUT_DIR/suite-0.2-anticipated-trend-universe-1d.md"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: suite-0.2-anticipated-trend-universe-1d
+          path: |
+            /tmp/suite-0.2-anticipated-trend-universe/suite-0.2-anticipated-trend-universe-1d.json
+            /tmp/suite-0.2-anticipated-trend-universe/suite-0.2-anticipated-trend-universe-1d.md
+          retention-days: 30
