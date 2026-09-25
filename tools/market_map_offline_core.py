@@ -24,9 +24,9 @@ TARGET_NEAR_ATR = 0.30
 PULLBACK_MIN_DEPTH = 0.12
 PULLBACK_MAX_DEPTH = 0.9
 AUDIT_HEADER = ['Time', 'Open', 'High', 'Low', 'Close', 'MM Audit • Schema', 'MM Audit • Confirmado', 'MM Audit • MapDir', 'MM Audit • ATR', 'MM Audit • Modelo', 'MM Audit • Amostras adaptativas', 'MM Audit • Correção topo', 'MM Audit • Correção fundo', 'MM Audit • Destino 1', 'MM Audit • Invalidação', 'MM Audit • Confluências', 'MM Audit • Nova tese evt', 'MM Audit • Toque zona evt', 'MM Audit • Zona→Destino evt', 'MM Audit • Zona→Invalidação evt', 'MM Audit • Ambíguo evt', 'MM Audit • Sweep reclaim evt']
-CONTEXT_TF = {'15m': '1h', '1h': '4h', '4h': '1d', '1d': '1w', '3d': '3d', '1w': '1w'}
+CONTEXT_TF = {'15m': '1h', '1h': '4h', '4h': '1d', '1d': '1w', '3d': '3d', '1w': '1w', '1M': '1M'}
 DAY_LEVEL_TFS = {'15m', '1h', '4h', '1d'}
-WEEK_LEVEL_TFS = set(CONTEXT_TF)
+WEEK_LEVEL_TFS = set(CONTEXT_TF) - {'1M'}
 
 @dataclass(frozen=True)
 class Candle:
