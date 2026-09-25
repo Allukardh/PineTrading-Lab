@@ -2,7 +2,7 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** STABLE  
+**Checkpoint state:** PREPARED  
 **Active product front:** Execution 0.1.0 production implementation  
 **Operator evidence required now:** none
 
@@ -72,7 +72,7 @@ Important semantic locks:
 
 **Issue #20:** Execution 0.1.0 — production implementation + Market Map semantic parity
 
-Production branch/PR do not yet exist at this STABLE checkpoint.
+Production block PREPARED: create `feat/execution-0.1.0` from current `main`, then implement the accepted lower-pane kernel before touching Market Map.
 
 The accepted defaults are frozen by:
 
@@ -84,9 +84,9 @@ The semantic contract is frozen by:
 
 ## 4. Exact next atomic work
 
-Before substantial production work, change this checkpoint to **PREPARED**.
+### PREPARED production block
 
-Then:
+Intended sequence:
 
 1. create a dedicated production branch from current `main`;
 2. create `src/core/execution.pine`;
@@ -124,3 +124,19 @@ Preserve the Chat-01 rhythm:
 - “continue” means advance to the next real evidence boundary;
 - hide engine complexity unless exposing it improves the decision;
 - GitHub supports the work; it must not turn the conversation into project-manager ceremony.
+
+
+### Prepared-block durability
+
+Expected durable output before returning STABLE:
+- production branch + PR tied to Issue #20;
+- `src/core/execution.pine` with accepted defaults/semantics;
+- static/reference parity guards;
+- Pine compile PASS;
+- no Market Map embedded-panel change until lower-pane semantics compile and stabilize.
+
+Recovery if interrupted:
+- inspect Issue #20 and `feat/execution-0.1.0`;
+- compare actual branch head with this checkpoint;
+- inspect only new commits/checks;
+- do not reopen historical evidence or retune defaults.
