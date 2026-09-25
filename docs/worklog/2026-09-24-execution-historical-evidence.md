@@ -1,256 +1,222 @@
-# Execution historical evidence — locked analysis conventions
+# Execution historical evidence — component + Market Map integration gate
 
 **Date:** 2026-09-24  
-**Status:** locked before first BTC evidence result  
-**Research plan:** `docs/testing/EXECUTION_EVIDENCE_RESEARCH_PLAN.md`  
-**First evidence workflow:** `Execution offline evidence`  
-**First evidence code head:** `74474ab3f8693c7b22e3677b178cbdc4245e5491`
+**Issue:** #11  
+**PR:** #12  
+**Status:** evidence gate complete; production Pine not yet created
 
-This worklog records operational definitions that the pre-registered plan intentionally left descriptive.
+## Evidence identity
 
-They are fixed **before inspecting the first historical result** so the project does not choose convenient measurement semantics after seeing the data.
+Primary run: 36080621108
 
-None of these conventions changes an Execution production candidate threshold.
+Research head: 90a46c209bd3f2aeeae969a6b00490a7687d08de
 
-## Dataset identity
+Static integrity: 36080620994 — **PASS**
 
-The evidence runner rematerializes official Binance Public Data SPOT monthly klines through the accepted pipeline and requires each resulting Parquet SHA-256 to equal the corresponding promoted production-manifest SHA.
+BTC artifact: execution-btc-evidence (artifact id 10841947391)
 
-A mismatch aborts the evidence run before statistics are accepted.
+BTC evidence hashes:
+- JSON SHA-256: 5c33b66b2be75d492044b705e11634c6c830eda43758018303d5500a7f032e0d
+- Markdown SHA-256: 882b2165dfc19668c456844f42af62dac895373e795618b67bb73f09447682cf
 
-## Confirmed HTF RSI alignment
+Cross-asset artifacts:
+- ETHUSDT: artifact id 10841503174
+- AVAXUSDT: artifact id 10841148565
 
-Automatic context mapping remains the suite contract:
+All datasets were canonical SHA-256-verified Binance SPOT Parquets from the accepted market-data lab.
 
-```text
-15m -> 1h
-1h  -> 4h
-4h  -> 1d
-1d  -> 1w
-3d  -> self
-1w  -> self
-```
+Research defaults remained unchanged at manifests/execution-research-defaults-v1.json.
+Suite semantic contract remained manifests/suite-semantics-v1.json.
 
-For a lower-timeframe bar, confirmed HTF context uses the **previous completed HTF bar**, matching the intended `[1] + lookahead_on` contract.
+No threshold was tuned from the evidence.
 
-For 3d/1w self-context, the offline input consists only of completed bars, so the current completed local RSI is the self-context direction.
+---
 
-## MTE-A episode conventions
+## MTE-A — decision: KEEP
 
-A TURN episode starts when the state enters `TURN_UP` or `TURN_DOWN` from another state.
-
-A TURN episode is reviewed forward until the first of:
-1. core crosses zero in the TURN direction;
-2. acceleration resumes the original signed direction before zero-cross;
-3. an opposite TURN begins before zero-cross;
-4. dataset end.
-
-Dwell is measured on contiguous ready bars.
-
-Chatter:
-- state changes per 100 ready-bar transitions;
-- opposite TURN entries separated by <=1/2/3 chart bars;
-- consecutive core zero-crosses separated by <=1/2/3 chart bars.
-
-## RSE-A lifecycle conventions
-
-A raw oversold/overbought **touch** is an entry into the raw zone from outside it, not every bar spent inside the zone.
-
-A raw touch is considered to produce the corresponding recovery/fade state when that state occurs on the touch bar or within the following **2 confirmed bars**, matching the locked zone-memory length.
-
-For a contiguous `RECOVERING_OVERSOLD` episode:
-- continuation through center means the first bar after the episode is at/above RSI 52;
-- otherwise the semantic recovery expired before completing the dead-band traversal.
-
-For `FADING_OVERBOUGHT`, the mirror boundary is RSI 48.
-
-This is a semantic lifecycle test, not price-outcome validation.
-
-## PSE-A sign convention
-
-General proxy-vs-taker sign-agreement statistics exclude values inside an analysis-only near-zero band:
-
-```text
-abs(value) < 0.05 -> near-zero / excluded from sign agreement
-```
-
-The same epsilon is applied symmetrically to proxy and taker imbalance.
-
-This **0.05 is not an Execution engine threshold** and cannot be promoted into production merely because it appears in the research report.
-
-The plan's explicit `abs(proxy) >= 0.20` view remains a separate reported slice.
-
-Quadrant counts use the raw mathematical sign and exclude only exact zero.
-
-## PSE-A direction during component research
-
-Until full Market Map location-conditioned Execution research is run, PSE-A component occupancy is calculated twice on the same bar:
-- hypothetical LONG;
-- hypothetical SHORT.
-
-This is explicitly allowed by the pre-registered plan and must never be described as an actual Execution signal.
-
-## Cross-engine co-occurrence
-
-Directional component alignment means:
-
-LONG:
-- MTE = `TURN_UP` or `UP_ACCEL`;
-- RSE local state is LONG-supportive and confirmed HTF context does not oppose;
-- PSE hypothetical LONG = `CONFIRM`.
-
-SHORT mirrors those semantics.
-
-Co-occurrence is descriptive only. No composite score is created.
-
-## Year slicing
-
-Candidate indicators are warmed on the **full continuous dataset first**.
-
-Calendar-year reports then group already-computed samples by year.
-
-Indicators are not reset at January 1, avoiding artificial annual warmup artifacts.
-
-## Decision discipline
-
-The analyzer emits `REVIEW_REQUIRED`; it does not automatically assign KEEP / REFINE / REMOVE / INSUFFICIENT EVIDENCE.
-
-Those decisions are made only after comparing the historical output with the pathology questions written in the pre-registered plan.
-
-No PnL or trade-win metric is calculated.
-
-
-## Historical component evidence — BTC / ETH / AVAX
-
-**Evidence matrix run:** `36077909903` — PASS  
-**Static integrity:** `36077909923` — PASS  
-**Branch head:** `fb833b25e90b2b2ca71e5c1c6680cbb79854e3d1`
-
-Artifacts:
-- BTC: `execution-btc-evidence` — artifact `10840702778`
-- ETH: `execution-eth-evidence` — artifact `10841370010`
-- AVAX: `execution-avax-evidence` — artifact `10841375463`
-
-All three symbols use exact SHA-256-verified production Parquets and **unchanged** research defaults.
-
-### MTE-A — KEEP
-
-Across BTC / ETH / AVAX and 15m / 1h / 4h / 1d / 3d / 1w:
-
-- TURN occupancy stays roughly **29–31%**;
-- state changes stay roughly **32–38 per 100 ready bars**;
-- TURN median dwell is normally **2 bars**, only drifting to ~2.5–3 on some higher-timeframe small samples;
-- direct `UP_ACCEL <-> DOWN_ACCEL` flips remain negligible, at most about **0.3% of state changes**;
-- opposite TURN reversals within 3 bars remain below about **0.2% of TURN episodes**;
-- roughly **31–40%** of TURN episodes reach the signed zero-cross before original-direction acceleration resumes;
-- roughly **60–68%** resume the original direction first.
+Observed across BTC/ETH/AVAX and 15m/1h/4h/1d/3d/1w:
+- TURN occupancy is consistently about **29–31%**;
+- NEUTRAL is roughly **5–8%**;
+- state changes are about **32–38 per 100 ready bars**;
+- TURN median dwell is typically **2 bars**, occasionally 3 on higher TF;
+- TURN direction reversals inside 1–3 bars are extremely rare;
+- median TURN-to-zero-cross lead is about **4 bars** on primary TFs;
+- only roughly 31–40% of TURN episodes reach a signed zero-cross before the original direction resumes.
 
 Interpretation:
-- MTE-A behaves as the intended early counter-acceleration / momentum-turn engine;
-- TURN is not a reversal-probability claim;
-- no numeric retuning is justified.
 
-Decision: **KEEP MTE-A unchanged.**
+TURN means early counter-acceleration / preparation evidence. It must not be presented as a guaranteed reversal or directional confirmation by itself.
 
-### RSE-A — KEEP
+No occupancy, chatter or cross-asset instability justifies changing EMA8/EMA21, ATR14, activity RMA20, neutral factor 0.15, turn factor 0.50 or turn floor 0.02.
 
-Across the same matrix:
+**Decision: KEEP MTE-A unchanged.**
 
-- extreme RSI states are rare but reachable (~**0.9–5.4%** depending on asset/timeframe);
-- raw oversold/overbought touches consistently produce the intended recovery/fade semantics;
-- on the primary lower timeframes, touch-to-recovery/fade conversion is broadly in the **mid-70% to low-80%** range;
-- confirmed HTF opposition is material without making the engine nearly always blocked;
-- the short 2-bar recovery/fade lifecycle behaves as designed.
+---
 
-The historical lifecycle report shows that most recovery/fade episodes do not themselves persist all the way through the center dead-band. This is **not treated as a defect** because RSE-A explicitly defines those states as brief recent-zone semantics, not as a promise that recovery survives until center.
+## RSE-A — decision: KEEP, with semantic lock
 
-Cross-engine evidence also does not show that RSE-A is merely MTE-A duplicated under different labels.
+Component evidence:
+- all semantic states are reachable;
+- extreme states remain uncommon rather than unreachable;
+- oversold recovery / overbought fade states occur consistently;
+- confirmed HTF opposition blocks a meaningful minority of supportive local states, not almost everything and not almost nothing.
 
-Decision: **KEEP RSE-A unchanged.**
+The pre-registered lifecycle diagnostic showed that recovery/fade states usually last only **1–2 bars** and more than 95% do not remain in that same semantic state until the center dead-band is crossed.
 
-Watch item:
-- once actual Market Map direction/location drives the full state machine, verify that the deliberately short recovery/fade semantics do not create ARMADO churn.
+This initially looked like a possible pathology.
 
-### PSE-A — KEEP
+Accepted Market Map integration resolves the question.
 
-Relative-volume bands remain meaningful without per-asset tuning:
+On real MM-0 relevant locations, RSI is supportive about:
+- **59.58%** on 15m;
+- **59.59%** on 1h;
+- **60.13%** on 4h;
+- **54.98%** on 1d.
 
-- `<0.80x`: roughly **35–52%**;
-- `>=1.20x`: roughly **23–29%**;
-- `>=1.50x`: roughly **12–17%**.
+Recovery/fade states themselves represent roughly **7–10%** of relevant-location bars.
 
-The close-location pressure proxy shows a real but limited relationship to Binance taker imbalance:
+Therefore the 2-bar memory behaves as a **short transition tag**, while subsequent BULL/BEAR/NEUTRAL semantics carry the continuing oscillator state. It does not make ARMADO/CONFIRMA unreachable and is not evidence for extending memory merely to increase persistence.
 
-- Pearson roughly **0.26–0.35**;
-- Spearman roughly **0.27–0.41**;
-- sign agreement on the large primary samples is generally around **66–75%**;
-- sign agreement tends to improve when relative volume is expanded.
+No evidence justifies changing RSI14, 48–52 dead-band, 70/30, 80/20, minimum step 0.25 or the 2-bar memory.
 
-Interpretation:
-- the proxy contains useful reload-safe directional evidence;
-- it is not equivalent to real aggressor flow;
-- Binance taker imbalance remains validation-only.
+**Decision: KEEP RSE-A unchanged.**
 
-Decision: **KEEP PSE-A unchanged.**
+Semantic lock: RECOVERING/FADING is a short recent-zone transition semantic, not a promise that the label persists until RSI reaches the center band.
 
-Semantic lock:
-- never label the proxy buy volume / sell volume / delta / aggressor flow.
+---
 
-### Cross-engine independence
+## PSE-A — decision: KEEP
 
-With hypothetical LONG/SHORT component direction:
+Relative-volume occupancy is stable across BTC/ETH/AVAX and timeframes:
+- contracted (<0.80) is common but not always-on;
+- expanded (>=1.20) is consistently reachable;
+- strong expansion (>=1.50) is meaningful but not rare to the point of uselessness.
 
-- all three evidence families align on only about **2.3–5.5%** of eligible bars across the full matrix;
-- pairwise overlap is related, as expected, but no component subsumes the other two;
-- no opaque score is justified.
+The OHLC close-location pressure proxy was challenged against Binance validation-only taker-buy imbalance.
 
-### Strength mapping — INSUFFICIENT EVIDENCE
+Primary BTC examples:
+- Pearson correlation roughly **0.27–0.34** on 15m–1d;
+- Spearman roughly **0.32–0.36**;
+- sign agreement roughly **67–72%** on 15m–1d;
+- agreement generally improves when relative volume or pressure magnitude is stronger.
 
-The unconditioned hypothetical-direction pass shows two-or-more deterioration families on roughly **24–44%** of bars depending on asset/timeframe/direction.
+ETH and AVAX show the same positive relationship rather than a BTC-only artifact.
 
-That is useful diagnostic evidence, but final:
+This is not strong enough to relabel the proxy as true aggressor flow, but it is sufficiently related to real taker imbalance to retain incremental semantic value.
 
-```text
-0 families  -> NORMAL
-1 family    -> PERDENDO FORÇA
-2+ families -> EXAUSTÃO
-```
+The production meaning remains strictly: candle-location directional pressure proxy — not real buy/sell volume and not market delta.
 
-remains **INSUFFICIENT EVIDENCE** until it is conditioned on an actual coherent Market Map thesis/location.
+No evidence justifies changing EMA20 prior-confirmed volume baseline, 0.80 / 1.20 / 1.50 bands or pressure threshold 0.20.
 
-Production readiness frequency is likewise not approved from hypothetical-direction component research alone.
+**Decision: KEEP PSE-A unchanged.**
 
-### Component gate decision
+---
 
-```text
-MTE-A  KEEP
-RSE-A  KEEP
-PSE-A  KEEP
-```
+## Cross-engine redundancy — KEEP all three families
 
-No candidate defaults changed.
+Unconditioned all-three alignment is only about **2–5%** depending on asset/timeframe.
 
-Production `execution.pine` remains blocked.
+Pairwise overlap shows:
+- MTE + RSE co-occurs materially more often than all three;
+- PSE removes a distinct subset rather than simply duplicating MTE/RSE;
+- RSE contributes distinct recovery/exhaustion + HTF-context information.
 
-### Exact next evidence gate
+No engine is redundant enough to remove at this gate.
 
-Use the accepted/offline-equivalent Market Map to drive:
+---
 
-- actual `mapDir`;
-- APPROACHING;
-- IN_CORRECTION;
-- RETEST;
-- RECLAIM;
-- DESTINATION_NEAR;
-- invalidation/conflict.
+## Accepted Market Map -> Execution integration
 
-Then simulate the canonical Execution state machine and determine whether:
-- PREPARANDO is always-on / never-on;
-- ARMADO occurs at useful frequency and precedes CONFIRMA;
-- confirmations are not pathologically one-sided;
-- one evidence family dominates every confirmation;
-- Strength remains useful under real thesis/location;
-- RISCO DE REAÇÃO clusters at meaningful Market Map locations;
-- short RSE recovery/fade semantics cause integrated setup churn.
+The accepted MM-0 offline kernel was wired through the canonical location bridge into the integrated Execution reference state machine.
 
-Only after that integrated gate may production `execution.pine` be created.
+BTC was used for the primary integration gate with tick=0.01.
+
+### Location relevance
+
+Relevant locations (APPROACHING / IN_CORRECTION / RETEST / RECLAIM) occupy approximately:
+- 15m: **49.14%**
+- 1h: **49.87%**
+- 4h: **50.08%**
+- 1d: **48.30%**
+- 3d: **32.33%**
+- 1w: **36.62%**
+
+### Readiness reachability
+
+BTC:
+- 15m: PREP 17.58%, ARMED 8.76%, CONFIRMED 1,649 events, ALIGNED 5.41%
+- 1h: PREP 17.88%, ARMED 8.96%, CONFIRMED 380 events, ALIGNED 5.32%
+- 4h: PREP 18.04%, ARMED 8.76%, CONFIRMED 107 events, ALIGNED 5.48%
+- 1d: PREP 22.41%, ARMED 5.21%, CONFIRMED 6 events, ALIGNED 1.36%
+- 3d: 1 confirmation
+- 1w: 0 confirmations in the small robustness sample
+
+The primary 15m/1h/4h design matrix is clearly reachable.
+
+### Confirmation location
+
+Most intraday confirmations occur at RETEST:
+- 15m: 1,427 / 1,649
+- 1h: 319 / 380
+- 4h: 85 / 107
+
+This is not a target to optimize. It is a semantic observation consistent with Execution acting as a timing layer after structural interaction rather than firing everywhere inside a correction.
+
+### Era spread
+
+Confirm events are present across essentially every complete BTC calendar year in the primary intraday matrix.
+
+Examples:
+- 15m confirmations by year span 2017–2026 with 149–205 in each full year 2018–2025;
+- 1h similarly spans every year;
+- 4h similarly spans every year.
+
+The candidate is not reachable only in one favored historical era.
+
+---
+
+## Strength semantics — KEEP
+
+Integrated BTC primary TFs show approximately:
+- NORMAL: **54–58%**
+- FADING: **37–39%**
+- EXHAUSTED: **5–7%**
+- REACTION_RISK: rare globally, by design.
+
+At DESTINATION_NEAR, REACTION_RISK becomes materially more relevant:
+- 15m: **4.89%**
+- 1h: **4.38%**
+- 4h: **7.17%**
+- 1d: **14.29%** (smaller sample)
+
+This supports the intended distinction: generic deterioration is not automatically reaction risk; destination proximity + multiple deterioration families creates the stronger warning.
+
+No strength-family threshold change is justified.
+
+---
+
+## Evidence decisions
+
+| Candidate | Decision | Reason |
+| --- | --- | --- |
+| MTE-A | **KEEP** | stable occupancy/chatter/dwell across assets and TFs; TURN semantics validated as early counter-acceleration |
+| RSE-A | **KEEP** | all states reachable; HTF context useful; short recovery/fade memory remains useful in real MM locations without blocking readiness |
+| PSE-A | **KEEP** | stable relative-volume semantics and consistent positive relationship to validation-only Binance taker imbalance |
+| Readiness state machine | **KEEP** | PREP/ARMED/CONFIRM/ALIGNED all reachable on primary TFs and across eras |
+| Strength state machine | **KEEP** | not saturated; reaction risk concentrates appropriately near destination |
+
+No candidate receives REFINE / REMOVE / INSUFFICIENT EVIDENCE at this gate.
+
+---
+
+## Production gate decision
+
+The pre-registered historical evidence gate is **CLOSED**.
+
+This authorizes the next engineering phase:
+1. create production execution.pine as a clean-room implementation of the accepted semantic contract;
+2. preserve the validated defaults unchanged initially;
+3. generate/validate the same Execution semantic kernel into Market Map's embedded Decision Panel;
+4. then run Pine compile/static and TradingView reload/UX parity.
+
+This evidence does **not** establish profitability, expected return, win rate or an automated trading strategy.
