@@ -274,9 +274,46 @@ def analyze_timeframe(
                 else:
                     bucket["UNRESOLVED"] += 1
 
+    breakout_context_counts = Counter()
+    breakout_context_regime_age = defaultdict(list)
+    breakout_context_reaction_gap = defaultdict(list)
+    breakout_context_prior_break_gap = defaultdict(list)
+
+    for episode in episodes:
+        if episode.opportunity_type.value != "BREAKOUT_CANDIDATE":
+            continue
+        context = episode.break_context or "UNSPECIFIED"
+        breakout_context_counts[context] += 1
+        if episode.regime_age_before_bar is not None:
+            breakout_context_regime_age[context].append(
+                episode.regime_age_before_bar
+            )
+        if episode.reaction_gap_bars is not None:
+            breakout_context_reaction_gap[context].append(
+                episode.reaction_gap_bars
+            )
+        if episode.prior_same_break_gap_bars is not None:
+            breakout_context_prior_break_gap[context].append(
+                episode.prior_same_break_gap_bars
+            )
+
+    break_context_diagnostics = {
+        "counts": dict(sorted(breakout_context_counts.items())),
+        "regime_age_before_bar": {
+            k: _dist(v) for k, v in sorted(breakout_context_regime_age.items())
+        },
+        "reaction_gap_bars": {
+            k: _dist(v) for k, v in sorted(breakout_context_reaction_gap.items())
+        },
+        "prior_same_break_gap_bars": {
+            k: _dist(v) for k, v in sorted(breakout_context_prior_break_gap.items())
+        },
+    }
+
     return {
         "rows": len(chart),
         "episode_count": len(episodes),
+        "break_context_diagnostics": break_context_diagnostics,
         "overall": _response_summary(responses),
         "by_opportunity": {
             kind: _response_summary(items)
@@ -330,6 +367,41 @@ def markdown_report(report: dict) -> str:
                     lat=_fmt(s["confirm_latency_bars"]["median"]),
                     disp=_fmt(s["confirm_displacement_atr"]["median"]),
                     miss=dominant,
+                )
+            )
+
+    lines += [
+        "",
+        "## Structural-break context diagnostics",
+        "",
+        "| TF | context | breakout candidates | regime age median | reaction gap median | prior same-break gap median |",
+        "| --- | --- | ---: | ---: | ---: | ---: |",
+    ]
+
+    for tf, item in report["timeframes"].items():
+        diag = item["break_context_diagnostics"]
+        contexts = sorted(diag["counts"])
+        for context in contexts:
+            lines.append(
+                "| {tf} | {context} | {count} | {age} | {reaction} | {prior} |".format(
+                    tf=tf,
+                    context=context,
+                    count=diag["counts"][context],
+                    age=_fmt(
+                        diag["regime_age_before_bar"]
+                        .get(context, {})
+                        .get("median")
+                    ),
+                    reaction=_fmt(
+                        diag["reaction_gap_bars"]
+                        .get(context, {})
+                        .get("median")
+                    ),
+                    prior=_fmt(
+                        diag["prior_same_break_gap_bars"]
+                        .get(context, {})
+                        .get("median")
+                    ),
                 )
             )
 
