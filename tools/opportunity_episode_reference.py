@@ -8,7 +8,7 @@ measured against.
 This first contract intentionally starts with the three strongest event
 families already observable from accepted MM-0 semantics:
 - REGIME_REVERSAL
-- BREAKOUT_EXPANSION
+- BREAKOUT_CANDIDATE
 - PULLBACK_RETEST
 
 REACCELERATION and RANGE_ROTATION are deferred until these episode semantics
@@ -28,7 +28,7 @@ REVERSAL_PRIOR_REGIME_MIN_BARS = 8
 
 class OpportunityType(str, Enum):
     REGIME_REVERSAL = "REGIME_REVERSAL"
-    BREAKOUT_EXPANSION = "BREAKOUT_EXPANSION"
+    BREAKOUT_CANDIDATE = "BREAKOUT_CANDIDATE"
     PULLBACK_RETEST = "PULLBACK_RETEST"
 
 
@@ -72,7 +72,7 @@ def detect_episodes(
     """Return deterministic market-opportunity episodes.
 
     Timing contract:
-    - BREAKOUT_EXPANSION is known at the structural-break close.
+    - BREAKOUT_CANDIDATE is known at the structural-break close.
     - PULLBACK_RETEST is known on the first accepted reaction/touch bar for a
       thesis.
     - REGIME_REVERSAL is known only when the opposite confirmed regime appears.
@@ -94,6 +94,7 @@ def detect_episodes(
     previous_regime_len = 0
     previous_regime_end: int | None = None
     last_break_bar = {1: None, -1: None}
+    pending_reversal: tuple[int, int] | None = None
 
     def add(
         kind: OpportunityType,
@@ -130,7 +131,7 @@ def detect_episodes(
             and not snap.thesis_invalidated
         ):
             add(
-                OpportunityType.BREAKOUT_EXPANSION,
+                OpportunityType.BREAKOUT_CANDIDATE,
                 snap.structural_break_dir,
                 i,
                 i,
@@ -163,6 +164,28 @@ def detect_episodes(
             )
 
         regime = snap.regime_dir
+
+        # A pending reversal becomes a confirmed opportunity only when the
+        # accepted Market Map itself is coherent in the new regime direction.
+        if pending_reversal is not None:
+            pending_dir, pending_onset = pending_reversal
+            if (
+                regime == pending_dir
+                and snap.map_dir == pending_dir
+                and not snap.structural_conflict
+                and not snap.thesis_invalidated
+            ):
+                add(
+                    OpportunityType.REGIME_REVERSAL,
+                    pending_dir,
+                    pending_onset,
+                    i,
+                    snap,
+                )
+                pending_reversal = None
+            elif regime not in (0, pending_dir):
+                pending_reversal = None
+
         if regime == current_regime_dir and _valid_direction(regime):
             current_regime_len += 1
             continue
@@ -196,13 +219,21 @@ def detect_episodes(
                 )
                 else i
             )
-            add(
-                OpportunityType.REGIME_REVERSAL,
-                regime,
-                onset,
-                i,
-                snap,
-            )
+            pending_reversal = (regime, onset)
+
+            if (
+                snap.map_dir == regime
+                and not snap.structural_conflict
+                and not snap.thesis_invalidated
+            ):
+                add(
+                    OpportunityType.REGIME_REVERSAL,
+                    regime,
+                    onset,
+                    i,
+                    snap,
+                )
+                pending_reversal = None
 
         current_regime_dir = regime
         current_regime_len = 1
