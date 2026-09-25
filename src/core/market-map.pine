@@ -43,6 +43,59 @@ float TARGET_NEAR_ATR = 0.30
 float PULLBACK_MIN_DEPTH = 0.12
 float PULLBACK_MAX_DEPTH = 0.90
 
+// Embedded Decision Panel Execution kernel — accepted defaults v2.
+int EX_DEFAULTS_VERSION = 2
+int EX_MTE_FAST_EMA = 8
+int EX_MTE_SLOW_EMA = 21
+int EX_MTE_ATR_LEN = 14
+int EX_MTE_ACTIVITY_LEN = 20
+float EX_MTE_NEUTRAL_FACTOR = 0.15
+float EX_MTE_TURN_FACTOR = 0.50
+float EX_MTE_TURN_FLOOR = 0.02
+float EX_MTE_ACCEL_EPS = 1e-9
+
+int EX_RSI_LEN = 14
+float EX_RSI_CENTER_LOW = 48.0
+float EX_RSI_CENTER_HIGH = 52.0
+float EX_RSI_OVERBOUGHT = 70.0
+float EX_RSI_OVERSOLD = 30.0
+float EX_RSI_EXTREME_OVERBOUGHT_LEVEL = 80.0
+float EX_RSI_EXTREME_OVERSOLD_LEVEL = 20.0
+float EX_RSI_MIN_STEP = 0.25
+int EX_RSI_ZONE_MEMORY_BARS = 2
+
+int EX_PSE_VOLUME_EMA_LEN = 20
+float EX_PSE_CONTRACTED_BELOW = 0.80
+float EX_PSE_EXPANDED_AT_OR_ABOVE = 1.20
+float EX_PSE_PRESSURE_MIN = 0.20
+
+float EX_APPROACH_ATR = 0.50
+int EX_EVENT_HOLD_BARS = 3
+int EX_EVENT_HOLD_MAX_MS = 12 * 60 * 60 * 1000
+
+int EX_LOC_OUTSIDE = 0
+int EX_LOC_APPROACHING = 1
+int EX_LOC_IN_CORRECTION = 2
+int EX_LOC_RETEST = 3
+int EX_LOC_RECLAIM = 4
+int EX_LOC_DESTINATION_NEAR = 5
+
+int EX_PSE_NEUTRAL = 0
+int EX_PSE_CONFIRM = 1
+int EX_PSE_WEAK = 2
+int EX_PSE_CONTRARY = -1
+
+int EX_READY_WAIT = 0
+int EX_READY_PREP = 1
+int EX_READY_ARMED = 2
+int EX_READY_CONFIRMED = 3
+int EX_READY_ALIGNED = 4
+
+int EX_STRENGTH_NORMAL = 0
+int EX_STRENGTH_FADING = 1
+int EX_STRENGTH_EXHAUSTED = 2
+int EX_STRENGTH_REACTION_RISK = 3
+
 bool detailed = showStructureDetails
 
 // ---------------------------------------------------------------------------
@@ -95,6 +148,47 @@ f_quantile(_arr, _q) =>
         float hiV = array.get(copy, hi)
         result := lo == hi ? loV : loV + (hiV - loV) * (pos - lo)
     result
+
+f_ex_seeded_ema(_src, _length) =>
+    float alpha = 2.0 / (_length + 1.0)
+    float seed = ta.sma(_src, _length)
+    float value = na
+    value := na(value[1]) ? seed : alpha * _src + (1.0 - alpha) * value[1]
+    value
+
+f_ex_seeded_rma(_src, _length) =>
+    float alpha = 1.0 / _length
+    float seed = ta.sma(_src, _length)
+    float value = na
+    value := na(value[1]) ? seed : alpha * _src + (1.0 - alpha) * value[1]
+    value
+
+f_ex_rsi(_src) =>
+    float change = _src - _src[1]
+    float gain = na(change) ? na : math.max(change, 0.0)
+    float loss = na(change) ? na : math.max(-change, 0.0)
+    float avgGain = f_ex_seeded_rma(gain, EX_RSI_LEN)
+    float avgLoss = f_ex_seeded_rma(loss, EX_RSI_LEN)
+    float result = na
+    if not na(avgGain) and not na(avgLoss)
+        result := avgGain == 0.0 and avgLoss == 0.0 ? 50.0 :
+             avgLoss == 0.0 ? 100.0 :
+             avgGain == 0.0 ? 0.0 :
+             100.0 - 100.0 / (1.0 + avgGain / avgLoss)
+    result
+
+f_ex_readiness_txt(_stage, _dir) =>
+    _stage == EX_READY_PREP ? (_dir == 1 ? "PREPARANDO LONG" : _dir == -1 ? "PREPARANDO SHORT" : "AGUARDAR") :
+     _stage == EX_READY_ARMED ? (_dir == 1 ? "ARMADO LONG" : _dir == -1 ? "ARMADO SHORT" : "AGUARDAR") :
+     _stage == EX_READY_CONFIRMED ? (_dir == 1 ? "CONFIRMA LONG" : _dir == -1 ? "CONFIRMA SHORT" : "AGUARDAR") :
+     _stage == EX_READY_ALIGNED ? (_dir == 1 ? "ALINHADO LONG" : _dir == -1 ? "ALINHADO SHORT" : "AGUARDAR") :
+     "AGUARDAR"
+
+f_ex_strength_txt(_state) =>
+    _state == EX_STRENGTH_FADING ? "PERDENDO FORÇA" :
+     _state == EX_STRENGTH_EXHAUSTED ? "EXAUSTÃO" :
+     _state == EX_STRENGTH_REACTION_RISK ? "RISCO DE REAÇÃO" :
+     "NORMAL"
 
 f_impulse_acceptance(_startBar, _endBar, _low, _high) =>
     float vwapValue = na
@@ -717,6 +811,233 @@ float invalidationDistance = correctionActive ? (mapDir == 1 ? close - invalidat
 bool nearInvalidation = correctionActive and not invalidationBrokenNow and not na(invalidationDistance) and invalidationDistance >= 0 and invalidationDistance <= atr * INVALID_WARN_ATR
 
 // ---------------------------------------------------------------------------
+// Embedded Execution semantic kernel — Decision Panel consumer
+// ---------------------------------------------------------------------------
+// Same accepted semantics as src/core/execution.pine. This consumer reuses the
+// already-computed Market Map direction/location geometry and adds no new map
+// thesis.
+
+// MTE-A
+float exMteSource = hlc3
+float exMteFast = f_ex_seeded_ema(exMteSource, EX_MTE_FAST_EMA)
+float exMteSlow = f_ex_seeded_ema(exMteSource, EX_MTE_SLOW_EMA)
+float exPrevClose = nz(close[1], close)
+float exTrueRange = math.max(high - low, math.max(math.abs(high - exPrevClose), math.abs(low - exPrevClose)))
+float exMteAtr = f_ex_seeded_rma(exTrueRange, EX_MTE_ATR_LEN)
+float exMteCore = not na(exMteFast) and not na(exMteSlow) and not na(exMteAtr) and exMteAtr > 0.0 ? (exMteFast - exMteSlow) / exMteAtr : na
+float exMteActivity = f_ex_seeded_rma(math.abs(exMteCore), EX_MTE_ACTIVITY_LEN)
+float exMteAccel = not na(exMteCore) and not na(exMteCore[1]) ? exMteCore - exMteCore[1] : na
+float exMteAccelActivity = f_ex_seeded_rma(math.abs(exMteAccel), EX_MTE_ACTIVITY_LEN)
+bool exMteReady = not na(exMteCore) and not na(exMteActivity) and not na(exMteAccel) and not na(exMteAccelActivity) and exMteActivity > 0.0
+float exMteNeutralBand = exMteReady ? EX_MTE_NEUTRAL_FACTOR * exMteActivity : na
+float exMteTurnBand = exMteReady ? math.max(EX_MTE_TURN_FLOOR, EX_MTE_TURN_FACTOR * exMteAccelActivity) : na
+float exMteAccelSemantic = exMteReady and math.abs(exMteAccel) <= EX_MTE_ACCEL_EPS ? 0.0 : exMteAccel
+
+int exMteState = 0
+if exMteReady
+    if math.abs(exMteCore) <= exMteNeutralBand
+        exMteState := 0
+    else if exMteCore > 0.0
+        exMteState := exMteAccelSemantic < -exMteTurnBand ? -1 :
+             exMteAccelSemantic < 0.0 ? 3 : 2
+    else
+        exMteState := exMteAccelSemantic > exMteTurnBand ? 1 :
+             exMteAccelSemantic > 0.0 ? -3 : -2
+
+// RSE-A
+float exRsiLocal = f_ex_rsi(close)
+float exRsiStep = not na(exRsiLocal) and not na(exRsiLocal[1]) ? exRsiLocal - exRsiLocal[1] : na
+bool exRsiReady = not na(exRsiLocal) and not na(exRsiStep)
+float exRecentRsiMin = ta.lowest(exRsiLocal, EX_RSI_ZONE_MEMORY_BARS + 1)
+float exRecentRsiMax = ta.highest(exRsiLocal, EX_RSI_ZONE_MEMORY_BARS + 1)
+bool exRecentOversold = exRsiReady and not na(exRecentRsiMin) and exRecentRsiMin <= EX_RSI_OVERSOLD
+bool exRecentOverbought = exRsiReady and not na(exRecentRsiMax) and exRecentRsiMax >= EX_RSI_OVERBOUGHT
+
+int exRsiState = 0
+if exRsiReady
+    if exRsiLocal >= EX_RSI_EXTREME_OVERBOUGHT_LEVEL
+        exRsiState := 4
+    else if exRsiLocal <= EX_RSI_EXTREME_OVERSOLD_LEVEL
+        exRsiState := -4
+    else if exRecentOversold and exRsiLocal < EX_RSI_CENTER_HIGH and exRsiStep >= EX_RSI_MIN_STEP
+        exRsiState := 2
+    else if exRecentOverbought and exRsiLocal > EX_RSI_CENTER_LOW and exRsiStep <= -EX_RSI_MIN_STEP
+        exRsiState := -2
+    else if exRsiLocal >= EX_RSI_OVERBOUGHT and exRsiStep >= EX_RSI_MIN_STEP
+        exRsiState := 3
+    else if exRsiLocal <= EX_RSI_OVERSOLD and exRsiStep <= -EX_RSI_MIN_STEP
+        exRsiState := -3
+    else if exRsiLocal >= EX_RSI_CENTER_HIGH
+        exRsiState := 1
+    else if exRsiLocal <= EX_RSI_CENTER_LOW
+        exRsiState := -1
+
+float exRsiContextValue = f_sec(contextTf, f_ex_rsi(close))
+int exRsiContextDir = na(exRsiContextValue) ? 0 :
+     exRsiContextValue >= EX_RSI_CENTER_HIGH ? 1 :
+     exRsiContextValue <= EX_RSI_CENTER_LOW ? -1 : 0
+
+// PSE-A
+float exVolumeBase = f_ex_seeded_ema(volume, EX_PSE_VOLUME_EMA_LEN)
+float exPriorVolumeBase = exVolumeBase[1]
+bool exPseReady = not na(volume) and volume >= 0.0 and not na(exPriorVolumeBase) and exPriorVolumeBase > 0.0
+float exRelativeVolume = exPseReady ? volume / exPriorVolumeBase : na
+float exCandleSpan = high - low
+float exPressureProxy = exCandleSpan == 0.0 ? 0.0 : math.max(-1.0, math.min(1.0, (2.0 * close - high - low) / exCandleSpan))
+float exDirectionalPressure = exPseReady and mapDir != 0 ? exPressureProxy * mapDir : na
+int exParticipationState = EX_PSE_NEUTRAL
+if exPseReady and mapDir != 0
+    exParticipationState := exRelativeVolume < EX_PSE_CONTRACTED_BELOW ? EX_PSE_WEAK :
+         exRelativeVolume >= EX_PSE_EXPANDED_AT_OR_ABOVE and exDirectionalPressure >= EX_PSE_PRESSURE_MIN ? EX_PSE_CONFIRM :
+         exRelativeVolume >= EX_PSE_EXPANDED_AT_OR_ABOVE and exDirectionalPressure <= -EX_PSE_PRESSURE_MIN ? EX_PSE_CONTRARY :
+         EX_PSE_NEUTRAL
+
+// Market Map -> Execution location bridge.
+bool exRetestEvent = (mapDir == 1 and retestUp) or (mapDir == -1 and retestDown)
+bool exReclaimEvent = relevantReclaimEvt and mapDir != 0
+bool exCoherentMap = mapDir != 0 and not thesisInvalidated and not regimeStructureConflict and not na(atr) and atr > 0
+
+var int exBridgeDirection = 0
+var int exLastRetestBar = na
+var int exLastReclaimBar = na
+var int exLastRetestTime = na
+var int exLastReclaimTime = na
+
+if not exCoherentMap
+    exBridgeDirection := 0
+    exLastRetestBar := na
+    exLastReclaimBar := na
+    exLastRetestTime := na
+    exLastReclaimTime := na
+else
+    if exBridgeDirection != 0 and exBridgeDirection != mapDir
+        exLastRetestBar := na
+        exLastReclaimBar := na
+        exLastRetestTime := na
+        exLastReclaimTime := na
+    exBridgeDirection := mapDir
+    if exRetestEvent
+        exLastRetestBar := bar_index
+        exLastRetestTime := time
+    if exReclaimEvent
+        exLastReclaimBar := bar_index
+        exLastReclaimTime := time
+
+bool exFreshRetest = exCoherentMap and not na(exLastRetestBar) and bar_index - exLastRetestBar >= 0 and bar_index - exLastRetestBar <= EX_EVENT_HOLD_BARS and
+     (na(exLastRetestTime) or time - exLastRetestTime <= EX_EVENT_HOLD_MAX_MS)
+bool exFreshReclaim = exCoherentMap and not na(exLastReclaimBar) and bar_index - exLastReclaimBar >= 0 and bar_index - exLastReclaimBar <= EX_EVENT_HOLD_BARS and
+     (na(exLastReclaimTime) or time - exLastReclaimTime <= EX_EVENT_HOLD_MAX_MS)
+
+bool exEnvelopeReady = correctionActive and not na(t1Top) and not na(t1Bottom) and not na(primaryTop) and not na(primaryBottom) and not na(t3Top) and not na(t3Bottom)
+float exEnvelopeTop = exEnvelopeReady ? math.max(t1Top, math.max(primaryTop, t3Top)) : na
+float exEnvelopeBottom = exEnvelopeReady ? math.min(t1Bottom, math.min(primaryBottom, t3Bottom)) : na
+
+int exLocation = EX_LOC_OUTSIDE
+if exCoherentMap
+    if exFreshReclaim
+        exLocation := EX_LOC_RECLAIM
+    else if exFreshRetest
+        exLocation := EX_LOC_RETEST
+    else if exEnvelopeReady and close >= exEnvelopeBottom and close <= exEnvelopeTop
+        exLocation := EX_LOC_IN_CORRECTION
+    else if exEnvelopeReady and mapDir == 1 and close > exEnvelopeTop and close - exEnvelopeTop <= atr * EX_APPROACH_ATR
+        exLocation := EX_LOC_APPROACHING
+    else if exEnvelopeReady and mapDir == -1 and close < exEnvelopeBottom and exEnvelopeBottom - close <= atr * EX_APPROACH_ATR
+        exLocation := EX_LOC_APPROACHING
+    else if destinationNear
+        exLocation := EX_LOC_DESTINATION_NEAR
+
+bool exRelevantLocation = exLocation == EX_LOC_APPROACHING or exLocation == EX_LOC_IN_CORRECTION or exLocation == EX_LOC_RETEST or exLocation == EX_LOC_RECLAIM
+
+bool exMomentumAligned = mapDir == 1 ? (exMteState == 1 or exMteState == 2) :
+     mapDir == -1 ? (exMteState == -1 or exMteState == -2) : false
+bool exMomentumStronglyOpposes = mapDir == 1 ? (exMteState == -1 or exMteState == -2) :
+     mapDir == -1 ? (exMteState == 1 or exMteState == 2) : true
+bool exMomentumDeteriorates = mapDir == 1 ? (exMteState == 3 or exMteState == -1 or exMteState == -2 or exMteState == -3) :
+     mapDir == -1 ? (exMteState == -3 or exMteState == 1 or exMteState == 2 or exMteState == 3) : false
+
+bool exRsiLocalSupportive = mapDir == 1 ? (exRsiState == 1 or exRsiState == 2 or exRsiState == 3) :
+     mapDir == -1 ? (exRsiState == -1 or exRsiState == -2 or exRsiState == -3) : false
+bool exRsiSupportive = exRsiLocalSupportive and exRsiContextDir != -mapDir
+bool exRsiLocalOpposes = mapDir == 1 ? (exRsiState == -1 or exRsiState == -2 or exRsiState == 4) :
+     mapDir == -1 ? (exRsiState == 1 or exRsiState == 2 or exRsiState == -4) : true
+bool exRsiOpposes = exRsiLocalOpposes or (mapDir != 0 and exRsiContextDir == -mapDir)
+bool exRsiDeteriorates = mapDir == 1 ? (exRsiState == -2 or exRsiState == 4) :
+     mapDir == -1 ? (exRsiState == 2 or exRsiState == -4) : false
+
+int exGenericDeterioration = (exMomentumDeteriorates ? 1 : 0) + (exRsiDeteriorates ? 1 : 0) + (exParticipationState == EX_PSE_CONTRARY ? 1 : 0)
+int exDestinationDeterioration = (exMomentumDeteriorates ? 1 : 0) + (exRsiDeteriorates ? 1 : 0) + ((exParticipationState == EX_PSE_WEAK or exParticipationState == EX_PSE_CONTRARY) ? 1 : 0)
+int exCurrentStrength = not exCoherentMap ? EX_STRENGTH_NORMAL :
+     exLocation == EX_LOC_DESTINATION_NEAR and exDestinationDeterioration >= 2 ? EX_STRENGTH_REACTION_RISK :
+     exGenericDeterioration >= 2 ? EX_STRENGTH_EXHAUSTED :
+     exGenericDeterioration == 1 ? EX_STRENGTH_FADING : EX_STRENGTH_NORMAL
+
+var int exReadiness = EX_READY_WAIT
+var int exDir = 0
+var int exStrength = EX_STRENGTH_NORMAL
+bool exConfirmEvent = false
+
+if barstate.isconfirmed
+    int prevReadiness = exReadiness
+    int prevDir = exDir
+    int nextReadiness = prevReadiness
+    int nextDir = prevDir
+    int nextStrength = exCoherentMap ? exCurrentStrength : EX_STRENGTH_NORMAL
+
+    if not exCoherentMap
+        nextReadiness := EX_READY_WAIT
+        nextDir := 0
+        nextStrength := EX_STRENGTH_NORMAL
+    else if prevDir != 0 and prevDir != mapDir
+        nextReadiness := EX_READY_WAIT
+        nextDir := 0
+    else if prevReadiness == EX_READY_WAIT
+        if exRelevantLocation and not exMomentumStronglyOpposes
+            nextReadiness := EX_READY_PREP
+            nextDir := mapDir
+        else
+            nextReadiness := EX_READY_WAIT
+            nextDir := 0
+    else if prevReadiness == EX_READY_PREP
+        if not exRelevantLocation or exMomentumStronglyOpposes or exParticipationState == EX_PSE_CONTRARY
+            nextReadiness := EX_READY_WAIT
+            nextDir := 0
+        else if exMomentumAligned and exRsiSupportive
+            nextReadiness := EX_READY_ARMED
+            nextDir := mapDir
+        else
+            nextReadiness := EX_READY_PREP
+            nextDir := mapDir
+    else if prevReadiness == EX_READY_ARMED
+        if not exRelevantLocation or exMomentumStronglyOpposes or exRsiOpposes or exParticipationState == EX_PSE_CONTRARY
+            nextReadiness := EX_READY_WAIT
+            nextDir := 0
+        else if exMomentumAligned and exRsiSupportive and exParticipationState == EX_PSE_CONFIRM
+            nextReadiness := EX_READY_CONFIRMED
+            nextDir := mapDir
+            exConfirmEvent := true
+        else
+            nextReadiness := EX_READY_ARMED
+            nextDir := mapDir
+    else if prevReadiness == EX_READY_CONFIRMED
+        nextReadiness := EX_READY_ALIGNED
+        nextDir := mapDir
+    else if prevReadiness == EX_READY_ALIGNED
+        if exMomentumStronglyOpposes and exRsiOpposes
+            nextReadiness := EX_READY_WAIT
+            nextDir := 0
+        else
+            nextReadiness := EX_READY_ALIGNED
+            nextDir := mapDir
+
+    exReadiness := nextReadiness
+    exDir := nextDir
+    exStrength := nextStrength
+
+string executionTxt = f_ex_readiness_txt(exReadiness, exDir)
+string strengthTxt = f_ex_strength_txt(exStrength)
+
+// ---------------------------------------------------------------------------
 // Historical engineering telemetry — Data Window only
 // ---------------------------------------------------------------------------
 // These counters validate map behavior on the chart's loaded history. They are
@@ -1028,7 +1349,7 @@ plot(diagZoneReactionPct, "MM Hist • Zona→Destino % (engenharia)", color=col
 // ---------------------------------------------------------------------------
 // Single semantic panel — no Compact/Full variants
 // ---------------------------------------------------------------------------
-var table panel = table.new(position.bottom_right, 2, 10, bgcolor=color.new(color.black, 82), frame_color=color.new(color.gray, 55), frame_width=1, border_color=color.new(color.gray, 75))
+var table panel = table.new(position.bottom_right, 2, 12, bgcolor=color.new(color.black, 82), frame_color=color.new(color.gray, 55), frame_width=1, border_color=color.new(color.gray, 75))
 
 if barstate.islast
     if showPanel
@@ -1067,5 +1388,20 @@ if barstate.islast
         table.cell(panel, 0, 9, "CONTEXTO", text_color=color.silver, text_size=size.tiny)
         string contextTxt = contextTf + " • HTF CONF" + (correctionActive ? " • " + correctionModel : "")
         table.cell(panel, 1, 9, contextTxt, text_color=color.silver, text_size=size.tiny)
+
+        color executionColor = exReadiness == EX_READY_CONFIRMED ? (exDir == 1 ? color.lime : color.red) :
+             exReadiness == EX_READY_ARMED ? color.yellow :
+             exReadiness == EX_READY_PREP ? color.aqua :
+             exReadiness == EX_READY_ALIGNED ? (exDir == 1 ? color.lime : color.red) :
+             color.silver
+        color strengthColor = exStrength == EX_STRENGTH_REACTION_RISK ? color.red :
+             exStrength == EX_STRENGTH_EXHAUSTED ? color.orange :
+             exStrength == EX_STRENGTH_FADING ? color.yellow : color.silver
+
+        table.cell(panel, 0, 10, "EXECUÇÃO", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 10, executionTxt, text_color=executionColor, text_size=size.small)
+
+        table.cell(panel, 0, 11, "FORÇA", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 11, strengthTxt, text_color=strengthColor, text_size=size.small)
     else
-        table.clear(panel, 0, 0, 1, 9)
+        table.clear(panel, 0, 0, 1, 11)
