@@ -146,6 +146,25 @@ def box_from_snapshot(s: IntegrationSnapshot) -> RangeBox | None:
     )
 
 
+def boxes_compatible(a: RangeBox, b: RangeBox) -> bool:
+    """Treat fresh confirmed pivots near the same boundaries as one range."""
+    tol = max(a.edge_band, b.edge_band)
+    return (
+        abs(a.high - b.high) <= tol
+        and abs(a.low - b.low) <= tol
+        and min(a.high, b.high) > max(a.low, b.low)
+    )
+
+
+def box_compatible_with_episode(box: RangeBox, e: RangeRotationEpisode) -> bool:
+    tol = max(box.edge_band, e.edge_band)
+    return (
+        abs(box.high - e.range_high) <= tol
+        and abs(box.low - e.range_low) <= tol
+        and min(box.high, e.range_high) > max(box.low, e.range_low)
+    )
+
+
 def _relation(direction: int, regime_dir: int) -> RegimeRelation:
     if regime_dir == 0:
         return RegimeRelation.NEUTRAL
@@ -182,20 +201,20 @@ def detect_range_rotations(
     # Same-edge opportunities do not repeat until price has travelled back
     # through the range midpoint. This is a market-sequence reset, not a fixed
     # cooldown in bars.
-    active_key: tuple[int, int, int, int] | None = None
+    active_box: RangeBox | None = None
     lower_ready = True
     upper_ready = True
 
     for i, snap in enumerate(snapshots):
         box = box_from_snapshot(snap)
         if box is None:
-            active_key = None
+            active_box = None
             lower_ready = upper_ready = True
             continue
 
-        if box.key != active_key:
-            active_key = box.key
+        if active_box is None or not boxes_compatible(active_box, box):
             lower_ready = upper_ready = True
+        active_box = box
 
         close = float(closes[i])
         high = float(highs[i])
@@ -307,7 +326,7 @@ def classify_range_rotation(
         # Once a new structural box replaces the source box, the original
         # rotation thesis is censored unless it already produced a decisive
         # midpoint/opposite result.
-        if box is None or box.key != episode.range_key:
+        if box is None or not box_compatible_with_episode(box, episode):
             return RangeRotationOutcome(
                 episode.episode_id,
                 RangeOutcome.MID_REACHED if midpoint_bar is not None else RangeOutcome.CENSORED,
