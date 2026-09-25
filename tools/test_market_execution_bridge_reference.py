@@ -7,6 +7,7 @@ from tools.execution_state_reference import Location
 from tools.market_execution_bridge_reference import (
     APPROACH_ATR,
     EVENT_HOLD_BARS,
+    EVENT_HOLD_MAX_MS,
     BridgeMemory,
     MapEvidence,
     classify,
@@ -76,6 +77,53 @@ class MarketExecutionBridgeTests(unittest.TestCase):
 
         r = classify(mem, self.ev(bar_index=100 + EVENT_HOLD_BARS + 1, close=120.0))
         self.assertEqual(r.location, Location.OUTSIDE)
+
+    def test_elapsed_time_caps_event_memory_on_high_timeframes(self):
+        first = classify(
+            BridgeMemory(),
+            self.ev(
+                bar_index=100,
+                bar_time_ms=0,
+                close=103.0,
+                reclaim_event=True,
+            ),
+        )
+        self.assertEqual(first.location, Location.RECLAIM)
+
+        # Still inside the bar-count window, but one day later: event memory
+        # must be stale because v2 caps elapsed time at 12 hours.
+        later = classify(
+            first.memory,
+            self.ev(
+                bar_index=101,
+                bar_time_ms=24 * 60 * 60 * 1000,
+                close=120.0,
+            ),
+        )
+        self.assertEqual(later.location, Location.OUTSIDE)
+
+    def test_primary_4h_matrix_preserves_three_bar_memory(self):
+        first = classify(
+            BridgeMemory(),
+            self.ev(
+                bar_index=100,
+                bar_time_ms=0,
+                close=103.0,
+                reclaim_event=True,
+            ),
+        )
+        mem = first.memory
+        for offset in range(1, EVENT_HOLD_BARS + 1):
+            r = classify(
+                mem,
+                self.ev(
+                    bar_index=100 + offset,
+                    bar_time_ms=offset * 4 * 60 * 60 * 1000,
+                    close=120.0,
+                ),
+            )
+            self.assertEqual(r.location, Location.RECLAIM)
+            mem = r.memory
 
     def test_retest_priority_below_reclaim(self):
         r = classify(
@@ -148,6 +196,7 @@ class MarketExecutionBridgeTests(unittest.TestCase):
     def test_constants_are_product_defaults(self):
         self.assertEqual(APPROACH_ATR, 0.50)
         self.assertEqual(EVENT_HOLD_BARS, 3)
+        self.assertEqual(EVENT_HOLD_MAX_MS, 12 * 60 * 60 * 1000)
 
 
 if __name__ == "__main__":
