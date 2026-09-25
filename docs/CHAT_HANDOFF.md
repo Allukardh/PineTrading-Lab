@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** STABLE  
-**Active product front:** Suite 0.2 — RANGE_ROTATION readiness accepted  
+**Checkpoint state:** PREPARED  
+**Active product front:** Suite 0.2 — Opportunity path overlap and arbitration  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,40 +131,48 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### STABLE result — RANGE_ROTATION EARLY_ANY1 readiness
+### PREPARED block — Opportunity path overlap / arbitration evidence
 
-Research:
+Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- accepted readiness research head: `bac1d0374a141dfe80fb1307540e7ef84682ddc8`
+- accepted Opportunity-v2 trend baseline: `329cdcac039f11cd1a81bf9138cfe67ab83a142f`
+- accepted RANGE_ROTATION readiness head: `bac1d0374a141dfe80fb1307540e7ef84682ddc8`
 
-Evidence:
-- BTC source-arm `36159790705` — PASS;
-- ETH/AVAX robustness `36160074161` — PASS;
-- 15-symbol daily universe `36160698176` — PASS;
-- Static integrity `36160702117` — PASS;
-- worklog: `docs/worklog/2026-09-25-suite-0.2-range-rotation.md`.
+Accepted independent paths:
+1. frozen Execution 0.1 — correction/retest/reclaim;
+2. Opportunity v2 trend path — breakout/reacceleration/strict regime reversal;
+3. RANGE_ROTATION EARLY_ANY1.
 
-Accepted RANGE_ROTATION research contract:
-- stable confirmed structural range;
-- primary trigger EDGE_REJECTION;
-- source dual MTE + local-RSI opposition -> awareness only;
-- otherwise >=1 ignition family -> ARMADO;
-- next-bar compatible-range persistence + directional progress -> ACCEPTED;
-- ACCEPTED chart close -> CONFIRMA only for same-source armed setup;
-- HTF RSI is context, not veto;
-- raw SWEEP_RECLAIM auxiliary only;
-- no hard regime filter;
-- SELECTIVE_ANY2 removed.
+Locks:
+- no accepted path is retuned in this block;
+- no production Pine/default/profile change;
+- operator must eventually see one semantic readiness, not three competing machines;
+- do not invent a priority order before measuring real overlap/conflict.
 
-Status:
-- EARLY_ANY1 4H — KEEP;
-- EARLY_ANY1 1D — KEEP;
-- no production Pine/default/profile change.
+Exact intended work:
+1. run all three accepted paths independently on the same BTC 4H/1D histories;
+2. measure per-bar and event overlap:
+   - simultaneous non-WAIT readiness;
+   - same-direction vs opposite-direction conflicts;
+   - simultaneous CONFIRMA;
+   - same-direction CONFIRMA within +/-3 bars;
+   - source/frame overlap between trend Opportunity and RANGE_ROTATION;
+   - overlap with frozen 0.1 relevant/readiness states;
+3. identify representative conflict/duplicate cases when overlap exists;
+4. determine whether arbitration is:
+   - mostly unnecessary because contexts are naturally disjoint;
+   - needed only for duplicate same-direction events;
+   - needed for true opposite-direction conflicts;
+5. only after diagnosis preregister a deterministic arbitration policy;
+6. then validate unchanged arbitration on ETH/AVAX;
+7. preserve source opportunity kind/context in research telemetry even if UI collapses to one semantic state.
 
-Next architecture frontier:
-- quantify overlap/conflict among accepted opportunity paths and define one deterministic operator-facing arbitration layer.
+Recovery:
+- compare active branch with `bac1d037...`;
+- inspect only newer overlap/arbitration evidence commits/runs/artifacts;
+- do not reopen RANGE_ROTATION thresholds/readiness or accepted trend Opportunity composition.
 
 
 ## 7. Continuity protocol
