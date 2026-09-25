@@ -131,60 +131,69 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — thesis-management structural-midpoint discrimination
+### PREPARED block — Thesis Management V1 validation
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `b3606aac660895d2545cc640b047193c45d7d913`
+- durable pre-block research head: `66c25e9d89d275569faefb345025c2db41a510b9`
 
-Closed channel comparison:
-- workflow `36179495417` — PASS;
-- Static integrity `36179495413` — PASS;
+Closed midpoint discrimination:
+- workflow `36179810231` — PASS;
+- Static integrity — PASS;
 - worklog: `docs/worklog/2026-09-25-suite-0.2-thesis-management.md`.
 
-Discarded candidates:
-- PROTECT_STRICT — REMOVE: lower saturation but worse churn;
-- FAVORABLE_FADING — REMOVE: completed/invalidated reach nearly identical;
-- FAVORABLE_EXHAUSTED — REMOVE as sole realization path: sparse and non-discriminative.
+Preregistered Management V1:
 
-Pre-registered next candidates:
+Terminal precedence:
+1. AMBIGUOUS
+2. COMPLETED
+3. INVALIDATED
 
-**PROTECT_CORE**
-- Strength EXHAUSTED; OR
-- invalidation within accepted 0.20 ATR;
-- structural warning remains diagnostic only.
+PROTECT:
+- invalidation <= accepted 0.20 ATR; OR
+- Strength EXHAUSTED;
+- but favorable mature deterioration is classified as REALIZATION_RISK instead.
 
-**MIDPATH_FADING**
-- progress from confirmation toward frozen target >= 0.50; AND
-- Strength FADING or worse;
-- non-terminal.
+REALIZATION_RISK:
+- existing destination-near REACTION_RISK; OR
+- frozen confirmation-to-target progress >= 0.50 and Strength FADING or worse;
+- invalidation-near always keeps PROTECT precedence.
 
-**MIDPATH_EXHAUSTED**
-- progress >= 0.50; AND
-- Strength EXHAUSTED / REACTION_RISK;
-- non-terminal.
+CONTINUATION:
+- otherwise.
+
+Structural warning:
+- diagnostics only;
+- no structure-only visible PROTECT.
 
 Locks:
-- 0.50 is the semantic midpoint of the frozen confirmation-to-target path;
-- no threshold search/optimization;
-- target-near 0.30 ATR and invalidation warning 0.20 ATR unchanged;
-- MTE/RSE/PSE definitions unchanged;
-- V0 state machine not mutated during comparison;
+- 0.50 = structural midpoint, not outcome-optimized;
+- V0 preserved as comparator;
+- MTE/RSE/PSE unchanged;
+- target/invalidation anchors frozen at operator CONFIRMA;
 - no production Pine/default/profile/panel change.
 
 Exact intended work:
-1. add diagnostic-only telemetry for PROTECT_CORE / MIDPATH_FADING / MIDPATH_EXHAUSTED;
-2. rerun BTC 4H/1D;
-3. compare saturation/churn, completed-vs-invalidated reach, lead time and source breadth;
-4. if one protection and one realization channel are semantically coherent, preregister Management V1 before implementation;
-5. otherwise refine from the measured failure mode;
-6. only after BTC V1 semantics are locked, validate unchanged on ETH/AVAX.
+1. implement Management V1 as separate research reference + tests;
+2. verify BTC 4H/1D against preregistered channel evidence;
+3. validate unchanged on ETHUSDT 4H/1D and AVAXUSDT 4H/1D;
+4. compare:
+   - state saturation;
+   - transitions/churn;
+   - completed vs invalidated warning reach;
+   - lead time;
+   - source/path breadth;
+   - direction balance;
+   - unsupported anchors;
+5. no per-asset retuning;
+6. if robust, mark Management V1 KEEP as accepted research baseline;
+7. otherwise REFINE from the observed failure mode only.
 
 Recovery:
-- compare active branch with `b3606aa...`;
-- inspect only newer thesis-management midpoint diagnostic commits/runs/artifacts.
+- compare active branch with `66c25e9...`;
+- inspect only newer V1 implementation/workflow/artifacts.
 
 
 ## 7. Continuity protocol
