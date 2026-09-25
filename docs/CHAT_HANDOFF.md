@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — OPERATOR_READINESS_V1 validation  
+**Checkpoint state:** STABLE  
+**Active product front:** Suite 0.2 — OPERATOR_READINESS_V1 accepted  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,63 +131,44 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — OPERATOR_READINESS_V1 validation
+### STABLE result — OPERATOR_READINESS_V1
 
-Active research:
+Research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `e1a44d5e7d31c6b5c9c027eebc94c040206c95c6`
+- accepted projection head: `32262d55687813c2036cf5359b31b1c30590cc80`
 
-Closed overlap diagnosis:
-- BTC overlap workflow `36164331998` — PASS;
-- Static integrity `36164331819` — PASS;
+Evidence:
+- BTC overlap diagnosis `36164331998` — PASS;
+- BTC/ETH/AVAX projection validation `36164880804` — PASS;
+- Static integrity `36164880805` — PASS;
 - worklog: `docs/worklog/2026-09-25-suite-0.2-opportunity-arbitration.md`.
 
-BTC overlap conclusions:
-- trend Opportunity v2 and RANGE_ROTATION readiness are naturally disjoint;
-- no active opposite-direction conflicts;
-- no same/opposite CONFIRMA within +/-3 bars;
-- frozen 0.1 overlaps new paths only in the same direction;
-- state combinations prove numeric enum order is not a valid operator projection.
+Accepted research projection:
+- internal paths remain independent;
+- one active path -> exact mirror;
+- same-direction multi-path urgency:
+  CONFIRMED > ARMED > PREP > ALIGNED > WAIT;
+- opposite active directions -> CONFLICT / NONE / non-actionable;
+- same-bar same-direction multi-confirm -> one operator event with source list;
+- different-bar confirms remain distinct;
+- frame-only disagreement while readiness WAIT remains telemetry;
+- strength arbitration deferred.
 
-Preregistered OPERATOR_READINESS_V1:
-1. internal paths remain independent;
-2. no active path -> WAIT / NONE;
-3. same-direction active paths -> operational urgency:
-   - CONFIRMED / current CONFIRMA
-   - ARMED
-   - PREP
-   - ALIGNED
-   - WAIT
-4. opposite active directions -> CONFLICT / NONE / no actionable unified CONFIRMA;
-5. same-bar same-direction multi-confirm -> one operator CONFIRMA with all sources;
-6. confirmations on different bars are not deduplicated merely by proximity;
-7. frame-only disagreement while readiness is WAIT remains telemetry only;
-8. raw path/source states remain auditable;
-9. strength arbitration is deferred.
+Cross-asset result:
+- 100% single-active parity;
+- 100% fresh setup surfacing over background ALIGNED;
+- 100% raw confirm-bar preservation;
+- ETH 4H: 4 true conflict bars;
+- AVAX 4H: 2 true conflict bars;
+- no observed conflict contained a raw CONFIRMA;
+- no production Pine/default/profile change.
 
-Exact intended work:
-1. implement research-only operator projection + unit tests;
-2. run all three accepted paths independently;
-3. project OPERATOR_READINESS_V1 on BTC/ETH/AVAX 4H/1D without retuning;
-4. measure:
-   - single-active parity;
-   - same-direction multi-active bars;
-   - fresh PREP/ARMED/CONFIRMA surfaced over background ALIGNED;
-   - opposite-direction conflict bars;
-   - raw confirms vs operator confirms;
-   - same-bar confirm collapse;
-   - confirms suppressed only by true opposite-direction conflict;
-   - source contribution;
-5. inspect representative cross-asset conflicts if they exist;
-6. accept/refine/remove projection;
-7. no production Pine/default/profile change.
-
-Recovery:
-- compare active branch with `e1a44d5...`;
-- inspect only newer operator-readiness commits/runs/artifacts;
-- do not reopen accepted path semantics or range/trend thresholds.
+Next architecture frontier:
+- unchanged horizon validation on 15m/1H and 3D/1W;
+- reproducible derived 1M study after canonical native horizons;
+- profiles remain unapproved.
 
 
 ## 7. Continuity protocol
