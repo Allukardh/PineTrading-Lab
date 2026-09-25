@@ -185,3 +185,92 @@ def classify_management_bar(
         target_room_atr=room,
         invalidation_buffer_atr=buffer,
     )
+
+
+def classify_management_v1_bar(
+    *,
+    direction: int,
+    high: float,
+    low: float,
+    close: float,
+    atr: float | None,
+    target: float | None,
+    invalidation: float | None,
+    path_progress: float | None,
+    momentum: Momentum,
+    rsi: RsiState,
+    participation: Participation,
+    structural_warning: bool = False,
+    bar_confirmed: bool = True,
+) -> ManagementBar:
+    """Preregistered Management V1.
+
+    Structural warning remains telemetry only. Favorable maturity is separated
+    from adverse protection by the frozen confirmation-to-target midpoint.
+    """
+    base = classify_management_bar(
+        direction=direction,
+        high=high,
+        low=low,
+        close=close,
+        atr=atr,
+        target=target,
+        invalidation=invalidation,
+        momentum=momentum,
+        rsi=rsi,
+        participation=participation,
+        structural_warning=False,
+        bar_confirmed=bar_confirmed,
+    )
+
+    if base.state in {
+        ManagementState.AMBIGUOUS,
+        ManagementState.COMPLETED,
+        ManagementState.INVALIDATED,
+    }:
+        return ManagementBar(
+            state=base.state,
+            strength=base.strength,
+            target_hit=base.target_hit,
+            invalidated=base.invalidated,
+            target_near=base.target_near,
+            invalidation_near=base.invalidation_near,
+            structural_warning=structural_warning,
+            target_room_atr=base.target_room_atr,
+            invalidation_buffer_atr=base.invalidation_buffer_atr,
+        )
+
+    if base.invalidation_near:
+        state = ManagementState.PROTECT
+    elif (
+        (
+            base.target_near
+            and base.strength == Strength.REACTION_RISK
+        )
+        or (
+            path_progress is not None
+            and path_progress >= 0.50
+            and base.strength in {
+                Strength.FADING,
+                Strength.EXHAUSTED,
+                Strength.REACTION_RISK,
+            }
+        )
+    ):
+        state = ManagementState.REALIZATION_RISK
+    elif base.strength == Strength.EXHAUSTED:
+        state = ManagementState.PROTECT
+    else:
+        state = ManagementState.CONTINUATION
+
+    return ManagementBar(
+        state=state,
+        strength=base.strength,
+        target_hit=base.target_hit,
+        invalidated=base.invalidated,
+        target_near=base.target_near,
+        invalidation_near=base.invalidation_near,
+        structural_warning=structural_warning,
+        target_room_atr=base.target_room_atr,
+        invalidation_buffer_atr=base.invalidation_buffer_atr,
+    )
