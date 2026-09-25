@@ -3,7 +3,7 @@
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
 **Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — RANGE_ROTATION episode research  
+**Active product front:** Suite 0.2 — RANGE_ROTATION cross-asset robustness  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,41 +131,45 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — deterministic RANGE_ROTATION research
+### PREPARED block — RANGE_ROTATION cross-asset robustness
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- accepted Opportunity v2 research head: `329cdcac039f11cd1a81bf9138cfe67ab83a142f`
+- durable pre-block research head: `4f08e97a488bbd72e19551382ede8806cf9a3e7f`
 
-Locks:
-- Opportunity composition v2 is not reopened in this block;
-- frozen Execution 0.1 remains independent;
-- RANGE_ROTATION must be defined independently from Execution result;
-- do not implement blind mean-reversion;
-- no production Pine/default/profile change.
+Closed BTC structural evidence:
+- workflow `36153024231` — PASS;
+- Static integrity `36153024358` — PASS;
+- worklog: `docs/worklog/2026-09-25-suite-0.2-range-rotation.md`.
+
+BTC decisions:
+- stable structural range box — KEEP for robustness;
+- EDGE_REJECTION primary trigger — KEEP for robustness;
+- raw SWEEP_RECLAIM standalone primary trigger — REFINE / do not promote;
+- RANGE_ROTATION opportunity class — KEEP candidate;
+- regime-relation hard filter — INSUFFICIENT EVIDENCE;
+- no Opportunity v2 integration yet.
 
 Exact intended work:
-1. audit existing MM-0 structure/pivot/liquidity telemetry that can identify a stable range without adding an arbitrary indicator family;
-2. define deterministic candidate range boundaries and a minimum stability contract;
-3. define rotation opportunity only near a meaningful range edge with rejection/sweep/reclaim evidence and usable room toward opposite range liquidity;
-4. keep candidate/confirmation timing honest and never backdate;
-5. measure frozen 0.1 response first on BTC 4H/1D;
-6. measure structural outcome diagnostics (rotation held/failed/ambiguous where possible);
-7. only if label quality is useful, integrate RANGE_ROTATION into Opportunity v2 counterfactual;
-8. no profiles; no Pine.
-
-Expected durable outputs:
-- range-rotation episode reference + tests;
-- BTC 4H/1D range-rotation evidence report;
-- KEEP/REFINE/REMOVE/INSUFFICIENT decision;
-- exact next discriminant.
+1. run unchanged RANGE_ROTATION detector on ETHUSDT 4H/1D;
+2. run unchanged detector on AVAXUSDT 4H/1D;
+3. no threshold or asset-specific tuning;
+4. compare:
+   - EDGE_REJECTION midpoint/opposite/failure rates;
+   - SWEEP_RECLAIM behavior;
+   - regime relation;
+   - frozen 0.1 coverage gap;
+   - episode/sample breadth;
+5. if EDGE_REJECTION generalizes, narrow primary RANGE_ROTATION contract around it;
+6. if daily samples remain small, run full 15-symbol 1D robustness before integration;
+7. no production Pine/default/profile change.
 
 Recovery:
-- compare active branch with `329cdcac...`;
-- inspect only newer range-rotation commits/runs/artifacts;
-- do not rerun closed breakout/reacceleration/composition-v2 work unless a concrete defect appears.
+- compare branch with `4f08e97...`;
+- inspect only newer RANGE_ROTATION robustness commits/runs/artifacts;
+- do not rerun closed BTC detector design unless a concrete defect emerges.
 
 
 ## 7. Continuity protocol
