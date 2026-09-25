@@ -418,3 +418,88 @@ INVALIDA    84.050
 ```
 
 If the operator must study ten internal scores before understanding what the system is saying, the UX has failed.
+
+
+## 17. Suite 0.2 evolution — broader opportunity coverage
+
+The accepted 0.1 architecture remains intact: **two runtime indicators, one embedded Decision Panel**.
+
+0.2 expands what those engines understand rather than adding visible products.
+
+### 17.1 New core question
+
+The suite must evolve from:
+
+> "Given a correction/retest, is the move confirming now?"
+
+toward:
+
+> **"What recurring market opportunity exists now, which direction does it favor, how ready is it, and how healthy is the thesis as it develops?"**
+
+### 17.2 Opportunity families
+
+Candidate families:
+- regime reversal;
+- breakout / expansion;
+- pullback / retest / reclaim;
+- continuation / reacceleration;
+- range rotation;
+- exhaustion / exit-risk as a management state.
+
+These are major recurring opportunity classes, not a claim to enumerate every possible market pattern.
+
+### 17.3 Venue-independent direction
+
+Analysis remains directional rather than exchange-specific.
+
+A bullish thesis maps naturally to buy/long context.
+
+A bearish thesis may mean:
+- spot: protect/reduce/sell/avoid new buy;
+- bidirectional venue: short may also be considered.
+
+The market-analysis engine must not fork into different structural logic for spot vs Quantfury.
+
+### 17.4 Horizon policy v2
+
+Explicit product horizons:
+- 15m / 1H — short-duration + precision entry;
+- 4H / 1D — primary swing;
+- 3D / 1W / 1M — medium/long regime and opportunity context.
+
+The >1D HTF policy must be researched rather than inherited blindly. 3D/1W/1M require a genuine higher-context design.
+
+### 17.5 Responsiveness
+
+The 0.1 close-confirmed/reload-safe discipline is preserved.
+
+0.2 may become earlier only when measured evidence shows that:
+- a valid opportunity is being recognized too late;
+- earlier recognition reduces meaningful latency;
+- the cost in cancellations/churn remains acceptable.
+
+No latency improvement may use hidden repaint/lookahead.
+
+### 17.6 Direct operator language
+
+Internal semantics may become richer while the visible panel becomes simpler.
+
+Candidate operator concepts:
+- CENÁRIO
+- OPORTUNIDADE
+- LADO
+- AÇÃO
+- ALVO
+- GESTÃO
+- INVALIDA
+- CORREÇÃO only when relevant
+
+Detailed regime/phase/structure/MTE/RSE/PSE semantics remain available in Data Window/diagnostics.
+
+### 17.7 Mandatory documentation
+
+Before 0.2 promotion, produce:
+
+`docs/GUIA_DO_OPERADOR.md`
+
+in Portuguese (Brazil), reflecting the final promoted semantics rather than an intermediate research state.
