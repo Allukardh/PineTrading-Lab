@@ -6,7 +6,7 @@ name: Execution offline evidence
 on:
   workflow_dispatch:
   push:
-    branches: ["research/execution-engine-design"]
+    branches: ["research/execution-engine-design", "feat/execution-0.1.0"]
     paths:
       - ".github/workflows/execution-offline-evidence.yml"
       - "tools/execution_historical_evidence.py"
