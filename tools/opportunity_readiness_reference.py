@@ -122,12 +122,47 @@ def step_opportunity(
 
     stage = previous.readiness
 
+    # CANDIDATE belongs to opportunity awareness, not Execution readiness.
+    # It may be shown later as OBSERVAR, but it must not create PREPARANDO
+    # churn by itself.
+    if frame.stage == OpportunityStage.CANDIDATE:
+        if stage == Readiness.WAIT:
+            return Result(State(Readiness.WAIT, 0, strength), Events())
+        # Existing state from an older same-direction frame is allowed to
+        # persist only if it is already confirmed/aligned; otherwise reset.
+        if stage in {Readiness.PREP, Readiness.ARMED}:
+            return Result(
+                State(Readiness.WAIT, 0, strength),
+                Events(canceled=True),
+            )
+
     if stage == Readiness.WAIT:
-        if not _momentum_strongly_opposes(direction, momentum):
+        if (
+            _momentum_strongly_opposes(direction, momentum)
+            or participation == Participation.CONTRARY
+        ):
+            return Result(State(Readiness.WAIT, 0, strength), Events())
+
+        if frame.stage == OpportunityStage.STRONG:
             return Result(
                 State(Readiness.PREP, direction, strength),
                 Events(preparing_entered=True),
             )
+
+        if frame.stage >= OpportunityStage.ACCEPTED:
+            if (
+                _rsi_supportive(direction, rsi, rsi_context_dir)
+                and not _momentum_strongly_opposes(direction, momentum)
+            ):
+                return Result(
+                    State(Readiness.ARMED, direction, strength),
+                    Events(armed_entered=True),
+                )
+            return Result(
+                State(Readiness.PREP, direction, strength),
+                Events(preparing_entered=True),
+            )
+
         return Result(State(Readiness.WAIT, 0, strength), Events())
 
     if stage == Readiness.PREP:
@@ -140,17 +175,29 @@ def step_opportunity(
                 Events(canceled=True),
             )
 
-        # CANDIDATE is intentionally preparation-only.
-        if frame.stage >= OpportunityStage.STRONG and (
-            _momentum_aligned(direction, momentum)
-            and _rsi_supportive(direction, rsi, rsi_context_dir)
-        ):
-            return Result(
-                State(Readiness.ARMED, direction, strength),
-                Events(armed_entered=True),
-            )
+        if frame.stage == OpportunityStage.STRONG:
+            if (
+                _momentum_aligned(direction, momentum)
+                and _rsi_supportive(direction, rsi, rsi_context_dir)
+            ):
+                return Result(
+                    State(Readiness.ARMED, direction, strength),
+                    Events(armed_entered=True),
+                )
+            return Result(State(Readiness.PREP, direction, strength), Events())
 
-        return Result(State(Readiness.PREP, direction, strength), Events())
+        if frame.stage >= OpportunityStage.ACCEPTED:
+            if (
+                _rsi_supportive(direction, rsi, rsi_context_dir)
+                and not _momentum_strongly_opposes(direction, momentum)
+            ):
+                return Result(
+                    State(Readiness.ARMED, direction, strength),
+                    Events(armed_entered=True),
+                )
+            return Result(State(Readiness.PREP, direction, strength), Events())
+
+        return Result(State(Readiness.WAIT, 0, strength), Events(canceled=True))
 
     if stage == Readiness.ARMED:
         if (
@@ -163,13 +210,16 @@ def step_opportunity(
                 Events(canceled=True),
             )
 
-        # Final confirmation requires structural opportunity acceptance.
+        remembered_participation = frame.source_strong
         if (
             frame.stage >= OpportunityStage.ACCEPTED
             and bar_confirmed
-            and _momentum_aligned(direction, momentum)
+            and not _momentum_strongly_opposes(direction, momentum)
             and _rsi_supportive(direction, rsi, rsi_context_dir)
-            and participation == Participation.CONFIRM
+            and (
+                participation == Participation.CONFIRM
+                or remembered_participation
+            )
         ):
             return Result(
                 State(Readiness.CONFIRMED, direction, strength),
