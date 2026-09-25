@@ -29,7 +29,7 @@ The reboot now reduces the six legacy end-user indicators to **two runtime indic
 - **Execution** — lower-pane timing engine for momentum, RSI/exhaustion, volume participation and entry confirmation.
 - **Decision Panel** — a logical synthesis layer embedded in Market Map, **not a third mandatory indicator/script**.
 
-Market Map 0.1.0 is the accepted structural-map baseline on `main`. SignalGate Dashboard 0.1.0 remains preserved as a timing/reload/alert engineering baseline and donor; it is **not** a third final runtime product. The Execution historical research contract is now accepted on `main`; the active product focus is **Execution 0.1.0 production implementation**. Legacy MA 6x, Fibonacci and the other archived scripts remain research evidence/donors, not compatibility requirements. The exact active checkpoint lives in `docs/CHAT_HANDOFF.md`.
+Market Map 0.1.0 and Execution 0.1.0 are the accepted two-indicator suite baseline on `main`. Market Map owns the overlay + embedded Decision Panel; Execution owns the lower timing pane. SignalGate Dashboard 0.1.0 remains preserved only as a timing/reload/alert engineering baseline and donor, **not** a third final runtime product. Legacy MA 6x, Fibonacci and the other archived scripts remain research evidence/donors, not compatibility requirements. The exact continuation checkpoint lives in `docs/CHAT_HANDOFF.md`.
 
 See:
 - `docs/TRADING_SYSTEM_DESIGN.md`
@@ -78,7 +78,7 @@ If interruption occurs between those two checkpoints, the next chat compares the
 - `archive/raw/` — immutable TradingView JSON export
 - `archive/sources/core/` — exact pre-reboot core Pine sources
 - `archive/sources/reference/` — exact pre-reboot donor/reference sources
-- `src/core/` — accepted/current reboot Pine sources (including Market Map 0.1.0 and the preserved SignalGate engineering baseline)
+- `src/core/` — accepted/current reboot Pine sources: Market Map 0.1.0, Execution 0.1.0, plus the preserved SignalGate engineering baseline
 - `docs/` — canonical state, suite architecture, defaults/profiles, extraction, versioning, testing, catalog, audits
 - `tools/tradingview-export/` — read-only extractor and local splitter
 - `manifests/` — machine-readable import inventory
