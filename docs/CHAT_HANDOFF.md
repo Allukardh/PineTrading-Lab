@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — 15m RANGE_ROTATION failure diagnosis  
+**Checkpoint state:** STABLE  
+**Active product front:** Suite 0.2 — 15m RANGE_ROTATION diagnosis complete  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,56 +131,38 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — 15m RANGE_ROTATION failure diagnosis
+### STABLE result — 15m RANGE_ROTATION diagnosis
 
-Active research:
+Research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `d1c1841cf85dfee1823eae5e6f26c68dea54d307`
-
-Closed native gate:
-- workflow `36165729809` — PASS;
-- Static integrity `36165729743` — PASS;
+- diagnosis workflow `36166484535` — PASS;
+- Static integrity `36166484482`, `36166489881` — PASS;
+- documentation head: `080d75942c9757530657f75a34794fcb761ac809`
 - worklog: `docs/worklog/2026-09-25-suite-0.2-native-horizons.md`.
 
-Locks:
-- no 15m retuning before case diagnosis;
-- 1H/4H/1D accepted semantics are not reopened;
-- trend Opportunity v2 unchanged;
-- OPERATOR_READINESS_V1 unchanged;
-- RANGE_ROTATION structural detector unchanged;
-- no production Pine/default/profile change.
+Combined BTC/ETH/AVAX 15m funnel:
+- EDGE_REJECTION: 3,843 episodes / 12.59% failed-before-mid;
+- +1 ACCEPTED: 1,180 / 5.25%;
+- EARLY_ANY1 CONFIRMA: 336 / 4.46%.
 
-Observed 15m issue:
-- BTC: 132 confirms / 6 FAILED_BEFORE_MID;
-- ETH: 118 / 7;
-- AVAX: 86 / 2;
-- total: 336 / 15 = 4.46% failed contamination.
+Decision:
+- 15m RANGE_ROTATION EARLY_ANY1 — **KEEP unchanged**;
+- no stable ignition/regime/geometry discriminant justifies retuning;
+- small residual failure rate is documented lower-timeframe structural noise;
+- no threshold/profile/state-definition changes.
 
-Exact intended work:
-1. reproduce accepted 15m RANGE_ROTATION EARLY_ANY1 independently on BTC/ETH/AVAX;
-2. isolate every confirmed FAILED_BEFORE_MID case;
-3. compare failed confirmed vs successful confirmed on:
-   - source ignition family count/type;
-   - MTE/RSE/PSE source states;
-   - MTE/RSE/PSE ACCEPTED-bar states;
-   - regime relation;
-   - range height ATR;
-   - boundary drift;
-   - source/accepted displacement;
-   - room to opposite edge;
-   - failure latency;
-4. report exact timestamps/case telemetry;
-5. also measure structural +1 ACCEPTED failure contamination before source ignition selection;
-6. determine whether EARLY_ANY1 improves/worsens that baseline contamination;
-7. if no stable discriminant exists, KEEP 15m and document irreducible noise;
-8. if a stable semantic discriminant exists, preregister exactly one minimal refinement before testing;
-9. no threshold tuning from the 15 failures.
+Native horizon state now:
+- 15m trend — KEEP;
+- 15m range — KEEP;
+- 1H trend/range/operator — KEEP;
+- 3D — insufficient representative sample;
+- 1W — insufficient evidence.
 
-Recovery:
-- compare active branch with `d1c1841...`;
-- inspect only newer 15m failure-diagnostic commits/runs/artifacts.
+Next:
+- full 15-symbol unchanged 3D/1W robustness;
+- then derived 1M research.
 
 
 ## 7. Continuity protocol
