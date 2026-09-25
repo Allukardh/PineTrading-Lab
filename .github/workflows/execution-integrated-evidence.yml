@@ -26,8 +26,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      DATA_ROOT: ${{ runner.temp }}/Binance
-      OUT_DIR: ${{ runner.temp }}/execution-integrated
+      DATA_ROOT: /tmp/Binance
+      OUT_DIR: /tmp/execution-integrated
       GH_TOKEN: ${{ github.token }}
 
     steps:
@@ -85,6 +85,6 @@ jobs:
         with:
           name: execution-integrated-btc-evidence
           path: |
-            ${{ runner.temp }}/execution-integrated/execution-integrated-btc.json
-            ${{ runner.temp }}/execution-integrated/execution-integrated-btc.md
+            /tmp/execution-integrated/execution-integrated-btc.json
+            /tmp/execution-integrated/execution-integrated-btc.md
           retention-days: 30
