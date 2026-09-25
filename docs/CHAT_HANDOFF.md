@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** STABLE  
-**Active product front:** Suite 0.2 — REACCELERATION evidence complete  
+**Checkpoint state:** PREPARED  
+**Active product front:** Suite 0.2 — Opportunity Engine counterfactual  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,43 +131,45 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### STABLE result — REACCELERATION opportunity class
+### PREPARED block — first Opportunity Engine counterfactual
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- latest durable research head: `fc63622245a179425be2258da1e268ba278a9681`
+- durable pre-block research head: `fc63622245a179425be2258da1e268ba278a9681`
 
-Closed evidence:
-- breakout acceptance/follow-through;
-- cross-asset breakout/regime discriminants;
-- sequence-based structural context partition;
-- BTC 4H/1D REACCELERATION latency;
-- 15-symbol 1D REACCELERATION robustness.
+Accepted research inputs:
+- frozen 0.1 pullback/retest behavior;
+- breakout lifecycle:
+  - CANDIDATE
+  - STRONG/SUSTAINED
+  - ACCEPTED (HOLD_2 anchor);
+- `REACCELERATION` — KEEP;
+- strict coherent REGIME_REVERSAL — KEEP;
+- raw REGIME_TRANSITION_CANDIDATE — non-actionable;
+- profiles — still unapproved.
 
-Key decision:
-- `REACCELERATION` — **KEEP** for Opportunity Engine research.
+Exact intended work:
+1. define a research-only Opportunity Engine state/context object separate from old `Location`;
+2. preserve 0.1 correction/retest/reclaim behavior exactly as the PADRÃO comparator;
+3. add breakout and reacceleration lifecycle context without pretending they are correction zones;
+4. feed opportunity context into a counterfactual Execution readiness machine while keeping accepted MTE/RSE/PSE semantics unchanged;
+5. compare frozen 0.1 vs counterfactual on:
+   - opportunity coverage;
+   - PREPARANDO / ARMADO / CONFIRMA timing;
+   - cancellation/churn;
+   - held/fakeout structural diagnostics;
+   - direction balance;
+6. begin on BTC 4H/1D;
+7. only if semantics hold, expand unchanged to ETH/AVAX;
+8. no production Pine/default/profile change in this block;
+9. RANGE_ROTATION remains deferred.
 
-Daily universe evidence:
-- 238 episodes across 15 symbols;
-- frozen 0.1 CONFIRMA/aligned coverage: 0.84%;
-- dominant miss: `LOCATION_NOT_RELEVANT`;
-- HOLD_2 held recall: 95.90%;
-- HOLD_2 fakeout accepted: 31.86%;
-- held share among accepted resolved: 76.47%.
-
-Interpretation lock:
-- held/fakeout is a structural diagnostic, not win rate;
-- the opportunity label is known at structural-break close;
-- HOLD_2 is later acceptance and never backdates;
-- no production Pine/default/profile changed.
-
-Detailed worklog:
-`docs/worklog/2026-09-25-suite-0.2-reacceleration.md`
-
-Exact next discriminant:
-- build a research-only Opportunity Engine counterfactual combining accepted pullback/retest behavior with breakout and REACCELERATION lifecycles.
+Recovery:
+- compare branch with `fc636222...`;
+- inspect only newer commits/runs/artifacts;
+- do not rerun closed breakout/reacceleration discovery work unless a defect appears.
 
 
 ## 7. Continuity protocol
