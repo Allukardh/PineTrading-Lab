@@ -38,7 +38,10 @@ def classify_breakout(
     episode: OpportunityEpisode,
     snapshots: Sequence[IntegrationSnapshot],
 ) -> EpisodeOutcome:
-    if episode.opportunity_type != OpportunityType.BREAKOUT_CANDIDATE:
+    if episode.opportunity_type not in {
+        OpportunityType.BREAKOUT_CANDIDATE,
+        OpportunityType.REACCELERATION,
+    }:
         return EpisodeOutcome(
             episode.episode_id,
             CandidateOutcome.NOT_APPLICABLE,
@@ -153,7 +156,10 @@ def classify_all(
     out: dict[str, EpisodeOutcome] = {}
 
     for episode in episodes:
-        if episode.opportunity_type == OpportunityType.BREAKOUT_CANDIDATE:
+        if episode.opportunity_type in {
+            OpportunityType.BREAKOUT_CANDIDATE,
+            OpportunityType.REACCELERATION,
+        }:
             out[episode.episode_id] = classify_breakout(episode, snapshots)
         elif episode.opportunity_type == OpportunityType.REGIME_TRANSITION_CANDIDATE:
             out[episode.episode_id] = regime[episode.episode_id]
