@@ -397,6 +397,40 @@ def summarize_integrated(
         if i in active_exec_set:
             strength_family_combo_active[combo] += 1
 
+    active_participation = Counter(
+        samples[i].participation_state_name for i in active_exec
+    )
+
+    # Diagnostic counterfactual only: test the semantic distinction between
+    # low participation (WEAK) and participation actively opposing the thesis
+    # (CONTRARY). This does not alter the canonical state machine in this run.
+    contrary_only_strength_coherent = Counter()
+    contrary_only_strength_active = Counter()
+    for i in coherent:
+        direction = snapshots[i].map_dir
+        m = Momentum[samples[i].momentum_state_name]
+        r = RsiState[samples[i].rsi_state_name]
+        p = _participation_enum(samples[i].participation_state_name)
+        deterioration = sum(
+            (
+                _momentum_deteriorates(direction, m),
+                _rsi_deteriorates(direction, r),
+                p == Participation.CONTRARY,
+            )
+        )
+        alt = (
+            "REACTION_RISK"
+            if locations[i] == Location.DESTINATION_NEAR and deterioration >= 2
+            else "EXHAUSTED"
+            if deterioration >= 2
+            else "FADING"
+            if deterioration == 1
+            else "NORMAL"
+        )
+        contrary_only_strength_coherent[alt] += 1
+        if i in active_exec_set:
+            contrary_only_strength_active[alt] += 1
+
     reaction_risk = [
         i for i in coherent if samples[i].result.state.strength == Strength.REACTION_RISK
     ]
@@ -474,6 +508,22 @@ def summarize_integrated(
             "family_combo_pct_confirmed_aligned": {
                 k: pct(v, len(active_exec))
                 for k, v in sorted(strength_family_combo_active.items())
+            },
+            "participation_state_counts_confirmed_aligned": dict(sorted(active_participation.items())),
+            "participation_state_pct_confirmed_aligned": {
+                k: pct(v, len(active_exec)) for k, v in sorted(active_participation.items())
+            },
+            "counterfactual_pse_contrary_only": {
+                "coherent_counts": dict(sorted(contrary_only_strength_coherent.items())),
+                "coherent_pct": {
+                    k: pct(v, len(coherent))
+                    for k, v in sorted(contrary_only_strength_coherent.items())
+                },
+                "confirmed_aligned_counts": dict(sorted(contrary_only_strength_active.items())),
+                "confirmed_aligned_pct": {
+                    k: pct(v, len(active_exec))
+                    for k, v in sorted(contrary_only_strength_active.items())
+                },
             },
             "reaction_risk_bars": len(reaction_risk),
             "reaction_risk_pct_of_destination_near": pct(
