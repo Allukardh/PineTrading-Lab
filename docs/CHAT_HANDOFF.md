@@ -131,67 +131,62 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — ANTECIPADO_TREND native-horizon validation
+### PREPARED block — final ANTECIPADO_TREND 3D/1W universe gate
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `49dbfaa4574f9248384ef9e96a038127dd969a0a`
+- durable pre-block research head: `46a5790f93f17d402b6f02ade21bd46391d48e6b`
 
-Closed profile gates:
-- BTC first-pass `36185483411` — PASS;
-- BTC refined quality `36186000295` — PASS;
-- ETH/AVAX 4H/1D `36186309267` — PASS;
-- 15-symbol 1D `36186640714` — PASS;
+Closed profile evidence:
+- BTC first-pass — PASS;
+- BTC refined quality — PASS;
+- ETH/AVAX 4H/1D — PASS;
+- 15-symbol 1D — PASS;
+- BTC/ETH/AVAX 15m/1H/3D/1W native horizons `36187004128` — PASS;
 - Static integrity — PASS;
 - worklog: `docs/worklog/2026-09-25-suite-0.2-responsiveness-profiles.md`.
 
-Current decisions:
+Current profile status:
 - PADRÃO — KEEP;
 - naive all-path ANTECIPADO — REMOVE;
 - CONFIRMADO +1 — REMOVE;
-- ANTECIPADO_TREND 4H — KEEP candidate;
-- ANTECIPADO_TREND 1D — KEEP candidate.
+- ANTECIPADO_TREND:
+  - 15m — KEEP candidate;
+  - 1H — KEEP candidate;
+  - 4H — KEEP candidate;
+  - 1D — KEEP candidate;
+  - 3D — promising, sample sparse;
+  - 1W — insufficient sample.
 
-15-symbol 1D evidence:
-- early TREND events on 15/15 symbols;
-- BREAKOUT: converted 21 HELD / 0 FAKEOUT; nonconverted 38 / 7;
-- REACCELERATION: converted 8 / 1; nonconverted 22 / 4;
-- quick nonconverted <=3 bars = 100%;
-- median lead = 1 bar;
-- BREAKOUT median move consumed waiting for PADRÃO = 0.25 ATR.
-
-Product semantic lock:
-- ANTECIPADO is an earlier opportunity/action event, not a relabeled CONFIRMA;
-- transient early readiness is expected and must not be presented as persistent confirmation.
+Native-horizon highlights:
+- 15m BREAKOUT nonconverted HELD: BTC 87.09%, ETH 90.26%, AVAX 85.95%;
+- 1H BREAKOUT nonconverted HELD: BTC 94.07%, ETH 93.88%, AVAX 95.70%;
+- 3D: 10 three-asset breakout early events, all HELD;
+- 1W: only one three-asset breakout early event.
 
 Exact intended work:
-1. validate unchanged ANTECIPADO_TREND on BTC/ETH/AVAX:
-   - 15m
-   - 1H
-   - 3D
-   - 1W
-2. reuse the accepted native-horizon dataset/context semantics;
-3. no per-timeframe or per-asset tuning;
-4. measure:
-   - event density;
-   - LONG/SHORT balance;
-   - converted/nonconverted BREAKOUT HELD vs FAKEOUT;
-   - converted/nonconverted REACCELERATION HELD vs FAKEOUT;
-   - conversion to PADRÃO;
+1. run unchanged ANTECIPADO_TREND on the accepted 15-symbol 3D/1W universe;
+2. preserve accepted high-horizon semantics:
+   - daily reference levels disabled;
+   - no synthetic daily inputs;
+3. no per-symbol/horizon tuning;
+4. aggregate:
+   - event breadth;
+   - BREAKOUT converted/nonconverted HELD vs FAKEOUT;
+   - REACCELERATION quality;
+   - conversion;
    - quick nonconverted churn;
-   - lead bars / ATR movement;
-5. if 3D/1W are too sparse across three assets, use the existing accepted 15-symbol high-horizon universe before deciding;
-6. final Phase E decision must be either:
-   - PADRÃO only; or
-   - PADRÃO + ANTECIPADO_TREND with clearly documented horizon semantics;
+   - LONG/SHORT balance;
+5. close Phase E after this gate;
+6. final profile set must be documented without forcing unsupported horizons/features;
 7. no production Pine/default/profile/panel change.
 
 Recovery:
-- compare branch with `49dbfaa...`;
-- inspect only newer native-horizon profile commits/runs/artifacts;
-- do not reopen removed profile variants.
+- compare branch with `46a5790f...`;
+- inspect only newer high-horizon profile universe commits/runs/artifacts;
+- after result, close Phase E rather than opening another profile variant.
 
 
 ## 7. Continuity protocol
