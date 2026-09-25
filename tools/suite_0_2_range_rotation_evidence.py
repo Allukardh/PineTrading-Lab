@@ -87,17 +87,17 @@ def _baseline_response_summary(responses) -> dict:
             "missed_reason_counts": {},
         }
     missed = Counter(r.missed_reason for r in responses if r.missed_reason)
+    prep_count = sum(r.already_preparing_or_better for r in responses)
+    armed_count = sum(r.armed_bar is not None for r in responses)
+    covered_count = sum((r.confirm_bar is not None) or r.already_aligned for r in responses)
     return {
         "episodes": n,
-        "already_preparing_or_better_pct": pct(
-            sum(r.already_preparing_or_better for r in responses), n
-        ),
-        "reached_armed_pct": pct(
-            sum(r.armed_bar is not None for r in responses), n
-        ),
-        "confirmed_or_already_aligned_pct": pct(
-            sum((r.confirm_bar is not None) or r.already_aligned for r in responses), n
-        ),
+        "already_preparing_or_better_count": prep_count,
+        "already_preparing_or_better_pct": pct(prep_count, n),
+        "reached_armed_count": armed_count,
+        "reached_armed_pct": pct(armed_count, n),
+        "covered_count": covered_count,
+        "confirmed_or_already_aligned_pct": pct(covered_count, n),
         "confirm_latency_bars": _dist([r.confirm_latency_bars for r in responses]),
         "missed_reason_counts": dict(sorted(missed.items())),
     }
@@ -181,6 +181,7 @@ def analyze_timeframe(timeframe: str, datasets: dict[str, dict], tick_size: floa
         "frozen_0_1_response": _baseline_response_summary(responses),
         "by_trigger": {},
         "by_regime_relation": {},
+        "by_trigger_and_regime_relation": {},
     }
 
     for name, indices in _group_indices(episodes, "trigger").items():
@@ -200,6 +201,23 @@ def analyze_timeframe(timeframe: str, datasets: dict[str, dict], tick_size: floa
             "structural": _outcome_summary(es, os),
             "frozen_0_1_response": _baseline_response_summary(rs),
         }
+
+    for trigger in RangeTrigger:
+        for relation in RegimeRelation:
+            indices = [
+                i for i, e in enumerate(episodes)
+                if e.trigger == trigger and e.regime_relation == relation
+            ]
+            if not indices:
+                continue
+            key = f"{trigger.value}/{relation.value}"
+            es = [episodes[i] for i in indices]
+            os = [outcomes[i] for i in indices]
+            rs = [responses[i] for i in indices]
+            result["by_trigger_and_regime_relation"][key] = {
+                "structural": _outcome_summary(es, os),
+                "frozen_0_1_response": _baseline_response_summary(rs),
+            }
 
     return result
 
