@@ -69,6 +69,8 @@ def main() -> int:
             "plot(mteReady ? mteCore : na, \"Momentum\"",
             'plot(executionReadiness, "EX • Readiness"',
             'plot(executionStrength, "EX • Força"',
+            'var table statusCue = table.new(position.top_right, 1, 1',
+            'string statusText = f_execution_txt(executionReadiness, executionDir) + " • " + f_strength_txt(executionStrength)',
         ],
         "Execution",
     )
@@ -211,6 +213,46 @@ def main() -> int:
             )
 
     expect_num(mm, "EX_DEFAULTS_VERSION", 2)
+
+    embedded_semantic_pairs = [
+        ("MTE_NEUTRAL", "EX_MTE_NEUTRAL"),
+        ("MTE_TURN_UP", "EX_MTE_TURN_UP"),
+        ("MTE_UP_ACCEL", "EX_MTE_UP_ACCEL"),
+        ("MTE_UP_DECEL", "EX_MTE_UP_DECEL"),
+        ("MTE_TURN_DOWN", "EX_MTE_TURN_DOWN"),
+        ("MTE_DOWN_ACCEL", "EX_MTE_DOWN_ACCEL"),
+        ("MTE_DOWN_DECEL", "EX_MTE_DOWN_DECEL"),
+        ("RSI_NEUTRAL", "EX_RSI_NEUTRAL"),
+        ("RSI_BULL", "EX_RSI_BULL"),
+        ("RSI_RECOVERING_OVERSOLD", "EX_RSI_RECOVERING_OVERSOLD"),
+        ("RSI_RECOVERING_OVERBOUGHT", "EX_RSI_RECOVERING_OVERBOUGHT"),
+        ("RSI_EXTREME_OVERBOUGHT", "EX_RSI_EXTREME_OVERBOUGHT"),
+        ("RSI_EXTREME_OVERSOLD", "EX_RSI_EXTREME_OVERSOLD"),
+        ("RSI_FADING_OVERSOLD", "EX_RSI_FADING_OVERSOLD"),
+        ("RSI_FADING_OVERBOUGHT", "EX_RSI_FADING_OVERBOUGHT"),
+        ("RSI_BEAR", "EX_RSI_BEAR"),
+        ("PSE_NEUTRAL", "EX_PSE_NEUTRAL"),
+        ("PSE_CONFIRM", "EX_PSE_CONFIRM"),
+        ("PSE_WEAK", "EX_PSE_WEAK"),
+        ("PSE_CONTRARY", "EX_PSE_CONTRARY"),
+        ("READY_WAIT", "EX_READY_WAIT"),
+        ("READY_PREP", "EX_READY_PREP"),
+        ("READY_ARMED", "EX_READY_ARMED"),
+        ("READY_CONFIRMED", "EX_READY_CONFIRMED"),
+        ("READY_ALIGNED", "EX_READY_ALIGNED"),
+        ("STRENGTH_NORMAL", "EX_STRENGTH_NORMAL"),
+        ("STRENGTH_FADING", "EX_STRENGTH_FADING"),
+        ("STRENGTH_EXHAUSTED", "EX_STRENGTH_EXHAUSTED"),
+        ("STRENGTH_REACTION_RISK", "EX_STRENGTH_REACTION_RISK"),
+    ]
+    for execution_name, market_name in embedded_semantic_pairs:
+        a = number(ex, execution_name)
+        b = number(mm, market_name)
+        if a != b:
+            fail(
+                f"Execution/embedded semantic-code drift: "
+                f"{execution_name}={a} {market_name}={b}"
+            )
 
     require(
         mm,
