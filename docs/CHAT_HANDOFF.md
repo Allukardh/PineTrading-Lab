@@ -131,54 +131,56 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — responsiveness/profile counterfactuals
+### PREPARED block — refined responsiveness/profile quality gate
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `5bcc6efa167fe336a76b6684fe9888ce8b0b5e82`
+- current refined-gate implementation head: `22f13329b1203f6250838b155c8e4164878e656f`
 
-Closed prerequisites:
-- Opportunity Engine v2 accepted in research;
-- RANGE_ROTATION EARLY_ANY1 accepted in research;
-- OPERATOR_READINESS_V1 accepted in research;
-- native horizon study 15m/1H/3D/1W completed;
-- deterministic 1M macro-context role established;
-- capability-aware Thesis Management V1.1 accepted in research.
+Closed first-pass profile evidence:
+- BTC workflow `36185483411` — PASS;
+- Static integrity — PASS;
+- worklog: `docs/worklog/2026-09-25-suite-0.2-responsiveness-profiles.md`.
 
-Profile candidates remain **unapproved**:
-- ANTECIPADO
-- PADRÃO
-- CONFIRMADO
+First-pass decisions:
+- PADRÃO = exact OPERATOR_READINESS_V1 comparator — KEEP;
+- naive all-path ANTECIPADO = REMOVE / DO NOT SHIP;
+- CONFIRMADO +1 persistence = candidate pending quality discrimination.
 
-Locks:
-- PADRÃO comparator = accepted OPERATOR_READINESS_V1 / accepted opportunity semantics;
-- no production Pine/default/panel change;
-- no lookahead/repaint;
-- no per-asset tuning;
-- profiles, if retained, must be coherent behavior bundles rather than exposed raw thresholds.
+Why naive ANTECIPADO was rejected:
+- BTC 4H: 854 events, 16.51% converted to PADRÃO, 69.79% quick nonconverted <=3 bars;
+- BTC 1D: 96 events, 10.42% converted, 79.17% quick nonconverted <=3;
+- frozen pullback/retest path dominates the noise;
+- TREND_OPPORTUNITY_V2 conversion is materially higher (41.10% 4H; 33.33% 1D).
+
+Pre-registered refined gate:
+
+**ANTECIPADO_TREND**
+- only newly-ARMED `TREND_OPPORTUNITY_V2` is eligible;
+- conversion must be earned by TREND itself; another path cannot rescue it;
+- compare BREAKOUT / REACCELERATION structural HELD vs FAKEOUT for converted vs nonconverted;
+- strict REGIME_REVERSAL tracked separately;
+- measure lead bars and ATR move consumed while waiting for PADRÃO.
+
+**CONFIRMADO +1 quality**
+- PADRÃO remains exact unified CONFIRMA;
+- +1 requires persistence of a source that actually confirmed, same direction, no conflict;
+- compare +1-survived vs +1-rejected against capability-aware Management V1.1 outcomes and anchor classes.
 
 Exact intended work:
-1. audit accepted readiness paths and existing latency evidence;
-2. define profile counterfactuals in terms of lifecycle/evidence burden, not arbitrary EMA/RSI numbers;
-3. measure on BTC 4H/1D first:
-   - opportunity coverage;
-   - PREP / ARMED / CONFIRMA latency;
-   - ATR displacement consumed;
-   - remaining structural room;
-   - cancellations / <=3-bar churn;
-   - held/fakeout and structural-failure diagnostics where applicable;
-4. require PADRÃO exact parity with accepted research baseline;
-5. only if useful tradeoffs exist, validate unchanged on ETH/AVAX;
-6. then test broader/horizon robustness as warranted;
-7. if profiles do not create distinct useful operating modes, **do not ship a profile selector**;
-8. no production Pine/default/profile/panel change in this block.
+1. run refined BTC 4H/1D quality gate;
+2. determine whether ANTECIPADO_TREND adds useful earlier structural coverage or remains too noisy;
+3. determine whether CONFIRMADO rejects materially poorer theses enough to justify one-bar delay;
+4. only if a candidate survives this quality gate, validate unchanged on ETH/AVAX;
+5. do not force three profiles if evidence supports fewer or none;
+6. no production Pine/default/profile/panel change.
 
 Recovery:
-- compare active branch with `5bcc6efa...`;
-- inspect only newer profile/responsiveness commits/runs/artifacts;
-- do not reopen closed Opportunity, horizon or management research without a concrete defect.
+- compare branch with `22f13329...`;
+- inspect only newer profile-quality workflow commits/runs/artifacts;
+- do not reopen closed Opportunity/horizon/management research.
 
 
 ## 7. Continuity protocol
