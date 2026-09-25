@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** STABLE  
-**Active product front:** Suite 0.2 — 3D/1W robustness closed  
+**Checkpoint state:** PREPARED  
+**Active product front:** Suite 0.2 — deterministic 1M derivation and evidence  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,46 +131,43 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### STABLE result — 15-symbol 3D / 1W robustness
+### PREPARED block — deterministic 1M derivation and evidence
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- stable research head: `3ffa1ea611620482541379a594b206cdc3366176`
+- durable pre-block research head: `3ffa1ea611620482541379a594b206cdc3366176`
 
-Evidence:
+Closed higher-horizon gate:
 - 15-symbol 3D/1W workflow `36169376120` — PASS;
 - Static integrity `36169375869`, `36169380801` — PASS;
-- artifact `10879982066`;
-- worklog: `docs/worklog/2026-09-25-suite-0.2-native-horizons.md`.
+- 3D = KEEP;
+- 1W semantics = KEEP, opportunity-effectiveness confidence sparse.
 
-Decisions:
-- 3D trend Opportunity v2 — KEEP unchanged;
-- 3D RANGE_ROTATION EARLY_ANY1 — KEEP unchanged;
-- 3D OPERATOR_READINESS_V1 — KEEP unchanged;
-- 1W semantic/operator machinery — KEEP unchanged;
-- 1W opportunity-effectiveness confidence — INSUFFICIENT due sparse event frequency;
-- no weekly retuning/profile;
-- accepted 15m/1H/4H/1D semantics remain unchanged;
-- no production Pine/default changes.
+Exact intended work:
+1. define deterministic UTC calendar-month OHLCV aggregation from accepted 1D production candles;
+2. add unit tests for month boundaries / OHLCV semantics / deterministic output;
+3. do **not** substitute 1W for 1M;
+4. add research-only 1M horizon support to the offline kernel only where required;
+5. keep daily reference levels disabled on 1M;
+6. explicitly document whether weekly structural reference levels remain part of 1M research semantics;
+7. run first 1M evidence on BTC/ETH/AVAX;
+8. if coherent, run full 15-symbol 1M robustness;
+9. report:
+   - derived monthly row counts / provenance hashes;
+   - trend opportunity breadth / confirmations;
+   - RANGE_ROTATION breadth / +1 acceptance / confirms / failed-before-mid;
+   - OPERATOR_READINESS parity/conflicts;
+   - latency in bars and calendar time where observable;
+10. no per-symbol/horizon retuning;
+11. no profiles or production Pine/default changes;
+12. native 1M pipeline artifacts remain unnecessary unless parity/reproducibility evidence proves otherwise.
 
-Key aggregate 3D evidence:
-- breakout candidates 106; HELD/FAKEOUT confirms 9/0;
-- reacceleration candidates 106; HELD/FAKEOUT confirms 6/0;
-- range episodes 26 across 11 symbols; 7 confirms; 0 failed-before-mid;
-- operator parity 100%; zero conflicts.
-
-Key 1W evidence:
-- breakout candidates 45;
-- reacceleration candidates 23;
-- range episodes 8 across 6 symbols;
-- one range confirm, zero failed-before-mid;
-- operator parity 100%; zero conflicts;
-- frequency remains too sparse for strong effectiveness conclusions.
-
-Next research frontier:
-- deterministic 1M calendar aggregation from accepted 1D production data.
+Recovery:
+- compare active branch with `3ffa1ea...`;
+- inspect only newer monthly aggregation / 1M support / evidence commits and runs;
+- do not reopen closed 3D/1W decisions unless a monthly implementation defect exposes a shared higher-horizon bug.
 
 
 ## 7. Continuity protocol
