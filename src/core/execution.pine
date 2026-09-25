@@ -1745,67 +1745,36 @@ if barstate.islast
     table.cell(statusCue, 0, 0, statusText, text_color=statusColor, text_size=size.small)
 
 // ---------------------------------------------------------------------------
-// Data Window diagnostics — hidden from normal pane
+// Data Window diagnostics — plot-budgeted for TradingView's 64-count ceiling
 // ---------------------------------------------------------------------------
+// Keep semantic states needed for parity/reload validation. Raw intermediate
+// telemetry remains calculated internally but is not emitted as one plot each.
 plot(EXECUTION_CONTRACT, "EX Audit • Contract", color=color.new(color.white, 100), display=display.data_window)
 plot(EXECUTION_DEFAULTS_VERSION, "EX Audit • Defaults", color=color.new(color.white, 100), display=display.data_window)
 plot(barstate.isconfirmed ? 1 : 0, "EX Audit • Confirmado", color=color.new(color.white, 100), display=display.data_window)
 
-plot(mteReady ? 1 : 0, "EX MTE • Ready", color=color.new(color.white, 100), display=display.data_window)
-plot(mteCore, "EX MTE • Core", color=color.new(color.white, 100), display=display.data_window)
-plot(mteAccel, "EX MTE • Aceleração", color=color.new(color.white, 100), display=display.data_window)
-plot(mteNeutralBand, "EX MTE • Banda neutra", color=color.new(color.white, 100), display=display.data_window)
-plot(mteTurnBand, "EX MTE • Banda turn", color=color.new(color.white, 100), display=display.data_window)
 plot(mteState, "EX MTE • Estado", color=color.new(color.white, 100), display=display.data_window)
-
-plot(rsiReady ? 1 : 0, "EX RSE • Ready", color=color.new(color.white, 100), display=display.data_window)
-plot(rsiLocal, "EX RSE • RSI local", color=color.new(color.white, 100), display=display.data_window)
-plot(rsiStep, "EX RSE • Passo", color=color.new(color.white, 100), display=display.data_window)
 plot(rsiState, "EX RSE • Estado", color=color.new(color.white, 100), display=display.data_window)
-plot(rsiContextValue, "EX RSE • RSI contexto confirmado", color=color.new(color.white, 100), display=display.data_window)
 plot(rsiContextDir, "EX RSE • Direção contexto", color=color.new(color.white, 100), display=display.data_window)
-
-plot(pseReady ? 1 : 0, "EX PSE • Ready", color=color.new(color.white, 100), display=display.data_window)
-plot(relativeVolume, "EX PSE • Volume relativo", color=color.new(color.white, 100), display=display.data_window)
-plot(pressureProxy, "EX PSE • Pressão proxy", color=color.new(color.white, 100), display=display.data_window)
-plot(strongExpansion ? 1 : 0, "EX PSE • Expansão forte", color=color.new(color.white, 100), display=display.data_window)
-plot(directionalPressure, "EX PSE • Pressão direcional", color=color.new(color.white, 100), display=display.data_window)
 plot(participationState, "EX PSE • Estado", color=color.new(color.white, 100), display=display.data_window)
-
 plot(mapDir, "EX MM • MapDir", color=color.new(color.white, 100), display=display.data_window)
 plot(executionLocation, "EX MM • Localização", color=color.new(color.white, 100), display=display.data_window)
-plot(thesisInvalidated ? 1 : 0, "EX MM • Tese invalidada", color=color.new(color.white, 100), display=display.data_window)
-plot(mmRegimeStructureConflict ? 1 : 0, "EX MM • Conflito estrutural", color=color.new(color.white, 100), display=display.data_window)
-
-plot(executionReadiness, "EX • Readiness", color=color.new(color.white, 100), display=display.data_window)
-plot(executionDir, "EX • Direção", color=color.new(color.white, 100), display=display.data_window)
 plot(executionStrength, "EX • Força", color=color.new(color.white, 100), display=display.data_window)
-plot(preparingEntered ? 1 : 0, "EX EVT • Preparando", color=color.new(color.white, 100), display=display.data_window)
-plot(armedEntered ? 1 : 0, "EX EVT • Armado", color=color.new(color.white, 100), display=display.data_window)
-plot(confirmEvent ? 1 : 0, "EX EVT • Confirma", color=color.new(color.white, 100), display=display.data_window)
-plot(canceledEvent ? 1 : 0, "EX EVT • Cancela", color=color.new(color.white, 100), display=display.data_window)
-plot(reactionRiskEntered ? 1 : 0, "EX EVT • Risco reação", color=color.new(color.white, 100), display=display.data_window)
 
-// Suite 0.2 independent-path / operator audit.
+// Suite 0.2 independent source paths.
 plot(trendOppKind, "EX 0.2 • Trend oportunidade", color=color.new(color.white, 100), display=display.data_window)
 plot(trendOppStage, "EX 0.2 • Trend estágio", color=color.new(color.white, 100), display=display.data_window)
 plot(trendOppDir, "EX 0.2 • Trend direção", color=color.new(color.white, 100), display=display.data_window)
-plot(trendOppSourceBar, "EX 0.2 • Trend source bar", color=color.new(color.white, 100), display=display.data_window)
-plot(trendOppSourceStrong ? 1 : 0, "EX 0.2 • Trend source strong", color=color.new(color.white, 100), display=display.data_window)
 plot(trendReadiness, "EX 0.2 • Trend readiness", color=color.new(color.white, 100), display=display.data_window)
 plot(trendConfirmEvent ? 1 : 0, "EX 0.2 • Trend confirma", color=color.new(color.white, 100), display=display.data_window)
 
 plot(rangeBoxValid ? 1 : 0, "EX 0.2 • Range válido", color=color.new(color.white, 100), display=display.data_window)
-plot(rangeBoxHigh, "EX 0.2 • Range high", color=color.new(color.white, 100), display=display.data_window)
-plot(rangeBoxLow, "EX 0.2 • Range low", color=color.new(color.white, 100), display=display.data_window)
-plot(rangeBoxMid, "EX 0.2 • Range mid", color=color.new(color.white, 100), display=display.data_window)
 plot(rangeOppStage, "EX 0.2 • Range estágio", color=color.new(color.white, 100), display=display.data_window)
 plot(rangeOppDir, "EX 0.2 • Range direção", color=color.new(color.white, 100), display=display.data_window)
-plot(rangeOppSourceBar, "EX 0.2 • Range source bar", color=color.new(color.white, 100), display=display.data_window)
 plot(rangeReadiness, "EX 0.2 • Range readiness", color=color.new(color.white, 100), display=display.data_window)
-plot(rangeIgnitionCount, "EX 0.2 • Range ignição", color=color.new(color.white, 100), display=display.data_window)
 plot(rangeConfirmEvent ? 1 : 0, "EX 0.2 • Range confirma", color=color.new(color.white, 100), display=display.data_window)
 
+// Operator projection: primary cross-script/reload evidence.
 plot(operatorReadiness, "EX 0.2 • Operator readiness", color=color.new(color.white, 100), display=display.data_window)
 plot(operatorDir, "EX 0.2 • Operator direção", color=color.new(color.white, 100), display=display.data_window)
 plot(operatorConflict ? 1 : 0, "EX 0.2 • Operator conflito", color=color.new(color.white, 100), display=display.data_window)
@@ -1814,11 +1783,12 @@ plot(operatorOppKind, "EX 0.2 • Operator oportunidade", color=color.new(color.
 plot(operatorConfirmEvent ? 1 : 0, "EX 0.2 • Operator confirma", color=color.new(color.white, 100), display=display.data_window)
 plot(anticipatedPosture ? 1 : 0, "EX 0.2 • Perfil antecipado ativo", color=color.new(color.white, 100), display=display.data_window)
 plot(anticipatedEvent ? 1 : 0, "EX 0.2 • Evento antecipado", color=color.new(color.white, 100), display=display.data_window)
-plot(monthlyMacroContextEnabled ? 1 : 0, "EX 0.2 • Macro mensal habilitado", color=color.new(color.white, 100), display=display.data_window)
+
+// High-horizon context.
 plot(monthlyMacroAvailable ? 1 : 0, "EX 0.2 • Macro mensal disponível", color=color.new(color.white, 100), display=display.data_window)
 plot(monthlyMacroDir, "EX 0.2 • Macro mensal direção", color=color.new(color.white, 100), display=display.data_window)
-plot(monthlyMacroOnly ? 1 : 0, "EX 0.2 • Mensal macro-only", color=color.new(color.white, 100), display=display.data_window)
 
+// Thesis-management parity.
 plot(managementActive ? 1 : 0, "EX 0.2 • Gestão ativa", color=color.new(color.white, 100), display=display.data_window)
 plot(managementState, "EX 0.2 • Gestão estado", color=color.new(color.white, 100), display=display.data_window)
 plot(managementDir, "EX 0.2 • Gestão direção", color=color.new(color.white, 100), display=display.data_window)
@@ -1827,9 +1797,3 @@ plot(managementOppKind, "EX 0.2 • Gestão oportunidade", color=color.new(color
 plot(managementCapability, "EX 0.2 • Gestão capacidade", color=color.new(color.white, 100), display=display.data_window)
 plot(managementTarget, "EX 0.2 • Gestão alvo congelado", color=color.new(color.white, 100), display=display.data_window)
 plot(managementInvalidation, "EX 0.2 • Gestão invalidação congelada", color=color.new(color.white, 100), display=display.data_window)
-plot(managementPathProgress, "EX 0.2 • Gestão progresso", color=color.new(color.white, 100), display=display.data_window)
-plot(managementTargetRoomAtr, "EX 0.2 • Gestão room ATR", color=color.new(color.white, 100), display=display.data_window)
-plot(managementInvalidationBufferAtr, "EX 0.2 • Gestão buffer ATR", color=color.new(color.white, 100), display=display.data_window)
-plot(managementCompletedEvent ? 1 : 0, "EX 0.2 • Gestão concluída evt", color=color.new(color.white, 100), display=display.data_window)
-plot(managementInvalidatedEvent ? 1 : 0, "EX 0.2 • Gestão invalidada evt", color=color.new(color.white, 100), display=display.data_window)
-plot(managementAmbiguousEvent ? 1 : 0, "EX 0.2 • Gestão ambígua evt", color=color.new(color.white, 100), display=display.data_window)
