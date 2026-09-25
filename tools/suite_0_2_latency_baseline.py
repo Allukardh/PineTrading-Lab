@@ -242,6 +242,10 @@ def analyze_timeframe(
     by_outcome = defaultdict(list)
     outcome_counts = Counter()
     outcome_latency = defaultdict(list)
+    regime_horizons = {
+        str(n): {"MATURED": 0, "FAILED": 0, "UNRESOLVED": 0}
+        for n in (12, 24, 48)
+    }
 
     for response in responses:
         by_type[response.opportunity_type].append(response)
@@ -254,6 +258,21 @@ def analyze_timeframe(
                 outcome_latency[outcome].append(
                     outcome_obj.outcome_bar - response.confirmation_bar
                 )
+
+        if response.opportunity_type == "REGIME_TRANSITION_CANDIDATE":
+            lag = (
+                None
+                if outcome_obj.outcome_bar is None
+                else outcome_obj.outcome_bar - response.confirmation_bar
+            )
+            for horizon in (12, 24, 48):
+                bucket = regime_horizons[str(horizon)]
+                if outcome == "REGIME_MATURED" and lag is not None and lag <= horizon:
+                    bucket["MATURED"] += 1
+                elif outcome == "REGIME_FAILED" and lag is not None and lag <= horizon:
+                    bucket["FAILED"] += 1
+                else:
+                    bucket["UNRESOLVED"] += 1
 
     return {
         "rows": len(chart),
@@ -273,6 +292,7 @@ def analyze_timeframe(
                 outcome: _response_summary(items)
                 for outcome, items in sorted(by_outcome.items())
             },
+            "regime_transition_horizons": regime_horizons,
         },
         "examples": _examples(responses, data["open_time"]),
     }
@@ -337,6 +357,20 @@ def markdown_report(report: dict) -> str:
                     armed=_fmt(summary["reached_armed_pct"]),
                     covered=_fmt(summary["confirmed_or_already_aligned_pct"]),
                 )
+            )
+
+    lines += [
+        "",
+        "## Regime-transition outcome by observation window",
+        "",
+        "| TF | horizon bars | matured | failed | unresolved |",
+        "| --- | ---: | ---: | ---: | ---: |",
+    ]
+
+    for tf, item in report["timeframes"].items():
+        for horizon, counts in item["candidate_outcomes"]["regime_transition_horizons"].items():
+            lines.append(
+                f"| {tf} | {horizon} | {counts['MATURED']} | {counts['FAILED']} | {counts['UNRESOLVED']} |"
             )
 
     lines += [
