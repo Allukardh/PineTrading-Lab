@@ -3,8 +3,8 @@
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
 **Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — Phase G TradingView cross-script/reload gate  
-**Operator evidence required now:** yes — 6 TradingView screenshots
+**Active product front:** Suite 0.2 — Phase G runtime plot-count repair before TradingView cross-script/reload gate  
+**Operator evidence required now:** blocked until runtime repair passes
 
 ## 1. Resume order
 
@@ -153,6 +153,14 @@ Automated Phase G gate — CLOSED:
 - Execution v0.2.0 compiles
 - cross-script static/default/semantic contract checker passes
 - no research retuning was introduced during compile cleanup
+
+Manual gate blocker discovered on BTCUSDT 4H PADRÃO:
+- Market Map runtime error RE10140: 94 plot counts > TradingView limit 64;
+- Execution runtime error RE10140: 82 plot counts > TradingView limit 64;
+- both scripts fail before rendering;
+- classify as production instrumentation/translation defect first, not a research-semantic defect;
+- do not retune thresholds/profiles/opportunity/management logic;
+- repair plot-count footprint, preferably diagnostics/audit instrumentation, preserve required parity telemetry, then rerun Static integrity + Pine compile before asking the operator to resume the same six-screenshot matrix.
 
 Current runtime contract:
 - frozen 0.1 correction/retest/reclaim path independent;
