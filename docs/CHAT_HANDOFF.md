@@ -3,7 +3,7 @@
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
 **Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — opportunity-specific evidence composition  
+**Active product front:** Suite 0.2 — Opportunity composition v2 cross-asset robustness  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,48 +131,51 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — opportunity-specific evidence composition
+### PREPARED block — Opportunity composition v2 cross-asset robustness
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `a0bab498cdf4aa9a7b3686318e7b5bac7d110dc8`
+- durable pre-block research head: `ed4091a7b327243315960a44591b5044d461de2f`
 
-Closed evidence:
-- first location-projection counterfactual — REFINE / do not promote;
+Accepted/provisional research state:
+- frozen Execution 0.1 path remains independent and unchanged;
 - parallel Opportunity Readiness architecture — **KEEP**;
-- worklog: `docs/worklog/2026-09-25-suite-0.2-parallel-opportunity.md`;
-- BTC run `36150884208` — PASS.
+- CANDIDATE = awareness only;
+- STRONG -> PREPARANDO;
+- ACCEPTED may arm directly with supportive RSI/HTF and non-opposing momentum;
+- STRONG source participation may be remembered through HOLD_2 acceptance;
+- no fresh MTE acceleration is required after HOLD_2 if momentum remains non-opposing;
+- BTC 4H/1D evidence is promising;
+- worklog: `docs/worklog/2026-09-25-suite-0.2-opportunity-composition-v2.md`.
 
-Observed problem in first parallel composition:
-- frozen 0.1 is now exactly independent;
-- CANDIDATE -> PREPARANDO produces excessive short-lived readiness churn;
-- REACCELERATION gained no new confirmations;
-- the old pullback requirement for fresh simultaneous MTE/RSE/PSE is too literal after structural follow-through.
+BTC evidence highlights:
+- 4H breakout expanded coverage: 17.00% -> 20.53%;
+- 4H opportunity-path held breakout coverage 6.26% vs fakeout 1.21%;
+- 1D breakout: 5.29% -> 9.13%;
+- 1D REACCELERATION: 6.67% -> 20.00%;
+- opportunity PREP/cancel churn dropped sharply from first parallel composition;
+- frozen pullback/retest coverage remains exact.
 
 Exact intended work:
-1. keep the parallel architecture;
-2. make CANDIDATE an Opportunity-awareness state only — no Execution PREPARANDO;
-3. let STRONG enter PREPARANDO;
-4. let ACCEPTED arm directly when RSI/HTF is supportive and momentum is not strongly opposing;
-5. retain source participation evidence when a source qualified as STRONG;
-6. allow ACCEPTED confirmation with current PSE CONFIRM **or remembered strong-source PSE**, while preserving PSE state semantics;
-7. do not require fresh MTE acceleration again after structural HOLD_2 if momentum remains non-opposing;
-8. strict REGIME_REVERSAL remains conservative;
-9. rerun BTC 4H/1D and compare:
-   - opportunity-only coverage;
-   - held/fakeout split;
-   - PREP/ARMED churn;
-   - latency/displacement;
+1. run unchanged composition on ETHUSDT 4H/1D;
+2. run unchanged composition on AVAXUSDT 4H/1D;
+3. compare:
+   - breakout held vs fakeout opportunity-path coverage;
    - REACCELERATION reachability;
-10. frozen Execution 0.1 remains untouched;
-11. no profiles or production Pine changes.
+   - PREP/ARMED/CONFIRMA event load;
+   - quick cancellations;
+   - direction balance/pathology;
+4. no per-asset threshold/default change;
+5. if robust, canonize v2 as the first accepted Opportunity Engine research baseline;
+6. only then move to the next missing opportunity family / horizon expansion;
+7. no production Pine or profiles yet.
 
 Recovery:
-- compare branch with `a0bab498...`;
-- inspect only newer commits/runs/artifacts;
-- resume from the first incomplete composition step.
+- compare branch with `ed4091a7...`;
+- inspect only newer cross-asset workflow commits/runs/artifacts;
+- do not rerun BTC design iterations unless a robustness defect points back to them.
 
 
 ## 7. Continuity protocol
