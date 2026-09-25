@@ -72,11 +72,28 @@ Important semantic locks:
 
 **Issue #20:** Execution 0.1.0 — production implementation + Market Map semantic parity
 
-Production block PREPARED: create `feat/execution-0.1.0` from current `main`, then implement the accepted lower-pane kernel before touching Market Map.
+Production block PREPARED.
+
+Current production branch: `feat/execution-0.1.0`  
+Draft PR: #21  
+Current verified head: `429a3a1cd21ded4474aafd3985f94dca454f1da8`
+
+Durable milestone already complete:
+- `src/core/execution.pine` exists;
+- accepted MTE-A / RSE-A / PSE-A v2 defaults implemented;
+- accepted MM-0 context + location bridge implemented self-contained;
+- readiness + strength state machine implemented;
+- Pine compile PASS: run `36082085355`;
+- Execution contract/default/context checker PASS inside Static integrity: run `36082085365`.
+
+Exact next discriminant:
+- add the same Execution semantic kernel to Market Map's embedded Decision Panel as `EXECUÇÃO` + `FORÇA` rows;
+- do not change accepted Market Map structural semantics;
+- enforce parity with repository checks before any TradingView operator test.
 
 The accepted defaults are frozen by:
 
-`manifests/execution-research-defaults-v1.json`
+`manifests/execution-research-defaults-v2.json`
 
 The semantic contract is frozen by:
 
