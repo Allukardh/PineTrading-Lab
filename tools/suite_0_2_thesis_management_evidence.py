@@ -81,6 +81,18 @@ class ThesisResult:
     first_exhausted_progress: float | None
     first_protect_progress: float | None
     first_structural_warning_progress: float | None
+    first_protect_strict_bar: int | None
+    first_protect_strict_progress: float | None
+    first_favorable_fading_bar: int | None
+    first_favorable_fading_progress: float | None
+    first_favorable_exhausted_bar: int | None
+    first_favorable_exhausted_progress: float | None
+    protect_strict_bars: int
+    favorable_fading_bars: int
+    favorable_exhausted_bars: int
+    protect_strict_transitions: int
+    favorable_fading_transitions: int
+    favorable_exhausted_transitions: int
     state_transitions: int
     warning_to_continuation_transitions: int
     protect_bars: int
@@ -290,10 +302,15 @@ def _evaluate(theses,confirm_rows,ctx):
         first_fading=first_exhausted=first_protect=first_realization=None
         first_tnear=first_inear=first_struct=None
         first_fading_progress=first_exhausted_progress=first_protect_progress=first_struct_progress=None
+        first_protect_strict=first_favorable_fading=first_favorable_exhausted=None
+        first_protect_strict_progress=first_favorable_fading_progress=first_favorable_exhausted_progress=None
         confirm_close=float(data["close"][th.confirm_bar])
         initial_target_distance=th.direction*(th.target-confirm_close)
         state_trans=warning_back=0
         protect_bars=realization_bars=continuation_bars=fading_bars=0
+        protect_strict_bars=favorable_fading_bars=favorable_exhausted_bars=0
+        protect_strict_trans=favorable_fading_trans=favorable_exhausted_trans=0
+        prev_protect_strict=prev_favorable_fading=prev_favorable_exhausted=False
         prev_nonterminal=None
         outcome="OPEN_END"
         end=min(n-1,stop_before-1)
@@ -326,6 +343,69 @@ def _evaluate(theses,confirm_rows,ctx):
                 target_near_bars+=1
             if mb.invalidation_near:
                 invalidation_near_bars+=1
+
+            terminal=mb.state in {
+                ManagementState.COMPLETED,
+                ManagementState.INVALIDATED,
+                ManagementState.AMBIGUOUS,
+            }
+            protect_strict=bool(
+                not terminal and (
+                    mb.invalidation_near
+                    or mb.strength==Strength.EXHAUSTED
+                    or (
+                        mb.structural_warning
+                        and mb.strength in {
+                            Strength.FADING,
+                            Strength.EXHAUSTED,
+                            Strength.REACTION_RISK,
+                        }
+                    )
+                )
+            )
+            favorable_fading=bool(
+                not terminal
+                and progress is not None
+                and progress>0
+                and mb.strength in {
+                    Strength.FADING,
+                    Strength.EXHAUSTED,
+                    Strength.REACTION_RISK,
+                }
+            )
+            favorable_exhausted=bool(
+                not terminal
+                and progress is not None
+                and progress>0
+                and mb.strength in {
+                    Strength.EXHAUSTED,
+                    Strength.REACTION_RISK,
+                }
+            )
+
+            if protect_strict:
+                protect_strict_bars+=1
+                if first_protect_strict is None:
+                    first_protect_strict=i
+                    first_protect_strict_progress=progress
+            if favorable_fading:
+                favorable_fading_bars+=1
+                if first_favorable_fading is None:
+                    first_favorable_fading=i
+                    first_favorable_fading_progress=progress
+            if favorable_exhausted:
+                favorable_exhausted_bars+=1
+                if first_favorable_exhausted is None:
+                    first_favorable_exhausted=i
+                    first_favorable_exhausted_progress=progress
+
+            if i>th.confirm_bar:
+                protect_strict_trans+=int(protect_strict!=prev_protect_strict)
+                favorable_fading_trans+=int(favorable_fading!=prev_favorable_fading)
+                favorable_exhausted_trans+=int(favorable_exhausted!=prev_favorable_exhausted)
+            prev_protect_strict=protect_strict
+            prev_favorable_fading=favorable_fading
+            prev_favorable_exhausted=favorable_exhausted
 
             if mb.strength==Strength.FADING:
                 fading_bars+=1
@@ -407,6 +487,18 @@ def _evaluate(theses,confirm_rows,ctx):
             first_exhausted_progress=first_exhausted_progress,
             first_protect_progress=first_protect_progress,
             first_structural_warning_progress=first_struct_progress,
+            first_protect_strict_bar=first_protect_strict,
+            first_protect_strict_progress=first_protect_strict_progress,
+            first_favorable_fading_bar=first_favorable_fading,
+            first_favorable_fading_progress=first_favorable_fading_progress,
+            first_favorable_exhausted_bar=first_favorable_exhausted,
+            first_favorable_exhausted_progress=first_favorable_exhausted_progress,
+            protect_strict_bars=protect_strict_bars,
+            favorable_fading_bars=favorable_fading_bars,
+            favorable_exhausted_bars=favorable_exhausted_bars,
+            protect_strict_transitions=protect_strict_trans,
+            favorable_fading_transitions=favorable_fading_trans,
+            favorable_exhausted_transitions=favorable_exhausted_trans,
             state_transitions=state_trans,
             warning_to_continuation_transitions=warning_back,
             protect_bars=protect_bars,
@@ -416,6 +508,37 @@ def _evaluate(theses,confirm_rows,ctx):
         ))
 
     return results,bar_state_counts,bar_strength_counts,protect_cause_counts,target_near_bars,invalidation_near_bars
+
+
+def _channel_summary(results, first_bar_key, first_progress_key, bars_key, transitions_key):
+    live=sum(r.bars_live for r in results)
+    def subset(outcome):
+        return [r for r in results if r.outcome==outcome]
+    def stats(rows):
+        reached=[r for r in rows if getattr(r,first_bar_key) is not None]
+        leads=[
+            r.end_bar-getattr(r,first_bar_key)
+            for r in reached
+            if r.outcome in {"COMPLETED","INVALIDATED","AMBIGUOUS"}
+        ]
+        return {
+            "episodes":len(rows),
+            "reached":len(reached),
+            "reached_pct":pct(len(reached),len(rows)),
+            "lead_bars":_dist(leads),
+            "first_progress":_dist([getattr(r,first_progress_key) for r in reached]),
+        }
+    bars=sum(getattr(r,bars_key) for r in results)
+    transitions=sum(getattr(r,transitions_key) for r in results)
+    return {
+        "bars":bars,
+        "bar_saturation_pct":pct(bars,live),
+        "transitions":transitions,
+        "transitions_per_1000_live_bars":None if not live else 1000*transitions/live,
+        "completed":stats(subset("COMPLETED")),
+        "invalidated":stats(subset("INVALIDATED")),
+        "superseded":stats(subset("SUPERSEDED")),
+    }
 
 
 def _summary(results,bar_states,bar_strengths,protect_causes=None,target_near_bars=0,invalidation_near_bars=0):
@@ -445,6 +568,20 @@ def _summary(results,bar_states,bar_strengths,protect_causes=None,target_near_ba
         "first_exhausted_progress":_dist([r.first_exhausted_progress for r in results]),
         "first_protect_progress":_dist([r.first_protect_progress for r in results]),
         "first_structural_warning_progress":_dist([r.first_structural_warning_progress for r in results]),
+        "candidate_channels":{
+            "PROTECT_STRICT":_channel_summary(
+                results,"first_protect_strict_bar","first_protect_strict_progress",
+                "protect_strict_bars","protect_strict_transitions"
+            ),
+            "FAVORABLE_FADING":_channel_summary(
+                results,"first_favorable_fading_bar","first_favorable_fading_progress",
+                "favorable_fading_bars","favorable_fading_transitions"
+            ),
+            "FAVORABLE_EXHAUSTED":_channel_summary(
+                results,"first_favorable_exhausted_bar","first_favorable_exhausted_progress",
+                "favorable_exhausted_bars","favorable_exhausted_transitions"
+            ),
+        },
         "state_transitions":sum(r.state_transitions for r in results),
         "warning_to_continuation_transitions":sum(r.warning_to_continuation_transitions for r in results),
         "transitions_per_1000_live_bars":None if not total_live else 1000*sum(r.state_transitions for r in results)/total_live,
@@ -595,6 +732,25 @@ def markdown(report):
         lines.append(
             f"| {tf} | {s['target_near_bars']} | {s['invalidation_near_bars']} | {exhausted} | {structural} | {_fmt(s['first_fading_progress']['median'])} | {_fmt(s['first_exhausted_progress']['median'])} | {_fmt(s['first_protect_progress']['median'])} |"
         )
+
+    lines += [
+        "",
+        "## Candidate warning channels — diagnostic only",
+        "",
+        "| TF | channel | bar saturation % | transitions/1000 | completed reach % | completed lead med | invalidated reach % | invalidated lead med | first progress med |",
+        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+    ]
+    for tf,x in report["timeframes"].items():
+        for name,c in x["summary"]["candidate_channels"].items():
+            all_progress=[]
+            for outcome in ("completed","invalidated","superseded"):
+                d=c[outcome]["first_progress"]
+                if d["count"] and d["median"] is not None:
+                    all_progress.append(d["median"])
+            progress_med=None if not all_progress else sum(all_progress)/len(all_progress)
+            lines.append(
+                f"| {tf} | {name} | {_fmt(c['bar_saturation_pct'])} | {_fmt(c['transitions_per_1000_live_bars'])} | {_fmt(c['completed']['reached_pct'])} | {_fmt(c['completed']['lead_bars']['median'])} | {_fmt(c['invalidated']['reached_pct'])} | {_fmt(c['invalidated']['lead_bars']['median'])} | {_fmt(progress_med)} |"
+            )
 
     lines += [
         "",
