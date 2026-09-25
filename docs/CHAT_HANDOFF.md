@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** STABLE  
-**Active product front:** Suite 0.2 — first 4H/1D latency baseline complete  
+**Checkpoint state:** PREPARED  
+**Active product front:** Suite 0.2 — breakout/regime acceptance discriminant research  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,43 +131,42 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### STABLE result — frozen 0.1 BTC 4H/1D latency baseline
+### PREPARED block — opportunity acceptance / follow-through discriminants
 
-Research branch:
-`research/suite-0.2-opportunity-evidence`
+Active research:
+- Issue #23
+- draft PR #25
+- branch `research/suite-0.2-opportunity-evidence`
 
-Latest durable research result:
-`1cba5126d6bbf219c6e6c5e44e1114d535c60217`
+Frozen comparator remains unchanged:
+- Market Map 0.1.0 — `0eeb0d37b256a950cfb38f627fa3521bb213d380`
+- Execution 0.1.0 — `a7557df2d0142441ea782dba4b8c3f95ebc38371`
 
-Evidence:
-- workflow `36095191710` — PASS;
-- Static integrity `36095191796` — PASS;
-- detailed worklog: `docs/worklog/2026-09-25-suite-0.2-latency-baseline.md`.
+Last stable baseline:
+- research result `1cba5126d6bbf219c6e6c5e44e1114d535c60217`
+- workflow `36095191710` — PASS
+- worklog `docs/worklog/2026-09-25-suite-0.2-latency-baseline.md`
 
-First-pass independent opportunity labels:
-- `BREAKOUT_CANDIDATE`;
-- `PULLBACK_RETEST`;
-- `REGIME_TRANSITION_CANDIDATE`;
-- strict coherent `REGIME_REVERSAL`.
+Exact intended work:
+1. inspect contemporaneous features available on BREAKOUT_CANDIDATE and REGIME_TRANSITION_CANDIDATE bars;
+2. compare those features against retrospective held/fakeout and practical 12/24/48-bar regime outcomes;
+3. distinguish candidate quality without backdating later knowledge;
+4. research external/TradingView techniques only where they answer an identified evidence gap;
+5. prefer price/structure/volatility/participation features already available in the two-engine architecture over adding new indicator families;
+6. define a minimal acceptance/follow-through contract only if features demonstrate useful separation;
+7. do not modify production Pine or frozen 0.1 defaults;
+8. do not create profiles in this block.
 
-Key result:
-- 0.1 is not globally late;
-- pullback/retest is frequently already PREP+ at the event (~55% 4H / ~63% 1D);
-- breakout misses are dominated by `LOCATION_NOT_RELEVANT`, proving opportunity-location narrowness rather than merely slow thresholds;
-- held 4H breakouts are covered more often than fakeouts (22.28% vs 11.90%), so current selectivity has value;
-- raw opposite breaks against mature regimes are far too broad to become actionable transition signals by themselves;
-- only 11/607 4H regime-transition candidates mature into coherent reversal within 12 bars; 19 within 24; 35 within 48;
-- canonical `map_dir` must remain conservative;
-- profiles remain unapproved.
+Expected durable outputs:
+- candidate-feature evidence runner + tests;
+- feature/outcome report on BTC 4H/1D;
+- documented KEEP/REFINE/REMOVE decisions for proposed acceptance evidence;
+- exact next discriminant for REACCELERATION / RANGE_ROTATION or Opportunity Engine counterfactual.
 
-Do not rerun/reinterpret this block unless a measurement defect is found.
-
-Next discriminant:
-- research deterministic **acceptance/follow-through semantics** for breakout and regime transition candidates;
-- then add REACCELERATION and RANGE_ROTATION episode contracts;
-- only after those labels stabilize may a 0.2 Opportunity Engine counterfactual alter readiness coverage.
-
-No production Pine/default change is authorized yet.
+Recovery:
+- inspect PR #25 branch commits/runs newer than `1cba512...`;
+- do not rerun the frozen 0.1 baseline unless a measurement defect is found;
+- resume from the first incomplete feature/discriminant step.
 
 
 ## 7. Continuity protocol
