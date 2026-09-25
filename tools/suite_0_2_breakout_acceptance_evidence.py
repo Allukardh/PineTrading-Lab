@@ -216,6 +216,24 @@ def analyze_timeframe(timeframe: str, datasets: dict[str, dict], tick_size: floa
             context_dirs,
         )
 
+    by_context = {}
+    contexts = sorted({
+        e.break_context or "UNSPECIFIED"
+        for e in episodes
+    })
+    for context in contexts:
+        subset = [
+            e for e in episodes
+            if (e.break_context or "UNSPECIFIED") == context
+        ]
+        by_context[context] = {
+            "episodes": len(subset),
+            "outcomes": dict(
+                Counter(outcomes[e.episode_id].outcome.value for e in subset)
+            ),
+            "rules": {},
+        }
+
     rules = [
         BreakoutAcceptance.PENETRATION,
         BreakoutAcceptance.PENETRATION_PSE,
@@ -230,6 +248,23 @@ def analyze_timeframe(timeframe: str, datasets: dict[str, dict], tick_size: floa
         BreakoutAcceptance.PSE_HOLD_1_ELSE_HOLD_2,
         BreakoutAcceptance.PSE_MTE_HOLD_1_ELSE_HOLD_2,
     ]
+
+    for context, item in by_context.items():
+        subset = [
+            e for e in episodes
+            if (e.break_context or "UNSPECIFIED") == context
+        ]
+        item["rules"] = {
+            rule.value: _metric_for_rule(
+                rule,
+                subset,
+                features_by_id,
+                outcomes,
+                snapshots,
+                data["close"],
+            )
+            for rule in rules
+        }
 
     return {
         "episodes": len(episodes),
@@ -247,6 +282,7 @@ def analyze_timeframe(timeframe: str, datasets: dict[str, dict], tick_size: floa
             )
             for rule in rules
         },
+        "by_break_context": by_context,
     }
 
 
@@ -284,6 +320,32 @@ def markdown_report(report: dict) -> str:
                     paths=json.dumps(metric["delay_counts"], sort_keys=True),
                     delay=_fmt(metric["delay_bars"]["median"]),
                     disp=_fmt(metric["acceptance_displacement_atr"]["median"]),
+                )
+            )
+        lines.append("")
+
+        lines += [
+            "### Structural-break context",
+            "",
+            "| context | episodes | held | fakeout | HOLD_2 held recall % | HOLD_2 fakeout accepted % | HOLD_2 held share % | staged held recall % | staged fakeout accepted % |",
+            "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        ]
+        for context, ctx in sorted(item["by_break_context"].items()):
+            hold2 = ctx["rules"][BreakoutAcceptance.HOLD_2.value]
+            staged = ctx["rules"][
+                BreakoutAcceptance.PSE_HOLD_1_ELSE_HOLD_2.value
+            ]
+            lines.append(
+                "| {ctx} | {n} | {held} | {fake} | {hrec} | {hfake} | {hshare} | {srec} | {sfake} |".format(
+                    ctx=context,
+                    n=ctx["episodes"],
+                    held=ctx["outcomes"].get("BREAKOUT_HELD", 0),
+                    fake=ctx["outcomes"].get("BREAKOUT_FAKEOUT", 0),
+                    hrec=_fmt(hold2["held_recall_pct"]),
+                    hfake=_fmt(hold2["fakeout_acceptance_pct"]),
+                    hshare=_fmt(hold2["accepted_resolved_held_share_pct"]),
+                    srec=_fmt(staged["held_recall_pct"]),
+                    sfake=_fmt(staged["fakeout_acceptance_pct"]),
                 )
             )
         lines.append("")
