@@ -300,16 +300,6 @@ string contextTf = chartSec <= tf15Sec ? "60" :
      chartSec <= tfDSec ? "W" :
      timeframe.period
 
-// High-horizon macro context: prior completed calendar month only.
-// It is descriptive context and never a hard execution filter.
-bool monthlyMacroOnly = timeframe.ismonthly
-bool monthlyMacroContextEnabled = timeframe.period == "3D" or timeframe.period == "W"
-float monthlyMacroRaw = monthlyMacroContextEnabled ? f_sec("M",
-     ta.ema(close, MM_MID_LEN) > ta.ema(close, MM_SLOW_LEN) and ta.ema(close, MM_SLOW_LEN) >= ta.ema(close, MM_SLOW_LEN)[3] and close > ta.ema(close, MM_SLOW_LEN) ? 1.0 :
-     ta.ema(close, MM_MID_LEN) < ta.ema(close, MM_SLOW_LEN) and ta.ema(close, MM_SLOW_LEN) <= ta.ema(close, MM_SLOW_LEN)[3] and close < ta.ema(close, MM_SLOW_LEN) ? -1.0 : 0.0) : na
-bool monthlyMacroAvailable = monthlyMacroContextEnabled and not na(monthlyMacroRaw)
-int monthlyMacroDir = monthlyMacroAvailable ? int(monthlyMacroRaw) : 0
-
 // ---------------------------------------------------------------------------
 // MTE-A — volatility-normalized EMA spread
 // ---------------------------------------------------------------------------
@@ -438,6 +428,17 @@ f_mm_sec(_tf, _expr) =>
     reqSec > chartSec ?
          request.security(syminfo.tickerid, _tf, _expr[1], barmerge.gaps_off, barmerge.lookahead_on) :
          _expr
+
+// High-horizon macro context: prior completed calendar month only.
+// It is descriptive context and never a hard execution filter.
+// Kept here so MM_* defaults and the confirmed security helper are already declared.
+bool monthlyMacroOnly = timeframe.ismonthly
+bool monthlyMacroContextEnabled = timeframe.period == "3D" or timeframe.period == "W"
+float monthlyMacroRaw = monthlyMacroContextEnabled ? f_mm_sec("M",
+     ta.ema(close, MM_MID_LEN) > ta.ema(close, MM_SLOW_LEN) and ta.ema(close, MM_SLOW_LEN) >= ta.ema(close, MM_SLOW_LEN)[3] and close > ta.ema(close, MM_SLOW_LEN) ? 1.0 :
+     ta.ema(close, MM_MID_LEN) < ta.ema(close, MM_SLOW_LEN) and ta.ema(close, MM_SLOW_LEN) <= ta.ema(close, MM_SLOW_LEN)[3] and close < ta.ema(close, MM_SLOW_LEN) ? -1.0 : 0.0) : na
+bool monthlyMacroAvailable = monthlyMacroContextEnabled and not na(monthlyMacroRaw)
+int monthlyMacroDir = monthlyMacroAvailable ? int(monthlyMacroRaw) : 0
 
 f_mm_trim_pool(_levels, _swept) =>
     if array.size(_levels) > MM_POOL_MAX
