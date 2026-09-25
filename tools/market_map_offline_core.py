@@ -61,6 +61,17 @@ class IntegrationSnapshot:
     reclaim_event: bool
     destination_near: bool
 
+    # 0.2 research telemetry only. These fields expose state already calculated
+    # by the accepted MM-0 kernel; they do not alter Market Map semantics.
+    regime_dir: int = 0
+    structure_dir: int = 0
+    structural_break_dir: int = 0
+    fakeout_event: bool = False
+    new_thesis_event: bool = False
+    thesis_key: int | None = None
+    destination: float | None = None
+    invalidation: float | None = None
+
 
 @dataclass
 class Pool:
@@ -525,6 +536,14 @@ class Kernel:
                     retest_event=retest_evt,
                     reclaim_event=reclaim_aligned_evt,
                     destination_near=destination_near,
+                    regime_dir=regime,
+                    structure_dir=sdir,
+                    structural_break_dir=1 if bu else -1 if bd else 0,
+                    fakeout_event=bool(fu or fd),
+                    new_thesis_event=bool(new),
+                    thesis_key=key,
+                    destination=None if thesis_inv else dest,
+                    invalidation=inval if ready else None,
                 ))
             ts = datetime.fromtimestamp(x.t / 1000000.0, tz=timezone.utc).isoformat().replace('+00:00', 'Z')
             if emit_audit:
