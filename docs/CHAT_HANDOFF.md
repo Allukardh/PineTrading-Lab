@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** STABLE  
-**Active product front:** Suite 0.2 — OPERATOR_READINESS_V1 accepted  
+**Checkpoint state:** PREPARED  
+**Active product front:** Suite 0.2 — native horizon robustness  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,44 +131,60 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### STABLE result — OPERATOR_READINESS_V1
+### PREPARED block — native horizon robustness
 
-Research:
+Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- accepted projection head: `32262d55687813c2036cf5359b31b1c30590cc80`
+- accepted operator projection head: `32262d55687813c2036cf5359b31b1c30590cc80`
+- current research branch includes validated OPERATOR_READINESS_V1 tooling.
 
-Evidence:
-- BTC overlap diagnosis `36164331998` — PASS;
-- BTC/ETH/AVAX projection validation `36164880804` — PASS;
-- Static integrity `36164880805` — PASS;
-- worklog: `docs/worklog/2026-09-25-suite-0.2-opportunity-arbitration.md`.
+Accepted paths to hold fixed:
+1. frozen Execution 0.1 — pullback/retest/reclaim;
+2. Opportunity v2 trend — breakout/reacceleration/strict reversal;
+3. RANGE_ROTATION EARLY_ANY1;
+4. OPERATOR_READINESS_V1 projection.
 
-Accepted research projection:
-- internal paths remain independent;
-- one active path -> exact mirror;
-- same-direction multi-path urgency:
-  CONFIRMED > ARMED > PREP > ALIGNED > WAIT;
-- opposite active directions -> CONFLICT / NONE / non-actionable;
-- same-bar same-direction multi-confirm -> one operator event with source list;
-- different-bar confirms remain distinct;
-- frame-only disagreement while readiness WAIT remains telemetry;
-- strength arbitration deferred.
+Native horizons not yet gated:
+- 15m
+- 1H
+- 3D
+- 1W
 
-Cross-asset result:
-- 100% single-active parity;
-- 100% fresh setup surfacing over background ALIGNED;
-- 100% raw confirm-bar preservation;
-- ETH 4H: 4 true conflict bars;
-- AVAX 4H: 2 true conflict bars;
-- no observed conflict contained a raw CONFIRMA;
-- no production Pine/default/profile change.
+Representative first matrix:
+- BTCUSDT
+- ETHUSDT
+- AVAXUSDT
 
-Next architecture frontier:
-- unchanged horizon validation on 15m/1H and 3D/1W;
-- reproducible derived 1M study after canonical native horizons;
-- profiles remain unapproved.
+Locks:
+- no per-timeframe retuning;
+- no profiles;
+- no semantic/state-definition changes;
+- exact accepted production Parquets and SHA verification;
+- 1M is deferred until native horizons are measured;
+- no production Pine change.
+
+Exact intended work:
+1. run all four accepted layers unchanged on 15m/1H/3D/1W;
+2. measure per horizon:
+   - frozen/trend/range event load per 1000 bars;
+   - trend opportunity kind/stage + confirmation reachability;
+   - breakout held/fakeout confirmation diagnostic where available;
+   - RANGE_ROTATION episode count, +1 acceptance, confirmations, structural outcomes and remaining room;
+   - OPERATOR_READINESS single-active parity, conflict rate and confirmation preservation;
+3. report confirmation latency in bars **and clock time** where episode timing is available;
+4. distinguish:
+   - true semantic pathology;
+   - simple sample scarcity;
+   - expected horizon/time-cost effect;
+5. no tuning from isolated percentages;
+6. if representative matrix is healthy, expand unchanged to broader symbol robustness;
+7. only after native horizons are stable derive reproducible 1M evidence.
+
+Recovery:
+- inspect only newer horizon-validation commits/runs/artifacts;
+- do not reopen accepted 4H/1D path semantics or arbitration without a concrete defect.
 
 
 ## 7. Continuity protocol
