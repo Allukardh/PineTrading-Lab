@@ -1,6 +1,6 @@
 # Execution 0.1.0 — Default Evidence Contract
 
-**Status:** initial engineering defaults for implementation; subject to real-chart validation  
+**Status:** offline-validated v2 implementation contract; Pine/real-chart validation pending  
 **Date:** 2026-09-23  
 **Product policy:** defaults are owned by the engine, not delegated to the operator
 
@@ -194,7 +194,7 @@ The candidate preserves these invariants:
 5. no user-facing MA/signal-mode selector
 6. confirmed actionable transitions happen later in the Execution state machine, not inside the oscillator
 
-MTE-A is **not yet a frozen production default**. The exact formula/defaults must survive historical BTC/ETH/AVAX validation before canonization.
+MTE-A survived the pre-registered BTC component gate and unchanged-default ETH/AVAX robustness gate. Its numeric formula/defaults remain unchanged in v2; Pine/reload/visual parity is still required before production promotion.
 
 Detailed rationale and synthetic tests:
 
@@ -202,7 +202,7 @@ Detailed rationale and synthetic tests:
 
 Machine-readable candidate defaults:
 
-`manifests/execution-research-defaults-v1.json`
+`manifests/execution-research-defaults-v2.json`
 
 ## 6. Readiness evidence burden
 
@@ -235,13 +235,15 @@ This deliberately makes participation the final close-confirmation evidence rath
 
 ## 7. Strength evidence burden
 
-Strength uses independent evidence families:
+Strength uses three evidence families:
 
 1. momentum deterioration
 2. RSI deterioration/exhaustion
-3. participation deterioration
+3. participation **contrary to the thesis**
 
-Default interpretation:
+Offline Market Map-conditioned evidence showed that generic low participation (`WEAK`) is too broad to count as an independent deterioration family everywhere. Therefore v2 separates **weak participation** from **directionally contrary participation**.
+
+Generic continuation strength:
 
 ```text
 0 families  -> NORMAL
@@ -249,11 +251,20 @@ Default interpretation:
 2+ families -> EXAUSTÃO
 ```
 
-`RISCO DE REAÇÃO` requires:
-- a meaningful reaction location from Market Map, normally destination/opposing liquidity proximity
-- **and** at least two deterioration families
+For generic NORMAL / PERDENDO FORÇA / EXAUSTÃO:
+- PSE `CONTRARY` counts as a deterioration family;
+- PSE `WEAK` does **not** count by itself.
 
-No one oscillator can create the strongest warning by itself.
+For `RISCO DE REAÇÃO` at `DESTINATION_NEAR`, weak participation becomes contextually meaningful exhaustion evidence and may contribute alongside momentum/RSI deterioration:
+
+```text
+destination deterioration families:
+- momentum deterioration
+- RSI deterioration/exhaustion
+- PSE WEAK or CONTRARY
+```
+
+`RISCO DE REAÇÃO` still requires at least two families and a meaningful Market Map destination location. No one oscillator creates the strongest warning by itself.
 
 ## 8. Destination proximity
 
@@ -278,10 +289,14 @@ Advanced/Diagnostics can expose read-only/state information and, only if needed 
 
 These defaults are **starting engineering defaults**, not claims of optimality.
 
-They become production defaults only if:
-- BTCUSDT 15m / 1H / 4H shows sensible state frequency and visual behavior
-- ETHUSDT and AVAXUSDT do not show obvious pathology with unchanged values
-- reload parity is exact for confirmed states
-- no threshold needs per-asset hand tuning
+The offline evidence gate is now complete:
+- BTCUSDT 15m / 1H / 4H integrated state frequency is non-degenerate;
+- ETHUSDT and AVAXUSDT reproduce the same semantics with unchanged v2 defaults;
+- no per-asset threshold tuning was introduced;
+- MTE-A / RSE-A / PSE-A numeric thresholds remain unchanged from v1.
 
-If validation rejects a value, change the engine default in code and documentation. Do not make the operator tune around a weak default.
+Two semantic refinements were justified by integrated evidence:
+- RETEST/RECLAIM memory remains 3 chart bars but is capped at **12 elapsed hours**;
+- generic Strength treats only PSE CONTRARY as participation deterioration, while PSE WEAK may contribute to destination-local reaction risk.
+
+Remaining production gates are Pine compile, reload parity, real-chart visual behavior and one-glance UX. If those reject a behavior, change the engine default in code/documentation rather than making the operator tune around it.
