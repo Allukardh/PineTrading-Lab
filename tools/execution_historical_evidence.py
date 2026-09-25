@@ -75,6 +75,7 @@ CONTEXT_TF = {
     "1d": "1w",
     "3d": "3d",
     "1w": "1w",
+    "1M": "1M",
 }
 SIGN_NEAR_ZERO = 0.05
 
