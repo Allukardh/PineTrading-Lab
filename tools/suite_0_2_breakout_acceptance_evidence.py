@@ -227,6 +227,8 @@ def analyze_timeframe(timeframe: str, datasets: dict[str, dict], tick_size: floa
         BreakoutAcceptance.PSE_MTE_OR_HOLD_1,
         BreakoutAcceptance.PSE_OR_HOLD_2,
         BreakoutAcceptance.PSE_MTE_OR_HOLD_2,
+        BreakoutAcceptance.PSE_HOLD_1_ELSE_HOLD_2,
+        BreakoutAcceptance.PSE_MTE_HOLD_1_ELSE_HOLD_2,
     ]
 
     return {
