@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** STABLE  
-**Active product front:** Suite 0.2 — Phase F1 integrated readiness/profile accepted  
+**Checkpoint state:** PREPARED  
+**Active product front:** Suite 0.2 — Phase F2 Thesis Management horizon expansion  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,36 +131,48 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### STABLE result — Phase F1 integrated readiness/profile
+### PREPARED block — Phase F2 Thesis Management V1.1 horizon expansion
 
-Research:
+Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- F1 research head: `9da5d02b979292bba752d97a2ca2b6d39176a2fc`
+- durable pre-block research head: `9da5d02b979292bba752d97a2ca2b6d39176a2fc`
 
-Evidence:
-- BTC `36193324106` — PASS;
-- ETH/AVAX `36193585495` — PASS;
-- Static integrity — PASS;
-- worklog: `docs/worklog/2026-09-25-suite-0.2-integrated-evidence.md`.
+Accepted management baseline:
+- capability-aware Thesis Management V1.1;
+- 4H / 1D already accepted;
+- FULL / INVALIDATION_ONLY / TARGET_ONLY / NONE;
+- no synthetic anchors;
+- FULL-anchor V1 parity required;
+- management begins only from PADRÃO unified CONFIRMA.
 
-Accepted F1 invariants across BTC / ETH / AVAX and 15m / 1H / 4H / 1D / 3D / 1W:
-- internal paths remain independent/unmutated;
-- single-active operator projection parity exact;
-- PADRÃO = literal unified CONFIRMA;
-- all non-conflicting raw confirm bars preserved;
-- every PADRÃO confirm creates one capability-aware management thesis;
-- ANTECIPADO scope clean;
-- ANTECIPADO conflict-free;
-- ANTECIPADO never starts management;
-- 1W ANTECIPADO override = zero.
+Exact intended work:
+1. run unchanged Management V1.1 on BTC:
+   - 15m;
+   - 1H;
+   - 3D;
+   - 1W;
+2. keep accepted 4H/1D as reference comparators;
+3. measure:
+   - PADRÃO confirms -> management thesis coverage;
+   - anchor-capability distribution;
+   - FULL V1 parity;
+   - CONTINUATION / PROTECT / REALIZATION_RISK saturation;
+   - state transition/churn;
+   - invalidated episodes with prior PROTECT;
+   - completed target-capable episodes with REALIZATION_RISK;
+   - REALIZATION persistence;
+   - source/opportunity mix;
+4. do not tune management thresholds by timeframe;
+5. 1M stays outside execution management;
+6. if BTC semantics are coherent, run unchanged ETH/AVAX;
+7. if a horizon needs different operator wording, refine semantics/UX rather than silently changing engine thresholds.
 
-Phase F1 decision:
-- **KEEP / ACCEPT as research composition**.
-
-Next:
-- Phase F2 — capability-aware Thesis Management V1.1 horizon expansion.
+Recovery:
+- compare branch with `9da5d02b...`;
+- inspect only newer Phase F2 commits/runs/artifacts;
+- do not reopen Phase E/F1 unless a concrete integration defect points back to them.
 
 
 ## 7. Continuity protocol
