@@ -1,10 +1,11 @@
 # Canonical State
 
 **Date:** 2026-09-24  
-**Phase:** Trading Suite Architecture v1 — accepted two-indicator baseline  
+**Phase:** Suite 0.2 opportunity-expansion research — 0.1 baseline frozen  
 **Accepted product baseline:** Market Map 0.1.0 + Execution 0.1.0 on `main`  
 **Preserved engineering baseline:** SignalGate Dashboard 0.1.0  
-**Active architecture:** two runtime indicators — Market Map (with embedded Decision Panel) + Execution
+**Active architecture:** two runtime indicators — Market Map (with embedded Decision Panel) + Execution  
+**Active roadmap:** Issue #23 — Suite 0.2 Opportunity Engine, responsiveness and direct operator UX
 
 ## Continuity navigation
 
@@ -102,6 +103,9 @@ The **Decision Panel** remains a logical synthesis layer, not a third mandatory 
 Canonical design:
 - `docs/TRADING_SYSTEM_DESIGN.md`
 - `docs/DEFAULTS_AND_PROFILES.md`
+- `docs/roadmap/SUITE_0_2_ROADMAP.md`
+- `docs/design/OPPORTUNITY_ENGINE.md`
+- `docs/testing/SUITE_0_2_EVIDENCE_PLAN.md`
 
 ## Accepted reboot baselines
 
@@ -233,11 +237,35 @@ Promotion evidence:
 
 Issue #20 is closed as completed.
 
+### Suite 0.2 active direction
+
+Issue #23 opens the next controlled evolution while keeping 0.1 frozen.
+
+Primary objectives:
+- broaden opportunity coverage beyond pullback/retest;
+- research regime reversal, breakout/expansion, reacceleration, range rotation and exit-risk/thesis management;
+- treat 4H/1D as primary swing horizons and explicitly research 3D/1W/1M for medium/long trades;
+- preserve 15m/1H for shorter trades and precision entry;
+- quantify 0.1 responsiveness/latency before introducing profiles;
+- if profiles are justified, evaluate **ANTECIPADO / PADRÃO / CONFIRMADO** as coherent behavior bundles;
+- keep analysis directional and exchange-agnostic so the same bearish thesis maps to spot sell/protect behavior or optional Quantfury short use;
+- make the visible panel more direct while moving engine vocabulary into diagnostics;
+- require `docs/GUIA_DO_OPERADOR.md` in Portuguese before 0.2 promotion.
+
+0.1 freeze rule:
+- Market Map 0.1.0 promotion merge `0eeb0d37b256a950cfb38f627fa3521bb213d380`;
+- Execution 0.1.0 promotion merge `a7557df2d0142441ea782dba4b8c3f95ebc38371`;
+- no 0.1 engine/default change merely to chase more signals.
+
 ### Current product sequence
-1. treat Market Map 0.1.0 + Execution 0.1.0 as the accepted two-indicator suite baseline;
-2. do not reopen engine tuning without a concrete semantic, parity or market-behavior defect;
-3. evolve 0.x only through evidence-backed product/UX improvements;
-4. reserve 1.0.0 for a later integrated maturity milestone, not merely for code completeness.
+1. keep the accepted 0.1 suite as the immutable comparator;
+2. establish deterministic 0.2 opportunity-event labels;
+3. measure 0.1 latency and missed-opportunity causes;
+4. challenge Opportunity Engine + horizon mappings;
+5. test profiles only if latency evidence shows a real timing/confirmation tradeoff;
+6. validate integrated 0.2 behavior before production Pine changes;
+7. finish the Portuguese operator guide before promotion;
+8. reserve 1.0.0 for a later integrated maturity milestone.
 
 ## Version lineage
 
