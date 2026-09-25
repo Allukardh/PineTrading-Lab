@@ -131,53 +131,62 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — RANGE_ROTATION execution-evidence composition
+### PREPARED block — RANGE_ROTATION readiness v2
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `5684e96fa99d8c894541c8d9a884c653e660c547`
+- durable pre-block research head: `4826705d72d51133f24e017a5c9bcaa82494b205`
 
-Closed integration A/B:
-- workflow `36158262670` — PASS;
-- Static integrity `36158262562` — PASS;
+Closed diagnostics:
+- generic range integration A/B `36158262670` — PASS;
+- component evidence `36158675194` — PASS;
+- Static integrity `36158675044` — PASS;
 - worklog: `docs/worklog/2026-09-25-suite-0.2-range-rotation.md`.
 
-Decisions:
-- RANGE_ROTATION structural label remains KEEP;
-- EDGE_REJECTION -> STRONG -> next-bar structural progress -> ACCEPTED remains KEEP;
-- CONTEXT_GUARDED hard regime filter — NOT PROVEN;
-- accepted breakout/reacceleration Opportunity v2 composition remains unchanged;
-- generic Opportunity-v2 readiness composition for RANGE_ROTATION — REFINE.
+Pre-registered RANGE_ROTATION readiness v2:
 
-Observed bottleneck:
-- BTC 4H: 74 actionable -> 58.11% PREP -> 5.41% ARMED -> 1 CONFIRMA;
-- the only confirmation came 6 bars after source and after midpoint;
-- BTC 1D: 4 rotations, all reached midpoint structurally, zero confirmations.
+STRONG:
+- may PREPARAR only when MTE is not strongly opposing;
+- otherwise remain WAIT while structural lifecycle continues.
+
+ACCEPTED:
+- structural +1 persistence/progress;
+- may ARMAR directly when MTE is not strongly opposing;
+- HTF RSI is not a readiness veto;
+- PSE WEAK/NEUTRAL does not veto acceptance.
+
+CONFIRMA:
+- frame remains ACCEPTED;
+- chart close confirmed;
+- at least one ignition family:
+  - MTE aligned; or
+  - local RSI supportive; or
+  - PSE CONFIRM;
+- reject/cancel only when MTE strongly opposing AND local RSI opposing.
+
+Locks:
+- MTE/RSE/PSE state definitions unchanged;
+- breakout/reacceleration Opportunity v2 unchanged;
+- frozen Execution 0.1 unchanged;
+- range detector/thresholds unchanged;
+- no hard regime filter;
+- no production Pine/default/profile change.
 
 Exact intended work:
-1. instrument accepted MTE/RSE/PSE evidence on RANGE_ROTATION source bar and first ACCEPTED bar;
-2. classify:
-   - momentum aligned / strongly opposing / other;
-   - RSI supportive / opposing / extreme/exhaustion;
-   - HTF RSI aligned / opposing / neutral;
-   - PSE CONFIRM / NEUTRAL / WEAK / CONTRARY;
-3. split distributions by structural outcome:
-   - OPPOSITE_REACHED;
-   - MID_REACHED;
-   - FAILED_BEFORE_MID;
-   - CENSORED;
-4. identify candidate range-specific composition without changing indicator state definitions;
-5. pre-register the next readiness counterfactual before implementation;
-6. start on BTC 4H/1D;
-7. only then validate unchanged composition on ETH/AVAX;
-8. no production Pine/default/profile change.
+1. implement range-specific readiness v2;
+2. rerun BTC 4H/1D;
+3. require materially earlier/more useful confirmations than generic range integration;
+4. verify no FAILED_BEFORE_MID confirmed cases;
+5. measure confirmation before midpoint and room to opposite edge;
+6. measure churn;
+7. if semantics hold, validate unchanged on ETH/AVAX;
+8. otherwise REFINE without touching accepted base Opportunity v2.
 
 Recovery:
-- compare active branch with `5684e96...`;
-- inspect only newer RANGE_ROTATION feature-evidence commits/runs/artifacts;
-- do not reopen detector thresholds, regime filter, breakout/reacceleration baseline, or production Pine.
+- compare active branch with `4826705d...`;
+- inspect only newer range-readiness-v2 commits/runs/artifacts.
 
 
 ## 7. Continuity protocol
