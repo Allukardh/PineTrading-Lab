@@ -254,10 +254,6 @@ def classify_strength(direction: int, evidence: Evidence) -> Strength:
     if generic_deterioration == 1:
         return Strength.FADING
     return Strength.NORMAL
-        return Strength.EXHAUSTED
-    if deterioration == 1:
-        return Strength.FADING
-    return Strength.NORMAL
 
 
 def step(previous: State, evidence: Evidence) -> Result:
