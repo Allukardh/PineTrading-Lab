@@ -266,7 +266,12 @@ class Kernel:
         self.dt = [x.t for x in self.d]
         self.wt = [x.t for x in self.w]
 
-    def run(self, integration_rows: list[IntegrationSnapshot] | None = None):
+    def run(
+        self,
+        integration_rows: list[IntegrationSnapshot] | None = None,
+        *,
+        emit_audit: bool = True,
+    ):
         rows = []
         hp = []
         lp = []
@@ -522,7 +527,8 @@ class Kernel:
                     destination_near=destination_near,
                 ))
             ts = datetime.fromtimestamp(x.t / 1000000.0, tz=timezone.utc).isoformat().replace('+00:00', 'Z')
-            rows.append(dict(zip(AUDIT_HEADER, [ts, x.o, x.h, x.l, x.c, AUDIT_SCHEMA, 1, mdir, a, model, samples, top if active else None, bot if active else None, None if thesis_inv else dest, inval if ready else None, conf, int(new), int(touch),int(de),int(ie),int(amb), reclaim_evt])))
+            if emit_audit:
+                rows.append(dict(zip(AUDIT_HEADER, [ts, x.o, x.h, x.l, x.c, AUDIT_SCHEMA, 1, mdir, a, model, samples, top if active else None, bot if active else None, None if thesis_inv else dest, inval if ready else None, conf, int(new), int(touch),int(de),int(ie),int(amb), reclaim_evt])))
             prev_close = x.c
             prev_lsh = lsh
             prev_lsl = lsl
