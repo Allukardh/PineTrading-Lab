@@ -3,7 +3,7 @@
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
 **Checkpoint state:** PREPARED  
-**Active product front:** Execution 0.1.0 production implementation  
+**Active product front:** Execution 0.1.0 promotion  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -72,11 +72,36 @@ Important semantic locks:
 
 **Issue #20:** Execution 0.1.0 — production implementation + Market Map semantic parity
 
-Production block PREPARED: create `feat/execution-0.1.0` from current `main`, then implement the accepted lower-pane kernel before touching Market Map.
+Production block PREPARED.
+
+Current production branch: `feat/execution-0.1.0`  
+Draft PR: #21  
+Current verified head: `5fdea1e7be173ea9cec500eba70f00e35c153b67`
+
+Durable milestone already complete:
+- `src/core/execution.pine` exists;
+- accepted MTE-A / RSE-A / PSE-A v2 defaults implemented;
+- accepted MM-0 context + location bridge implemented self-contained;
+- readiness + strength state machine implemented;
+- Pine compile PASS: run `36082085355`;
+- Execution contract/default/context checker PASS inside Static integrity: run `36082085365`.
+
+Durable production result:
+- `src/core/execution.pine` implements the accepted lower-pane kernel;
+- Market Map embeds the same semantic Execution kernel as `EXECUÇÃO` + `FORÇA`;
+- cross-script Data Window parity fields are present;
+- accepted Market Map structural semantics were not retuned;
+- Static integrity `36083522996` — PASS;
+- Pine compile `36083523054` — PASS.
+
+Exact next discriminant:
+- perform one **batched TradingView visual/reload parity gate** with both scripts loaded together;
+- compare Market Map `EXECUÇÃO/FORÇA` against the standalone Execution status cue;
+- if stable before/after reload and no material UX/parity defect appears, promote Execution 0.1.0 without inventing another manual test cycle.
 
 The accepted defaults are frozen by:
 
-`manifests/execution-research-defaults-v1.json`
+`manifests/execution-research-defaults-v2.json`
 
 The semantic contract is frozen by:
 
@@ -84,19 +109,43 @@ The semantic contract is frozen by:
 
 ## 4. Exact next atomic work
 
-### PREPARED production block
+### PREPARED promotion block — 2026-09-24
 
-Intended sequence:
+Operator TradingView parity evidence is complete and PASS:
 
-1. create a dedicated production branch from current `main`;
-2. create `src/core/execution.pine`;
-3. implement MTE-A / RSE-A / PSE-A / readiness / strength semantics without retuning;
-4. preserve one lower pane and the renderer contract;
-5. add repository tooling/tests that prove semantic parity with the accepted Python reference models;
-6. only after the lower-pane kernel is stable, add the same slim Execution semantic kernel to Market Map's embedded Decision Panel;
-7. run Static integrity + TradingView Pine compile before any operator testing.
+- BTCUSDT 4H before reload:
+  - Market Map EXECUÇÃO = `AGUARDAR`
+  - Market Map FORÇA = `NORMAL`
+  - standalone Execution cue = `AGUARDAR • NORMAL`
 
-No TradingView screenshots are needed until the production Pine compiles and static/kernel parity are green.
+- BTCUSDT 4H after reload:
+  - same semantic state across both scripts;
+  - no material reload mismatch observed.
+
+- BTCUSDT 1D after reload:
+  - Market Map EXECUÇÃO = `PREPARANDO LONG`
+  - Market Map FORÇA = `NORMAL`
+  - standalone Execution cue = `PREPARANDO LONG • NORMAL`
+
+No additional manual test cycle is justified without a concrete defect.
+
+Current PR #21 head:
+`5fdea1e7be173ea9cec500eba70f00e35c153b67`
+
+Promotion sequence:
+1. reconcile PR #21 with current `main` if needed;
+2. re-run Static integrity + Pine compile on the reconciled head;
+3. mark PR #21 ready;
+4. merge Execution 0.1.0;
+5. close Issue #20;
+6. update README / CANONICAL_STATE / CHANGELOG / CONTINUITY_LOG / this handoff to the accepted two-indicator suite state.
+
+Recovery if interrupted:
+- inspect PR #21 head vs this checkpoint;
+- inspect only newer commits/checks;
+- do not repeat TradingView screenshots;
+- continue from the first incomplete promotion step.
+
 
 ## 5. Continuity protocol
 
