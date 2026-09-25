@@ -3,7 +3,7 @@
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
 **Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — Opportunity composition v2 cross-asset robustness  
+**Active product front:** Suite 0.2 — Opportunity v2 15-symbol daily robustness  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,51 +131,48 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — Opportunity composition v2 cross-asset robustness
+### PREPARED block — Opportunity v2 15-symbol 1D robustness
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `ed4091a7b327243315960a44591b5044d461de2f`
+- durable pre-block research head: `44062076fece1b7e4fc26710866226082bd74965`
 
-Accepted/provisional research state:
-- frozen Execution 0.1 path remains independent and unchanged;
-- parallel Opportunity Readiness architecture — **KEEP**;
-- CANDIDATE = awareness only;
-- STRONG -> PREPARANDO;
-- ACCEPTED may arm directly with supportive RSI/HTF and non-opposing momentum;
-- STRONG source participation may be remembered through HOLD_2 acceptance;
-- no fresh MTE acceleration is required after HOLD_2 if momentum remains non-opposing;
-- BTC 4H/1D evidence is promising;
-- worklog: `docs/worklog/2026-09-25-suite-0.2-opportunity-composition-v2.md`.
+Closed robustness:
+- BTC/ETH/AVAX 4H/1D matrix `36151556125` — PASS;
+- Static integrity `36151555937` — PASS;
+- worklog: `docs/worklog/2026-09-25-suite-0.2-opportunity-v2-robustness.md`.
 
-BTC evidence highlights:
-- 4H breakout expanded coverage: 17.00% -> 20.53%;
-- 4H opportunity-path held breakout coverage 6.26% vs fakeout 1.21%;
-- 1D breakout: 5.29% -> 9.13%;
-- 1D REACCELERATION: 6.67% -> 20.00%;
-- opportunity PREP/cancel churn dropped sharply from first parallel composition;
-- frozen pullback/retest coverage remains exact.
+Decision:
+- Opportunity composition v2 on **4H** — KEEP for next-stage research;
+- 1D across BTC/ETH/AVAX — INSUFFICIENT EVIDENCE;
+- frozen 0.1 remains exact and independent;
+- no per-asset retuning.
 
 Exact intended work:
-1. run unchanged composition on ETHUSDT 4H/1D;
-2. run unchanged composition on AVAXUSDT 4H/1D;
-3. compare:
-   - breakout held vs fakeout opportunity-path coverage;
-   - REACCELERATION reachability;
-   - PREP/ARMED/CONFIRMA event load;
-   - quick cancellations;
-   - direction balance/pathology;
-4. no per-asset threshold/default change;
-5. if robust, canonize v2 as the first accepted Opportunity Engine research baseline;
-6. only then move to the next missing opportunity family / horizon expansion;
-7. no production Pine or profiles yet.
+1. run identical v2 composition on the accepted 15-symbol 1D universe;
+2. use exact SHA-256-verified 1D/1W production Parquets;
+3. no per-symbol tuning;
+4. aggregate:
+   - breakout opportunity-only gain;
+   - REACCELERATION opportunity-only gain;
+   - HELD vs FAKEOUT breakout coverage;
+   - opportunity CONFIRMA/CANCEL load per 1000 bars;
+   - LONG/SHORT confirmation balance;
+   - number of symbols with positive/zero new-path contribution;
+5. decide whether 1D is:
+   - KEEP;
+   - REFINE;
+   - awareness-only;
+   - insufficient evidence;
+6. if robust, canonize composition v2 as first accepted Opportunity Engine research baseline;
+7. no production Pine/default/profile change.
 
 Recovery:
-- compare branch with `ed4091a7...`;
-- inspect only newer cross-asset workflow commits/runs/artifacts;
-- do not rerun BTC design iterations unless a robustness defect points back to them.
+- compare branch with `44062076...`;
+- inspect only newer universe runner/workflow commits and artifacts;
+- do not rerun closed BTC/ETH/AVAX design iterations unless a universe defect points back to them.
 
 
 ## 7. Continuity protocol
