@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — Opportunity v2 15-symbol daily robustness  
+**Checkpoint state:** STABLE  
+**Active product front:** Suite 0.2 — Opportunity v2 research baseline accepted  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,48 +131,46 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — Opportunity v2 15-symbol 1D robustness
+### STABLE result — Opportunity Engine composition v2
 
-Active research:
+Research baseline:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `44062076fece1b7e4fc26710866226082bd74965`
+- accepted research head: `329cdcac039f11cd1a81bf9138cfe67ab83a142f`
 
-Closed robustness:
-- BTC/ETH/AVAX 4H/1D matrix `36151556125` — PASS;
-- Static integrity `36151555937` — PASS;
-- worklog: `docs/worklog/2026-09-25-suite-0.2-opportunity-v2-robustness.md`.
+Evidence:
+- BTC/ETH/AVAX 4H/1D robustness: `36151556125` — PASS;
+- 15-symbol 1D universe: `36151995405` — PASS;
+- Static integrity: `36151995191`, `36152002815` — PASS;
+- worklog: `docs/worklog/2026-09-25-suite-0.2-opportunity-v2-universe.md`.
 
-Decision:
-- Opportunity composition v2 on **4H** — KEEP for next-stage research;
-- 1D across BTC/ETH/AVAX — INSUFFICIENT EVIDENCE;
-- frozen 0.1 remains exact and independent;
-- no per-asset retuning.
+Accepted research decisions:
+- parallel Opportunity architecture — **KEEP**;
+- composition v2 — **KEEP as first accepted Opportunity Engine research baseline**;
+- 4H — KEEP;
+- 1D — KEEP;
+- CANDIDATE = awareness only;
+- STRONG may PREPARAR;
+- ACCEPTED required for final Opportunity confirmation;
+- accepted follow-through may arm with supportive RSI/HTF and non-opposing momentum;
+- source participation may be remembered only when source qualified STRONG;
+- raw REGIME_TRANSITION remains non-actionable;
+- strict REGIME_REVERSAL remains valid but earlier-action evidence is insufficient;
+- frozen Execution 0.1 remains independent and unchanged;
+- no profiles or production Pine changes.
 
-Exact intended work:
-1. run identical v2 composition on the accepted 15-symbol 1D universe;
-2. use exact SHA-256-verified 1D/1W production Parquets;
-3. no per-symbol tuning;
-4. aggregate:
-   - breakout opportunity-only gain;
-   - REACCELERATION opportunity-only gain;
-   - HELD vs FAKEOUT breakout coverage;
-   - opportunity CONFIRMA/CANCEL load per 1000 bars;
-   - LONG/SHORT confirmation balance;
-   - number of symbols with positive/zero new-path contribution;
-5. decide whether 1D is:
-   - KEEP;
-   - REFINE;
-   - awareness-only;
-   - insufficient evidence;
-6. if robust, canonize composition v2 as first accepted Opportunity Engine research baseline;
-7. no production Pine/default/profile change.
+15-symbol daily highlights:
+- BREAKOUT expanded 4.01% -> 6.22%; positive new-path gain on 13/15 symbols;
+- breakout Opportunity-path HELD 3.93% vs FAKEOUT 0.61%;
+- REACCELERATION expanded 0.84% -> 5.04%;
+- 0.81 CONFIRMA / 1000 bars;
+- 7.17 CANCEL / 1000 bars;
+- confirmations: 15 LONG / 16 SHORT.
 
-Recovery:
-- compare branch with `44062076...`;
-- inspect only newer universe runner/workflow commits and artifacts;
-- do not rerun closed BTC/ETH/AVAX design iterations unless a universe defect points back to them.
+Next research frontier:
+- RANGE_ROTATION episode contract and frozen-0.1 / Opportunity-v2 response;
+- no automatic production implementation follows from the accepted research baseline.
 
 
 ## 7. Continuity protocol
