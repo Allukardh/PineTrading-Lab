@@ -21,10 +21,12 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Sequence
 
-from tools.market_map_offline_core import IntegrationSnapshot
+from tools.market_map_offline_core import IntegrationSnapshot, RETEST_MAX_BARS
 
 
 REVERSAL_PRIOR_REGIME_MIN_BARS = 8
+REACCELERATION_REGIME_MIN_BARS = 8
+REACCELERATION_PULLBACK_LOOKBACK_BARS = RETEST_MAX_BARS
 
 
 class OpportunityType(str, Enum):
@@ -32,6 +34,15 @@ class OpportunityType(str, Enum):
     REGIME_REVERSAL = "REGIME_REVERSAL"
     BREAKOUT_CANDIDATE = "BREAKOUT_CANDIDATE"
     PULLBACK_RETEST = "PULLBACK_RETEST"
+    REACCELERATION = "REACCELERATION"
+
+
+class BreakContext(str, Enum):
+    OTHER = "OTHER"
+    EARLY_TRANSITION = "EARLY_TRANSITION"
+    FRESH_EXPANSION = "FRESH_EXPANSION"
+    PULLBACK_RESOLUTION = "PULLBACK_RESOLUTION"
+    REACCELERATION = "REACCELERATION"
 
 
 @dataclass(frozen=True)
@@ -51,6 +62,47 @@ class OpportunityEpisode:
 
 def _valid_direction(value: int) -> bool:
     return value in (-1, 1)
+
+
+def classify_structural_break_context(
+    *,
+    direction: int,
+    map_dir: int,
+    regime_dir: int,
+    structural_conflict: bool,
+    thesis_invalidated: bool,
+    regime_age_before_bar: int,
+    had_prior_same_direction_break: bool,
+    recent_pullback_reaction: bool,
+    reaction_on_break_bar: bool,
+    opposite_mature_regime: bool,
+) -> BreakContext:
+    """Classify structural-break context using only contemporaneous/past state."""
+    if not _valid_direction(direction):
+        return BreakContext.OTHER
+
+    if opposite_mature_regime:
+        return BreakContext.EARLY_TRANSITION
+
+    coherent = (
+        map_dir == direction
+        and regime_dir == direction
+        and not structural_conflict
+        and not thesis_invalidated
+    )
+    if not coherent:
+        return BreakContext.OTHER
+
+    if recent_pullback_reaction or reaction_on_break_bar:
+        return BreakContext.PULLBACK_RESOLUTION
+
+    if (
+        regime_age_before_bar >= REACCELERATION_REGIME_MIN_BARS
+        and had_prior_same_direction_break
+    ):
+        return BreakContext.REACCELERATION
+
+    return BreakContext.FRESH_EXPANSION
 
 
 def _zone_touch(
@@ -91,6 +143,7 @@ def detect_episodes(
 
     episodes: list[OpportunityEpisode] = []
     seen_reaction_theses: set[int] = set()
+    last_reaction_bar = {1: None, -1: None}
 
     # Regime bookkeeping deliberately tolerates a neutral/transition gap.
     current_regime_dir = 0
@@ -128,7 +181,8 @@ def detect_episodes(
 
     for i, snap in enumerate(snapshots):
         if snap.structural_break_dir in (-1, 1):
-            last_break_bar[snap.structural_break_dir] = i
+            break_dir = snap.structural_break_dir
+            previous_same_break = last_break_bar[break_dir]
 
             # Early regime-transition candidate: opposite structural break
             # against a sufficiently mature confirmed regime. This is known at
@@ -147,10 +201,41 @@ def detect_episodes(
             ):
                 mature_dir = previous_regime_dir
 
-            if mature_dir == -snap.structural_break_dir:
+            reaction_on_break_bar = bool(
+                snap.retest_event
+                or snap.reclaim_event
+                or (
+                    snap.correction_active
+                    and _zone_touch(snap, float(highs[i]), float(lows[i]))
+                )
+            )
+            last_reaction = last_reaction_bar[break_dir]
+            recent_pullback = bool(
+                last_reaction is not None
+                and 0 < i - last_reaction <= REACCELERATION_PULLBACK_LOOKBACK_BARS
+            )
+
+            context = classify_structural_break_context(
+                direction=break_dir,
+                map_dir=snap.map_dir,
+                regime_dir=snap.regime_dir,
+                structural_conflict=snap.structural_conflict,
+                thesis_invalidated=snap.thesis_invalidated,
+                regime_age_before_bar=(
+                    current_regime_len
+                    if current_regime_dir == break_dir
+                    else 0
+                ),
+                had_prior_same_direction_break=previous_same_break is not None,
+                recent_pullback_reaction=recent_pullback,
+                reaction_on_break_bar=reaction_on_break_bar,
+                opposite_mature_regime=mature_dir == -break_dir,
+            )
+
+            if context == BreakContext.EARLY_TRANSITION:
                 add(
                     OpportunityType.REGIME_TRANSITION_CANDIDATE,
-                    snap.structural_break_dir,
+                    break_dir,
                     i,
                     i,
                     snap,
@@ -160,6 +245,18 @@ def detect_episodes(
                         else previous_regime_len
                     ),
                 )
+
+            if context == BreakContext.REACCELERATION:
+                add(
+                    OpportunityType.REACCELERATION,
+                    break_dir,
+                    i,
+                    i,
+                    snap,
+                    prior_regime_bars=current_regime_len,
+                )
+
+            last_break_bar[break_dir] = i
 
         # A structural break itself is a valid expansion episode only if MM-0
         # already regards the resulting direction as coherent on that bar.
@@ -201,6 +298,7 @@ def detect_episodes(
                 i,
                 snap,
             )
+            last_reaction_bar[snap.map_dir] = i
 
         regime = snap.regime_dir
 
