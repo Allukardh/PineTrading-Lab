@@ -370,7 +370,7 @@ Final high-horizon gate:
 - 3D scope supported;
 - 1W early-action evidence insufficient.
 
-### Phase F — integrated evidence — **ACTIVE**
+### Phase F — integrated evidence — **CLOSED / KEEP**
 F1:
 - Market Map + independent Execution/Opportunity paths + OPERATOR_READINESS_V1;
 - apply the final profile policy without mutating internal paths;
@@ -382,6 +382,19 @@ F2:
 - preserve accepted 4H/1D behavior;
 - establish whether 15m / 1H / 3D / 1W can reuse the same management semantics without retuning;
 - 1M remains macro/cycle awareness, not execution management.
+
+F2 final high-horizon universe:
+- 15-symbol 3D/1W workflow `36194845938` — PASS;
+- 3D: 39 confirms across 15/15 symbols — **KEEP**;
+- 1W: 11 confirms across 9/15 symbols — **KEEP but sparse**;
+- FULL-anchor V1 parity 100% on both horizons;
+- no horizon-specific retuning justified.
+
+Phase F final:
+- OPERATOR_READINESS_V1 — KEEP;
+- capability-aware Thesis Management V1.1 — KEEP;
+- integrated research composition accepted across 15m / 1H / 4H / 1D / 3D / 1W;
+- 1M remains macro/cycle awareness only.
 
 Broader universe is used only where it answers a real robustness question.
 No per-asset retuning by default.
