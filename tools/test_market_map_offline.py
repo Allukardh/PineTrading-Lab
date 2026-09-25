@@ -108,8 +108,10 @@ class T(unittest.TestCase):
         ctx = x[::4]
         d = x[::96]
         w = [x[0], x[-1]]
-        rows = mm.Kernel(x, ctx, d, w, '15m').run()
+        integration = []
+        rows = mm.Kernel(x, ctx, d, w, '15m').run(integration_rows=integration)
         self.assertEqual(len(rows), len(x))
+        self.assertEqual(len(integration), len(x))
         self.assertEqual(set(rows[0]), set(mm.AUDIT_HEADER))
         self.assertTrue(any((r['MM Audit • Nova tese evt'] == 1 for r in rows)))
         self.assertTrue(all(
@@ -118,6 +120,22 @@ class T(unittest.TestCase):
             and 0 <= r['MM Audit • Confluências'] <= 6
             for r in rows
         ))
+        for row, snap in zip(rows, integration):
+            self.assertEqual(row['MM Audit • MapDir'], snap.map_dir)
+            self.assertEqual(row['MM Audit • Correção topo'], snap.primary_top)
+            self.assertEqual(row['MM Audit • Correção fundo'], snap.primary_bottom)
+        active = next(s for s in integration if s.correction_active)
+        self.assertIsNotNone(active.t1_top)
+        self.assertIsNotNone(active.t1_bottom)
+        self.assertIsNotNone(active.t3_top)
+        self.assertIsNotNone(active.t3_bottom)
+        self.assertGreaterEqual(active.t1_top, active.t1_bottom)
+        self.assertGreaterEqual(active.t3_top, active.t3_bottom)
+
+    def test_execution_integration_constants_match_promoted_pine(self):
+        self.assertEqual(mm.RETEST_MAX_BARS, 24)
+        self.assertAlmostEqual(mm.RETEST_TOL_ATR, 0.18)
+        self.assertAlmostEqual(mm.TARGET_NEAR_ATR, 0.30)
 
 
 if __name__ == '__main__':
