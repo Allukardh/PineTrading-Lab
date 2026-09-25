@@ -56,6 +56,21 @@ def _event_counts(samples) -> Counter:
     return c
 
 
+def _confirm_direction_counts(samples) -> Counter:
+    c = Counter()
+    for s in samples:
+        if not s.result.events.confirm:
+            continue
+        direction = s.result.state.direction
+        if direction == 1:
+            c["LONG"] += 1
+        elif direction == -1:
+            c["SHORT"] += 1
+        else:
+            c["NONE"] += 1
+    return c
+
+
 def _quick_cancel(samples, entered_attr: str, max_bars: int = 3) -> int:
     starts = [i for i, s in enumerate(samples) if getattr(s.result.events, entered_attr)]
     total = 0
@@ -278,6 +293,7 @@ def analyze_timeframe(timeframe: str, datasets: dict[str, dict], tick_size: floa
         },
         "opportunity_path": {
             "events": dict(o_events),
+            "confirm_direction_counts": dict(sorted(_confirm_direction_counts(opportunity_samples).items())),
             "events_per_1000": {k: _per_1000(v, rows) for k, v in sorted(o_events.items())},
             "quick_prep_cancel_3": _quick_cancel(opportunity_samples, "preparing_entered"),
             "quick_armed_cancel_3": _quick_cancel(opportunity_samples, "armed_entered"),
