@@ -1,0 +1,911 @@
+//@version=6
+indicator("Execution v0.1.0", shorttitle="Execution", overlay=false, max_bars_back=5000)
+
+// ============================================================================
+// PineTrading-Lab — Execution 0.1.0
+// Production implementation of the accepted Execution research contract.
+//
+// Production kernel:
+//   - MTE-A momentum kernel
+//   - RSE-A local RSI + confirmed HTF context
+//   - PSE-A reload-safe participation measurements
+//   - self-contained accepted Market Map context/location bridge
+//   - readiness + strength state machine
+//   - minimal lower-pane renderer
+// ============================================================================
+
+// ---------------------------------------------------------------------------
+// Accepted defaults v2 — engine-owned, not operator tuning inputs
+// ---------------------------------------------------------------------------
+int EXECUTION_CONTRACT = 1
+int EXECUTION_DEFAULTS_VERSION = 2
+
+int MTE_FAST_EMA = 8
+int MTE_SLOW_EMA = 21
+int MTE_ATR_LEN = 14
+int MTE_ACTIVITY_LEN = 20
+float MTE_NEUTRAL_FACTOR = 0.15
+float MTE_TURN_FACTOR = 0.50
+float MTE_TURN_FLOOR = 0.02
+float MTE_ACCEL_EPS = 1e-9
+
+int RSI_LEN = 14
+float RSI_CENTER_LOW = 48.0
+float RSI_CENTER_HIGH = 52.0
+float RSI_OVERBOUGHT = 70.0
+float RSI_OVERSOLD = 30.0
+float RSI_EXTREME_OVERBOUGHT_LEVEL = 80.0
+float RSI_EXTREME_OVERSOLD_LEVEL = 20.0
+float RSI_MIN_STEP = 0.25
+int RSI_ZONE_MEMORY_BARS = 2
+
+int PSE_VOLUME_EMA_LEN = 20
+float PSE_CONTRACTED_BELOW = 0.80
+float PSE_EXPANDED_AT_OR_ABOVE = 1.20
+float PSE_STRONG_AT_OR_ABOVE = 1.50
+float PSE_PRESSURE_MIN = 0.20
+
+// Canonical semantic codes from manifests/suite-semantics-v1.json.
+int MTE_NEUTRAL = 0
+int MTE_TURN_UP = 1
+int MTE_UP_ACCEL = 2
+int MTE_UP_DECEL = 3
+int MTE_TURN_DOWN = -1
+int MTE_DOWN_ACCEL = -2
+int MTE_DOWN_DECEL = -3
+
+int RSI_NEUTRAL = 0
+int RSI_BULL = 1
+int RSI_RECOVERING_OVERSOLD = 2
+int RSI_RECOVERING_OVERBOUGHT = 3
+int RSI_EXTREME_OVERBOUGHT = 4
+int RSI_EXTREME_OVERSOLD = -4
+int RSI_FADING_OVERSOLD = -3
+int RSI_FADING_OVERBOUGHT = -2
+int RSI_BEAR = -1
+
+
+int PSE_NEUTRAL = 0
+int PSE_CONFIRM = 1
+int PSE_WEAK = 2
+int PSE_CONTRARY = -1
+
+int READY_WAIT = 0
+int READY_PREP = 1
+int READY_ARMED = 2
+int READY_CONFIRMED = 3
+int READY_ALIGNED = 4
+
+int STRENGTH_NORMAL = 0
+int STRENGTH_FADING = 1
+int STRENGTH_EXHAUSTED = 2
+int STRENGTH_REACTION_RISK = 3
+
+// ---------------------------------------------------------------------------
+// Deterministic research-parity helpers
+// ---------------------------------------------------------------------------
+// Reference models use SMA-seeded EMA/RMA rather than Pine's implicit first
+// sample seed. Keep the same warmup so offline and Pine evidence align.
+f_seeded_ema(_src, _length) =>
+    float alpha = 2.0 / (_length + 1.0)
+    float seed = ta.sma(_src, _length)
+    float value = na
+    value := na(value[1]) ? seed : alpha * _src + (1.0 - alpha) * value[1]
+    value
+
+f_seeded_rma(_src, _length) =>
+    float alpha = 1.0 / _length
+    float seed = ta.sma(_src, _length)
+    float value = na
+    value := na(value[1]) ? seed : alpha * _src + (1.0 - alpha) * value[1]
+    value
+
+f_rsi(_src) =>
+    float change = _src - _src[1]
+    float gain = na(change) ? na : math.max(change, 0.0)
+    float loss = na(change) ? na : math.max(-change, 0.0)
+    float avgGain = f_seeded_rma(gain, RSI_LEN)
+    float avgLoss = f_seeded_rma(loss, RSI_LEN)
+    float result = na
+    if not na(avgGain) and not na(avgLoss)
+        result := avgGain == 0.0 and avgLoss == 0.0 ? 50.0 :
+             avgLoss == 0.0 ? 100.0 :
+             avgGain == 0.0 ? 0.0 :
+             100.0 - 100.0 / (1.0 + avgGain / avgLoss)
+    result
+
+f_confirmed_sec(_tf, _expr) =>
+    float reqSec = timeframe.in_seconds(_tf)
+    float chartSecLocal = timeframe.in_seconds()
+    reqSec > chartSecLocal ?
+         request.security(syminfo.tickerid, _tf, _expr[1], barmerge.gaps_off, barmerge.lookahead_on) :
+         _expr
+
+f_execution_txt(_stage, _dir) =>
+    _stage == READY_PREP ? (_dir == 1 ? "PREPARANDO LONG" : _dir == -1 ? "PREPARANDO SHORT" : "AGUARDAR") :
+     _stage == READY_ARMED ? (_dir == 1 ? "ARMADO LONG" : _dir == -1 ? "ARMADO SHORT" : "AGUARDAR") :
+     _stage == READY_CONFIRMED ? (_dir == 1 ? "CONFIRMA LONG" : _dir == -1 ? "CONFIRMA SHORT" : "AGUARDAR") :
+     _stage == READY_ALIGNED ? (_dir == 1 ? "ALINHADO LONG" : _dir == -1 ? "ALINHADO SHORT" : "AGUARDAR") :
+     "AGUARDAR"
+
+f_strength_txt(_state) =>
+    _state == STRENGTH_FADING ? "PERDENDO FORÇA" :
+     _state == STRENGTH_EXHAUSTED ? "EXAUSTÃO" :
+     _state == STRENGTH_REACTION_RISK ? "RISCO DE REAÇÃO" :
+     "NORMAL"
+
+// ---------------------------------------------------------------------------
+// Timeframe policy — identical suite mapping, confirmed HTF only
+// ---------------------------------------------------------------------------
+float chartSec = timeframe.in_seconds()
+float tf15Sec = timeframe.in_seconds("15")
+float tf60Sec = timeframe.in_seconds("60")
+float tf240Sec = timeframe.in_seconds("240")
+float tfDSec = timeframe.in_seconds("D")
+
+if na(chartSec)
+    runtime.error("Execution requires a time-based chart timeframe.")
+
+string contextTf = chartSec <= tf15Sec ? "60" :
+     chartSec <= tf60Sec ? "240" :
+     chartSec <= tf240Sec ? "D" :
+     chartSec <= tfDSec ? "W" :
+     timeframe.period
+
+// ---------------------------------------------------------------------------
+// MTE-A — volatility-normalized EMA spread
+// ---------------------------------------------------------------------------
+float mteSource = hlc3
+float mteFast = f_seeded_ema(mteSource, MTE_FAST_EMA)
+float mteSlow = f_seeded_ema(mteSource, MTE_SLOW_EMA)
+
+float prevClose = nz(close[1], close)
+float trueRange = math.max(high - low, math.max(math.abs(high - prevClose), math.abs(low - prevClose)))
+float mteAtr = f_seeded_rma(trueRange, MTE_ATR_LEN)
+
+float mteCore = not na(mteFast) and not na(mteSlow) and not na(mteAtr) and mteAtr > 0.0 ?
+     (mteFast - mteSlow) / mteAtr : na
+float mteActivity = f_seeded_rma(math.abs(mteCore), MTE_ACTIVITY_LEN)
+float mteAccel = not na(mteCore) and not na(mteCore[1]) ? mteCore - mteCore[1] : na
+float mteAccelActivity = f_seeded_rma(math.abs(mteAccel), MTE_ACTIVITY_LEN)
+
+bool mteReady = not na(mteCore) and not na(mteActivity) and not na(mteAccel) and not na(mteAccelActivity) and mteActivity > 0.0
+float mteNeutralBand = mteReady ? MTE_NEUTRAL_FACTOR * mteActivity : na
+float mteTurnBand = mteReady ? math.max(MTE_TURN_FLOOR, MTE_TURN_FACTOR * mteAccelActivity) : na
+float mteAccelSemantic = mteReady and math.abs(mteAccel) <= MTE_ACCEL_EPS ? 0.0 : mteAccel
+
+int mteState = MTE_NEUTRAL
+if mteReady
+    if math.abs(mteCore) <= mteNeutralBand
+        mteState := MTE_NEUTRAL
+    else if mteCore > 0.0
+        mteState := mteAccelSemantic < -mteTurnBand ? MTE_TURN_DOWN :
+             mteAccelSemantic < 0.0 ? MTE_UP_DECEL : MTE_UP_ACCEL
+    else
+        mteState := mteAccelSemantic > mteTurnBand ? MTE_TURN_UP :
+             mteAccelSemantic > 0.0 ? MTE_DOWN_DECEL : MTE_DOWN_ACCEL
+
+// ---------------------------------------------------------------------------
+// RSE-A — local RSI semantic state + confirmed HTF context
+// ---------------------------------------------------------------------------
+float rsiLocal = f_rsi(close)
+float rsiStep = not na(rsiLocal) and not na(rsiLocal[1]) ? rsiLocal - rsiLocal[1] : na
+bool rsiReady = not na(rsiLocal) and not na(rsiStep)
+
+float recentRsiMin = ta.lowest(rsiLocal, RSI_ZONE_MEMORY_BARS + 1)
+float recentRsiMax = ta.highest(rsiLocal, RSI_ZONE_MEMORY_BARS + 1)
+bool recentOversold = rsiReady and not na(recentRsiMin) and recentRsiMin <= RSI_OVERSOLD
+bool recentOverbought = rsiReady and not na(recentRsiMax) and recentRsiMax >= RSI_OVERBOUGHT
+
+int rsiState = RSI_NEUTRAL
+if rsiReady
+    if rsiLocal >= RSI_EXTREME_OVERBOUGHT_LEVEL
+        rsiState := RSI_EXTREME_OVERBOUGHT
+    else if rsiLocal <= RSI_EXTREME_OVERSOLD_LEVEL
+        rsiState := RSI_EXTREME_OVERSOLD
+    else if recentOversold and rsiLocal < RSI_CENTER_HIGH and rsiStep >= RSI_MIN_STEP
+        rsiState := RSI_RECOVERING_OVERSOLD
+    else if recentOverbought and rsiLocal > RSI_CENTER_LOW and rsiStep <= -RSI_MIN_STEP
+        rsiState := RSI_FADING_OVERBOUGHT
+    else if rsiLocal >= RSI_OVERBOUGHT and rsiStep >= RSI_MIN_STEP
+        rsiState := RSI_RECOVERING_OVERBOUGHT
+    else if rsiLocal <= RSI_OVERSOLD and rsiStep <= -RSI_MIN_STEP
+        rsiState := RSI_FADING_OVERSOLD
+    else if rsiLocal >= RSI_CENTER_HIGH
+        rsiState := RSI_BULL
+    else if rsiLocal <= RSI_CENTER_LOW
+        rsiState := RSI_BEAR
+    else
+        rsiState := RSI_NEUTRAL
+
+float rsiContextValue = f_confirmed_sec(contextTf, f_rsi(close))
+int rsiContextDir = na(rsiContextValue) ? 0 :
+     rsiContextValue >= RSI_CENTER_HIGH ? 1 :
+     rsiContextValue <= RSI_CENTER_LOW ? -1 : 0
+
+// ---------------------------------------------------------------------------
+// PSE-A — reload-safe relative volume + honest candle-location pressure proxy
+// ---------------------------------------------------------------------------
+float volumeBase = f_seeded_ema(volume, PSE_VOLUME_EMA_LEN)
+float priorVolumeBase = volumeBase[1]
+bool pseReady = not na(volume) and volume >= 0.0 and not na(priorVolumeBase) and priorVolumeBase > 0.0
+float relativeVolume = pseReady ? volume / priorVolumeBase : na
+
+float candleSpan = high - low
+float pressureProxy = candleSpan == 0.0 ? 0.0 :
+     math.max(-1.0, math.min(1.0, (2.0 * close - high - low) / candleSpan))
+bool strongExpansion = pseReady and relativeVolume >= PSE_STRONG_AT_OR_ABOVE
+
+// Directional participation state is intentionally deferred until canonical
+// Market Map direction is present. Raw reload-safe evidence is ready here.
+
+// ---------------------------------------------------------------------------
+// Accepted Market Map context — slim self-contained consumer
+// ---------------------------------------------------------------------------
+// This block mirrors only the accepted MM-0 semantics required by Execution:
+// coherent map direction, correction envelope, retest/reclaim, destination
+// proximity and thesis invalidation. Market Map rendering/audit/confluence are
+// intentionally not duplicated here.
+
+int MM_MID_LEN = 50
+int MM_SLOW_LEN = 200
+int MM_ATR_LEN = 14
+int MM_PIVOT_LEN = 3
+int MM_POOL_MAX = 24
+int MM_RETEST_MAX_BARS = 24
+int MM_FAIL_MAX_BARS = 6
+int MM_PULLBACK_SAMPLE_MAX = 24
+int MM_PULLBACK_MIN_SAMPLES = 5
+float MM_EQ_TOL_ATR = 0.12
+float MM_RETEST_TOL_ATR = 0.18
+float MM_FAIL_TOL_ATR = 0.08
+float MM_INVALID_TOL_ATR = 0.12
+float MM_TARGET_NEAR_ATR = 0.30
+float MM_PULLBACK_MIN_DEPTH = 0.12
+float MM_PULLBACK_MAX_DEPTH = 0.90
+
+float EX_APPROACH_ATR = 0.50
+int EX_EVENT_HOLD_BARS = 3
+int EX_EVENT_HOLD_MAX_MS = 12 * 60 * 60 * 1000
+
+int LOC_OUTSIDE = 0
+int LOC_APPROACHING = 1
+int LOC_IN_CORRECTION = 2
+int LOC_RETEST = 3
+int LOC_RECLAIM = 4
+int LOC_DESTINATION_NEAR = 5
+
+f_mm_sec(_tf, _expr) =>
+    float reqSec = timeframe.in_seconds(_tf)
+    reqSec > chartSec ?
+         request.security(syminfo.tickerid, _tf, _expr[1], barmerge.gaps_off, barmerge.lookahead_on) :
+         _expr
+
+f_mm_trim_pool(_levels, _swept) =>
+    if array.size(_levels) > MM_POOL_MAX
+        array.shift(_levels)
+        array.shift(_swept)
+
+f_mm_push_pullback(_arr, _depth) =>
+    if not na(_depth) and _depth >= MM_PULLBACK_MIN_DEPTH and _depth <= MM_PULLBACK_MAX_DEPTH
+        array.push(_arr, _depth)
+        if array.size(_arr) > MM_PULLBACK_SAMPLE_MAX
+            array.shift(_arr)
+
+f_mm_quantile(_arr, _q) =>
+    float result = na
+    int n = array.size(_arr)
+    if n > 0
+        float[] copy = array.copy(_arr)
+        array.sort(copy, order.ascending)
+        float pos = (n - 1) * _q
+        int lo = int(math.floor(pos))
+        int hi = int(math.ceil(pos))
+        float loV = array.get(copy, lo)
+        float hiV = array.get(copy, hi)
+        result := lo == hi ? loV : loV + (hiV - loV) * (pos - lo)
+    result
+
+float mmMid = ta.ema(close, MM_MID_LEN)
+float mmSlow = ta.ema(close, MM_SLOW_LEN)
+float mmAtr = ta.atr(MM_ATR_LEN)
+float mmCtxClose = f_mm_sec(contextTf, close)
+float mmCtxMid = f_mm_sec(contextTf, ta.ema(close, MM_MID_LEN))
+float mmCtxSlow = f_mm_sec(contextTf, ta.ema(close, MM_SLOW_LEN))
+
+bool mmLocalBullRegime = mmMid > mmSlow and mmSlow >= mmSlow[3]
+bool mmLocalBearRegime = mmMid < mmSlow and mmSlow <= mmSlow[3]
+bool mmCtxBullRegime = mmCtxMid > mmCtxSlow and mmCtxClose > mmCtxSlow
+bool mmCtxBearRegime = mmCtxMid < mmCtxSlow and mmCtxClose < mmCtxSlow
+int mmRegimeDir = mmLocalBullRegime and mmCtxBullRegime ? 1 :
+     mmLocalBearRegime and mmCtxBearRegime ? -1 : 0
+
+float mmPh = ta.pivothigh(high, MM_PIVOT_LEN, MM_PIVOT_LEN)
+float mmPl = ta.pivotlow(low, MM_PIVOT_LEN, MM_PIVOT_LEN)
+bool mmNewPH = not na(mmPh)
+bool mmNewPL = not na(mmPl)
+float mmPostPivotHigh = ta.highest(high, MM_PIVOT_LEN)
+float mmPostPivotLow = ta.lowest(low, MM_PIVOT_LEN)
+
+var float mmLastSwingHigh = na
+var float mmPrevSwingHigh = na
+var int mmLastSwingHighBar = na
+var int mmPrevSwingHighBar = na
+var string mmLastHighType = "—"
+var float mmLastSwingLow = na
+var float mmPrevSwingLow = na
+var int mmLastSwingLowBar = na
+var int mmPrevSwingLowBar = na
+var string mmLastLowType = "—"
+
+bool mmEqHighNow = mmNewPH and not na(mmLastSwingHigh) and math.abs(mmPh - mmLastSwingHigh) <= mmAtr * MM_EQ_TOL_ATR
+bool mmEqLowNow = mmNewPL and not na(mmLastSwingLow) and math.abs(mmPl - mmLastSwingLow) <= mmAtr * MM_EQ_TOL_ATR
+
+var float[] mmHighPools = array.new_float()
+var bool[] mmHighSwept = array.new_bool()
+var float[] mmLowPools = array.new_float()
+var bool[] mmLowSwept = array.new_bool()
+var float[] mmBullPullbacks = array.new_float()
+var float[] mmBearPullbacks = array.new_float()
+
+int mmCandidatePivotBar = bar_index - MM_PIVOT_LEN
+float mmBullPullbackDepth = na
+float mmBearPullbackDepth = na
+
+if mmNewPL and mmLastHighType == "HH" and not na(mmLastSwingLowBar) and not na(mmLastSwingHighBar) and mmLastSwingLowBar < mmLastSwingHighBar and mmLastSwingHighBar < mmCandidatePivotBar
+    float priorBullRange = mmLastSwingHigh - mmLastSwingLow
+    mmBullPullbackDepth := priorBullRange > syminfo.mintick ? (mmLastSwingHigh - mmPl) / priorBullRange : na
+
+if mmNewPH and mmLastLowType == "LL" and not na(mmLastSwingHighBar) and not na(mmLastSwingLowBar) and mmLastSwingHighBar < mmLastSwingLowBar and mmLastSwingLowBar < mmCandidatePivotBar
+    float priorBearRange = mmLastSwingHigh - mmLastSwingLow
+    mmBearPullbackDepth := priorBearRange > syminfo.mintick ? (mmPh - mmLastSwingLow) / priorBearRange : na
+
+f_mm_push_pullback(mmBullPullbacks, mmBullPullbackDepth)
+f_mm_push_pullback(mmBearPullbacks, mmBearPullbackDepth)
+
+if mmNewPH
+    mmPrevSwingHigh := mmLastSwingHigh
+    mmPrevSwingHighBar := mmLastSwingHighBar
+    mmLastSwingHigh := mmPh
+    mmLastSwingHighBar := bar_index - MM_PIVOT_LEN
+    mmLastHighType := na(mmPrevSwingHigh) ? "H" : mmPh > mmPrevSwingHigh ? "HH" : "LH"
+    bool alreadySwept = mmPostPivotHigh > mmPh + syminfo.mintick
+    array.push(mmHighPools, mmPh)
+    array.push(mmHighSwept, alreadySwept)
+    f_mm_trim_pool(mmHighPools, mmHighSwept)
+
+if mmNewPL
+    mmPrevSwingLow := mmLastSwingLow
+    mmPrevSwingLowBar := mmLastSwingLowBar
+    mmLastSwingLow := mmPl
+    mmLastSwingLowBar := bar_index - MM_PIVOT_LEN
+    mmLastLowType := na(mmPrevSwingLow) ? "L" : mmPl > mmPrevSwingLow ? "HL" : "LL"
+    bool alreadySwept = mmPostPivotLow < mmPl - syminfo.mintick
+    array.push(mmLowPools, mmPl)
+    array.push(mmLowSwept, alreadySwept)
+    f_mm_trim_pool(mmLowPools, mmLowSwept)
+
+float mmReclaimAboveLevel = na
+float mmReclaimBelowLevel = na
+
+if barstate.isconfirmed
+    int highCount = array.size(mmHighPools)
+    if highCount > 0
+        for i = 0 to highCount - 1
+            float level = array.get(mmHighPools, i)
+            bool wasSwept = array.get(mmHighSwept, i)
+            if not wasSwept and high > level + syminfo.mintick
+                if close < level and (na(mmReclaimAboveLevel) or level < mmReclaimAboveLevel)
+                    mmReclaimAboveLevel := level
+                array.set(mmHighSwept, i, true)
+    int lowCount = array.size(mmLowPools)
+    if lowCount > 0
+        for i = 0 to lowCount - 1
+            float level = array.get(mmLowPools, i)
+            bool wasSwept = array.get(mmLowSwept, i)
+            if not wasSwept and low < level - syminfo.mintick
+                if close > level and (na(mmReclaimBelowLevel) or level > mmReclaimBelowLevel)
+                    mmReclaimBelowLevel := level
+                array.set(mmLowSwept, i, true)
+
+bool mmCrossSwingHigh = ta.crossover(close, mmLastSwingHigh)
+bool mmCrossSwingLow = ta.crossunder(close, mmLastSwingLow)
+bool mmBreakUp = barstate.isconfirmed and not na(mmLastSwingHigh) and mmCrossSwingHigh
+bool mmBreakDown = barstate.isconfirmed and not na(mmLastSwingLow) and mmCrossSwingLow
+
+var int mmStructureDir = 0
+var float mmLastBreakLevel = na
+var int mmLastBreakDir = 0
+var int mmLastBreakBar = na
+var int mmPreBreakStructureDir = 0
+var int mmLiveImpulseDir = 0
+var float mmLiveImpulseLow = na
+var float mmLiveImpulseHigh = na
+var int mmLiveImpulseStartBar = na
+var int mmLiveImpulseBreakBar = na
+
+if mmBreakUp
+    mmPreBreakStructureDir := mmStructureDir
+    mmStructureDir := 1
+    mmLastBreakLevel := mmLastSwingHigh
+    mmLastBreakDir := 1
+    mmLastBreakBar := bar_index
+    mmLiveImpulseDir := 1
+    mmLiveImpulseLow := mmLastSwingLow
+    mmLiveImpulseHigh := high
+    mmLiveImpulseStartBar := mmLastSwingLowBar
+    mmLiveImpulseBreakBar := bar_index
+
+if mmBreakDown
+    mmPreBreakStructureDir := mmStructureDir
+    mmStructureDir := -1
+    mmLastBreakLevel := mmLastSwingLow
+    mmLastBreakDir := -1
+    mmLastBreakBar := bar_index
+    mmLiveImpulseDir := -1
+    mmLiveImpulseHigh := mmLastSwingHigh
+    mmLiveImpulseLow := low
+    mmLiveImpulseStartBar := mmLastSwingHighBar
+    mmLiveImpulseBreakBar := bar_index
+
+if mmLiveImpulseDir == 1 and not na(mmLiveImpulseHigh)
+    mmLiveImpulseHigh := math.max(mmLiveImpulseHigh, high)
+if mmLiveImpulseDir == -1 and not na(mmLiveImpulseLow)
+    mmLiveImpulseLow := math.min(mmLiveImpulseLow, low)
+
+bool mmRetestUp = barstate.isconfirmed and mmLastBreakDir == 1 and not na(mmLastBreakBar) and bar_index > mmLastBreakBar and bar_index - mmLastBreakBar <= MM_RETEST_MAX_BARS and low <= mmLastBreakLevel + mmAtr * MM_RETEST_TOL_ATR and close >= mmLastBreakLevel
+bool mmRetestDown = barstate.isconfirmed and mmLastBreakDir == -1 and not na(mmLastBreakBar) and bar_index > mmLastBreakBar and bar_index - mmLastBreakBar <= MM_RETEST_MAX_BARS and high >= mmLastBreakLevel - mmAtr * MM_RETEST_TOL_ATR and close <= mmLastBreakLevel
+bool mmFailedBreakUp = barstate.isconfirmed and mmLastBreakDir == 1 and not na(mmLastBreakBar) and bar_index > mmLastBreakBar and bar_index - mmLastBreakBar <= MM_FAIL_MAX_BARS and close < mmLastBreakLevel - mmAtr * MM_FAIL_TOL_ATR
+bool mmFailedBreakDown = barstate.isconfirmed and mmLastBreakDir == -1 and not na(mmLastBreakBar) and bar_index > mmLastBreakBar and bar_index - mmLastBreakBar <= MM_FAIL_MAX_BARS and close > mmLastBreakLevel + mmAtr * MM_FAIL_TOL_ATR
+
+if mmFailedBreakUp or mmFailedBreakDown
+    mmStructureDir := mmPreBreakStructureDir
+    mmLastBreakDir := 0
+    mmLiveImpulseDir := 0
+
+bool mmDayLevelsAllowed = chartSec <= timeframe.in_seconds("D")
+bool mmWeekLevelsAllowed = chartSec <= timeframe.in_seconds("W")
+float mmPrevDayHigh = mmDayLevelsAllowed ? request.security(syminfo.tickerid, "D", high[1], barmerge.gaps_off, barmerge.lookahead_on) : na
+float mmPrevDayLow = mmDayLevelsAllowed ? request.security(syminfo.tickerid, "D", low[1], barmerge.gaps_off, barmerge.lookahead_on) : na
+float mmPrevWeekHigh = mmWeekLevelsAllowed ? request.security(syminfo.tickerid, "W", high[1], barmerge.gaps_off, barmerge.lookahead_on) : na
+float mmPrevWeekLow = mmWeekLevelsAllowed ? request.security(syminfo.tickerid, "W", low[1], barmerge.gaps_off, barmerge.lookahead_on) : na
+
+bool mmNewDay = ta.change(time("D")) != 0
+bool mmNewWeek = ta.change(time("W")) != 0
+var bool mmPdhSwept = false
+var bool mmPdlSwept = false
+var bool mmPwhSwept = false
+var bool mmPwlSwept = false
+
+if mmNewDay
+    mmPdhSwept := false
+    mmPdlSwept := false
+if mmNewWeek
+    mmPwhSwept := false
+    mmPwlSwept := false
+
+if barstate.isconfirmed
+    if mmDayLevelsAllowed and not mmPdhSwept and not na(mmPrevDayHigh) and high > mmPrevDayHigh + syminfo.mintick
+        if close < mmPrevDayHigh and (na(mmReclaimAboveLevel) or mmPrevDayHigh < mmReclaimAboveLevel)
+            mmReclaimAboveLevel := mmPrevDayHigh
+        mmPdhSwept := true
+    if mmDayLevelsAllowed and not mmPdlSwept and not na(mmPrevDayLow) and low < mmPrevDayLow - syminfo.mintick
+        if close > mmPrevDayLow and (na(mmReclaimBelowLevel) or mmPrevDayLow > mmReclaimBelowLevel)
+            mmReclaimBelowLevel := mmPrevDayLow
+        mmPdlSwept := true
+    if mmWeekLevelsAllowed and not mmPwhSwept and not na(mmPrevWeekHigh) and high > mmPrevWeekHigh + syminfo.mintick
+        if close < mmPrevWeekHigh and (na(mmReclaimAboveLevel) or mmPrevWeekHigh < mmReclaimAboveLevel)
+            mmReclaimAboveLevel := mmPrevWeekHigh
+        mmPwhSwept := true
+    if mmWeekLevelsAllowed and not mmPwlSwept and not na(mmPrevWeekLow) and low < mmPrevWeekLow - syminfo.mintick
+        if close > mmPrevWeekLow and (na(mmReclaimBelowLevel) or mmPrevWeekLow > mmReclaimBelowLevel)
+            mmReclaimBelowLevel := mmPrevWeekLow
+        mmPwlSwept := true
+
+float mmLiqAbove = na
+int mmHc = array.size(mmHighPools)
+if mmHc > 0
+    for i = 0 to mmHc - 1
+        float level = array.get(mmHighPools, i)
+        bool swept = array.get(mmHighSwept, i)
+        if not swept and level > close and (na(mmLiqAbove) or level < mmLiqAbove)
+            mmLiqAbove := level
+if mmDayLevelsAllowed and not mmPdhSwept and not na(mmPrevDayHigh) and mmPrevDayHigh > close and (na(mmLiqAbove) or mmPrevDayHigh < mmLiqAbove)
+    mmLiqAbove := mmPrevDayHigh
+if mmWeekLevelsAllowed and not mmPwhSwept and not na(mmPrevWeekHigh) and mmPrevWeekHigh > close and (na(mmLiqAbove) or mmPrevWeekHigh < mmLiqAbove)
+    mmLiqAbove := mmPrevWeekHigh
+
+float mmLiqBelow = na
+int mmLc = array.size(mmLowPools)
+if mmLc > 0
+    for i = 0 to mmLc - 1
+        float level = array.get(mmLowPools, i)
+        bool swept = array.get(mmLowSwept, i)
+        if not swept and level < close and (na(mmLiqBelow) or level > mmLiqBelow)
+            mmLiqBelow := level
+if mmDayLevelsAllowed and not mmPdlSwept and not na(mmPrevDayLow) and mmPrevDayLow < close and (na(mmLiqBelow) or mmPrevDayLow > mmLiqBelow)
+    mmLiqBelow := mmPrevDayLow
+if mmWeekLevelsAllowed and not mmPwlSwept and not na(mmPrevWeekLow) and mmPrevWeekLow < close and (na(mmLiqBelow) or mmPrevWeekLow > mmLiqBelow)
+    mmLiqBelow := mmPrevWeekLow
+
+bool mmRegimeStructureConflict = mmRegimeDir != 0 and mmStructureDir != 0 and mmRegimeDir != mmStructureDir
+int mapDir = mmRegimeStructureConflict ? 0 : mmRegimeDir != 0 ? mmRegimeDir : mmStructureDir
+bool mmRelevantReclaimEvt = mapDir == 1 ? not na(mmReclaimBelowLevel) :
+     mapDir == -1 ? not na(mmReclaimAboveLevel) : false
+float mmDestination1 = mapDir == 1 ? mmLiqAbove : mapDir == -1 ? mmLiqBelow : na
+float mmDestinationDistanceAtr = not na(mmDestination1) and mmAtr > 0 ? math.abs(mmDestination1 - close) / mmAtr : na
+bool mmDestinationNear = not na(mmDestinationDistanceAtr) and mmDestinationDistanceAtr <= MM_TARGET_NEAR_ATR
+
+float mmImpulseLow = na
+float mmImpulseHigh = na
+int mmImpulseStartBar = na
+int mmImpulseEndBar = na
+
+if mapDir == 1 and not na(mmLastSwingHigh)
+    if not na(mmLastSwingLowBar) and mmLastSwingLowBar < mmLastSwingHighBar
+        mmImpulseLow := mmLastSwingLow
+        mmImpulseStartBar := mmLastSwingLowBar
+    else if not na(mmPrevSwingLowBar) and mmPrevSwingLowBar < mmLastSwingHighBar
+        mmImpulseLow := mmPrevSwingLow
+        mmImpulseStartBar := mmPrevSwingLowBar
+    mmImpulseHigh := mmLastSwingHigh
+    mmImpulseEndBar := mmLastSwingHighBar
+
+if mapDir == -1 and not na(mmLastSwingLow)
+    if not na(mmLastSwingHighBar) and mmLastSwingHighBar < mmLastSwingLowBar
+        mmImpulseHigh := mmLastSwingHigh
+        mmImpulseStartBar := mmLastSwingHighBar
+    else if not na(mmPrevSwingHighBar) and mmPrevSwingHighBar < mmLastSwingLowBar
+        mmImpulseHigh := mmPrevSwingHigh
+        mmImpulseStartBar := mmPrevSwingHighBar
+    mmImpulseLow := mmLastSwingLow
+    mmImpulseEndBar := mmLastSwingLowBar
+
+bool mmUseLiveImpulse = false
+bool mmLiveBullUsable = mapDir == 1 and mmLiveImpulseDir == 1 and not na(mmLiveImpulseStartBar) and not na(mmLiveImpulseLow) and not na(mmLiveImpulseHigh)
+bool mmLiveBearUsable = mapDir == -1 and mmLiveImpulseDir == -1 and not na(mmLiveImpulseStartBar) and not na(mmLiveImpulseLow) and not na(mmLiveImpulseHigh)
+bool mmLiveIsNewer = na(mmImpulseEndBar) or (not na(mmLiveImpulseBreakBar) and mmLiveImpulseBreakBar > mmImpulseEndBar)
+
+if mmLiveBullUsable and mmLiveIsNewer
+    mmImpulseLow := mmLiveImpulseLow
+    mmImpulseHigh := mmLiveImpulseHigh
+    mmImpulseStartBar := mmLiveImpulseStartBar
+    mmImpulseEndBar := bar_index
+    mmUseLiveImpulse := true
+if mmLiveBearUsable and mmLiveIsNewer
+    mmImpulseLow := mmLiveImpulseLow
+    mmImpulseHigh := mmLiveImpulseHigh
+    mmImpulseStartBar := mmLiveImpulseStartBar
+    mmImpulseEndBar := bar_index
+    mmUseLiveImpulse := true
+
+float mmImpulseRange = not na(mmImpulseHigh) and not na(mmImpulseLow) ? mmImpulseHigh - mmImpulseLow : na
+bool mmCorrectionReady = not na(mmImpulseRange) and mmImpulseRange > syminfo.mintick * 20 and not na(mmImpulseEndBar)
+
+float mmFib382 = na
+float mmFib500 = na
+float mmFib618 = na
+float mmFib786 = na
+if mmCorrectionReady and mapDir == 1
+    mmFib382 := mmImpulseHigh - mmImpulseRange * 0.382
+    mmFib500 := mmImpulseHigh - mmImpulseRange * 0.500
+    mmFib618 := mmImpulseHigh - mmImpulseRange * 0.618
+    mmFib786 := mmImpulseHigh - mmImpulseRange * 0.786
+if mmCorrectionReady and mapDir == -1
+    mmFib382 := mmImpulseLow + mmImpulseRange * 0.382
+    mmFib500 := mmImpulseLow + mmImpulseRange * 0.500
+    mmFib618 := mmImpulseLow + mmImpulseRange * 0.618
+    mmFib786 := mmImpulseLow + mmImpulseRange * 0.786
+
+float mmT1Top = mmCorrectionReady ? math.max(mmFib382, mmFib500) : na
+float mmT1Bottom = mmCorrectionReady ? math.min(mmFib382, mmFib500) : na
+float mmT3Top = mmCorrectionReady ? math.max(mmFib618, mmFib786) : na
+float mmT3Bottom = mmCorrectionReady ? math.min(mmFib618, mmFib786) : na
+
+float mmBullQ25 = f_mm_quantile(mmBullPullbacks, 0.25)
+float mmBullMedian = f_mm_quantile(mmBullPullbacks, 0.50)
+float mmBullQ75 = f_mm_quantile(mmBullPullbacks, 0.75)
+float mmBearQ25 = f_mm_quantile(mmBearPullbacks, 0.25)
+float mmBearMedian = f_mm_quantile(mmBearPullbacks, 0.50)
+float mmBearQ75 = f_mm_quantile(mmBearPullbacks, 0.75)
+
+int mmPullbackSamples = mapDir == 1 ? array.size(mmBullPullbacks) : mapDir == -1 ? array.size(mmBearPullbacks) : 0
+float mmPullbackQ25 = mapDir == 1 ? mmBullQ25 : mapDir == -1 ? mmBearQ25 : na
+float mmPullbackMedian = mapDir == 1 ? mmBullMedian : mapDir == -1 ? mmBearMedian : na
+float mmPullbackQ75 = mapDir == 1 ? mmBullQ75 : mapDir == -1 ? mmBearQ75 : na
+bool mmEmpiricalReady = mmPullbackSamples >= MM_PULLBACK_MIN_SAMPLES and not na(mmPullbackMedian)
+float mmEmpiricalSpread = mmEmpiricalReady ? math.max(0.0, mmPullbackQ75 - mmPullbackQ25) : na
+float mmEmpiricalHalfBand = mmEmpiricalReady ? math.max(0.045, math.min(0.11, mmEmpiricalSpread * 0.45)) : na
+float mmPrimaryRatioShallow = mmEmpiricalReady ? math.max(0.236, math.min(0.786, mmPullbackMedian - mmEmpiricalHalfBand)) : 0.500
+float mmPrimaryRatioDeep = mmEmpiricalReady ? math.max(mmPrimaryRatioShallow + 0.04, math.min(0.886, mmPullbackMedian + mmEmpiricalHalfBand)) : 0.618
+
+float mmPrimaryA = na
+float mmPrimaryB = na
+if mmCorrectionReady and mapDir == 1
+    mmPrimaryA := mmImpulseHigh - mmImpulseRange * mmPrimaryRatioShallow
+    mmPrimaryB := mmImpulseHigh - mmImpulseRange * mmPrimaryRatioDeep
+if mmCorrectionReady and mapDir == -1
+    mmPrimaryA := mmImpulseLow + mmImpulseRange * mmPrimaryRatioShallow
+    mmPrimaryB := mmImpulseLow + mmImpulseRange * mmPrimaryRatioDeep
+
+float mmPrimaryTop = mmCorrectionReady ? math.max(mmPrimaryA, mmPrimaryB) : na
+float mmPrimaryBottom = mmCorrectionReady ? math.min(mmPrimaryA, mmPrimaryB) : na
+float mmInvalidation = mmCorrectionReady ? (mapDir == 1 ? mmImpulseLow - mmAtr * MM_INVALID_TOL_ATR : mmImpulseHigh + mmAtr * MM_INVALID_TOL_ATR) : na
+int mmImpulseKey = mmCorrectionReady and not na(mmImpulseStartBar) ? mmImpulseStartBar * 3 + (mapDir + 1) : na
+bool mmInvalidationBrokenNow = mmCorrectionReady and (mapDir == 1 ? close < mmInvalidation : mapDir == -1 ? close > mmInvalidation : false)
+
+var int mmInvalidatedImpulseKey = na
+if barstate.isconfirmed and mmInvalidationBrokenNow and not na(mmImpulseKey)
+    mmInvalidatedImpulseKey := mmImpulseKey
+
+bool thesisInvalidated = mmCorrectionReady and not na(mmImpulseKey) and mmInvalidatedImpulseKey == mmImpulseKey
+bool mmCorrectionActive = mmCorrectionReady and not thesisInvalidated
+
+// ---------------------------------------------------------------------------
+// Market Map -> Execution location bridge (defaults v2)
+// ---------------------------------------------------------------------------
+bool mmRetestEvent = (mapDir == 1 and mmRetestUp) or (mapDir == -1 and mmRetestDown)
+bool mmReclaimEvent = mmRelevantReclaimEvt and mapDir != 0
+bool coherentMap = mapDir != 0 and not thesisInvalidated and not mmRegimeStructureConflict and not na(mmAtr) and mmAtr > 0
+
+var int bridgeDirection = 0
+var int lastRetestBar = na
+var int lastReclaimBar = na
+var int lastRetestTime = na
+var int lastReclaimTime = na
+
+if not coherentMap
+    bridgeDirection := 0
+    lastRetestBar := na
+    lastReclaimBar := na
+    lastRetestTime := na
+    lastReclaimTime := na
+else
+    if bridgeDirection != 0 and bridgeDirection != mapDir
+        lastRetestBar := na
+        lastReclaimBar := na
+        lastRetestTime := na
+        lastReclaimTime := na
+    bridgeDirection := mapDir
+    if mmRetestEvent
+        lastRetestBar := bar_index
+        lastRetestTime := time
+    if mmReclaimEvent
+        lastReclaimBar := bar_index
+        lastReclaimTime := time
+
+bool freshRetest = coherentMap and not na(lastRetestBar) and bar_index - lastRetestBar >= 0 and bar_index - lastRetestBar <= EX_EVENT_HOLD_BARS and
+     (na(lastRetestTime) or time - lastRetestTime <= EX_EVENT_HOLD_MAX_MS)
+bool freshReclaim = coherentMap and not na(lastReclaimBar) and bar_index - lastReclaimBar >= 0 and bar_index - lastReclaimBar <= EX_EVENT_HOLD_BARS and
+     (na(lastReclaimTime) or time - lastReclaimTime <= EX_EVENT_HOLD_MAX_MS)
+
+bool mmEnvelopeReady = mmCorrectionActive and not na(mmT1Top) and not na(mmT1Bottom) and not na(mmPrimaryTop) and not na(mmPrimaryBottom) and not na(mmT3Top) and not na(mmT3Bottom)
+float mmEnvelopeTop = mmEnvelopeReady ? math.max(mmT1Top, math.max(mmPrimaryTop, mmT3Top)) : na
+float mmEnvelopeBottom = mmEnvelopeReady ? math.min(mmT1Bottom, math.min(mmPrimaryBottom, mmT3Bottom)) : na
+
+int executionLocation = LOC_OUTSIDE
+if coherentMap
+    if freshReclaim
+        executionLocation := LOC_RECLAIM
+    else if freshRetest
+        executionLocation := LOC_RETEST
+    else if mmEnvelopeReady and close >= mmEnvelopeBottom and close <= mmEnvelopeTop
+        executionLocation := LOC_IN_CORRECTION
+    else if mmEnvelopeReady and mapDir == 1 and close > mmEnvelopeTop and close - mmEnvelopeTop <= mmAtr * EX_APPROACH_ATR
+        executionLocation := LOC_APPROACHING
+    else if mmEnvelopeReady and mapDir == -1 and close < mmEnvelopeBottom and mmEnvelopeBottom - close <= mmAtr * EX_APPROACH_ATR
+        executionLocation := LOC_APPROACHING
+    else if mmDestinationNear
+        executionLocation := LOC_DESTINATION_NEAR
+
+bool relevantLocation = executionLocation == LOC_APPROACHING or executionLocation == LOC_IN_CORRECTION or executionLocation == LOC_RETEST or executionLocation == LOC_RECLAIM
+
+// ---------------------------------------------------------------------------
+// PSE-A directional state — now that canonical map direction is available
+// ---------------------------------------------------------------------------
+float directionalPressure = pseReady and mapDir != 0 ? pressureProxy * mapDir : na
+int participationState = PSE_NEUTRAL
+if pseReady and mapDir != 0
+    participationState := relativeVolume < PSE_CONTRACTED_BELOW ? PSE_WEAK :
+         relativeVolume >= PSE_EXPANDED_AT_OR_ABOVE and directionalPressure >= PSE_PRESSURE_MIN ? PSE_CONFIRM :
+         relativeVolume >= PSE_EXPANDED_AT_OR_ABOVE and directionalPressure <= -PSE_PRESSURE_MIN ? PSE_CONTRARY :
+         PSE_NEUTRAL
+
+// ---------------------------------------------------------------------------
+// Canonical Execution evidence predicates
+// ---------------------------------------------------------------------------
+bool momentumAligned = mapDir == 1 ?
+     (mteState == MTE_TURN_UP or mteState == MTE_UP_ACCEL) :
+     mapDir == -1 ? (mteState == MTE_TURN_DOWN or mteState == MTE_DOWN_ACCEL) : false
+
+bool momentumStronglyOpposes = mapDir == 1 ?
+     (mteState == MTE_TURN_DOWN or mteState == MTE_DOWN_ACCEL) :
+     mapDir == -1 ? (mteState == MTE_TURN_UP or mteState == MTE_UP_ACCEL) : true
+
+bool momentumDeteriorates = mapDir == 1 ?
+     (mteState == MTE_UP_DECEL or mteState == MTE_TURN_DOWN or mteState == MTE_DOWN_ACCEL or mteState == MTE_DOWN_DECEL) :
+     mapDir == -1 ? (mteState == MTE_DOWN_DECEL or mteState == MTE_TURN_UP or mteState == MTE_UP_ACCEL or mteState == MTE_UP_DECEL) : false
+
+bool rsiLocalSupportive = mapDir == 1 ?
+     (rsiState == RSI_BULL or rsiState == RSI_RECOVERING_OVERSOLD or rsiState == RSI_RECOVERING_OVERBOUGHT) :
+     mapDir == -1 ? (rsiState == RSI_BEAR or rsiState == RSI_FADING_OVERBOUGHT or rsiState == RSI_FADING_OVERSOLD) : false
+bool rsiSupportive = rsiLocalSupportive and rsiContextDir != -mapDir
+
+bool rsiLocalOpposes = mapDir == 1 ?
+     (rsiState == RSI_BEAR or rsiState == RSI_FADING_OVERBOUGHT or rsiState == RSI_EXTREME_OVERBOUGHT) :
+     mapDir == -1 ? (rsiState == RSI_BULL or rsiState == RSI_RECOVERING_OVERSOLD or rsiState == RSI_EXTREME_OVERSOLD) : true
+bool rsiOpposes = rsiLocalOpposes or (mapDir != 0 and rsiContextDir == -mapDir)
+
+bool rsiDeteriorates = mapDir == 1 ?
+     (rsiState == RSI_FADING_OVERBOUGHT or rsiState == RSI_EXTREME_OVERBOUGHT) :
+     mapDir == -1 ? (rsiState == RSI_RECOVERING_OVERSOLD or rsiState == RSI_EXTREME_OVERSOLD) : false
+
+int genericDeterioration = (momentumDeteriorates ? 1 : 0) + (rsiDeteriorates ? 1 : 0) + (participationState == PSE_CONTRARY ? 1 : 0)
+int destinationDeterioration = (momentumDeteriorates ? 1 : 0) + (rsiDeteriorates ? 1 : 0) + ((participationState == PSE_WEAK or participationState == PSE_CONTRARY) ? 1 : 0)
+
+int currentStrength = not coherentMap ? STRENGTH_NORMAL :
+     executionLocation == LOC_DESTINATION_NEAR and destinationDeterioration >= 2 ? STRENGTH_REACTION_RISK :
+     genericDeterioration >= 2 ? STRENGTH_EXHAUSTED :
+     genericDeterioration == 1 ? STRENGTH_FADING : STRENGTH_NORMAL
+
+// ---------------------------------------------------------------------------
+// Readiness state machine — state changes commit only on chart close
+// ---------------------------------------------------------------------------
+var int executionReadiness = READY_WAIT
+var int executionDir = 0
+var int executionStrength = STRENGTH_NORMAL
+
+bool preparingEntered = false
+bool armedEntered = false
+bool confirmEvent = false
+bool canceledEvent = false
+bool reactionRiskEntered = false
+
+if barstate.isconfirmed
+    int prevReadiness = executionReadiness
+    int prevDir = executionDir
+    int prevStrength = executionStrength
+    int nextReadiness = prevReadiness
+    int nextDir = prevDir
+    int nextStrength = coherentMap ? currentStrength : STRENGTH_NORMAL
+
+    reactionRiskEntered := nextStrength == STRENGTH_REACTION_RISK and prevStrength != STRENGTH_REACTION_RISK
+
+    if not coherentMap
+        canceledEvent := prevReadiness != READY_WAIT
+        nextReadiness := READY_WAIT
+        nextDir := 0
+        nextStrength := STRENGTH_NORMAL
+    else if prevDir != 0 and prevDir != mapDir
+        canceledEvent := true
+        nextReadiness := READY_WAIT
+        nextDir := 0
+    else if prevReadiness == READY_WAIT
+        if relevantLocation and not momentumStronglyOpposes
+            nextReadiness := READY_PREP
+            nextDir := mapDir
+            preparingEntered := true
+        else
+            nextReadiness := READY_WAIT
+            nextDir := 0
+    else if prevReadiness == READY_PREP
+        if not relevantLocation or momentumStronglyOpposes or participationState == PSE_CONTRARY
+            nextReadiness := READY_WAIT
+            nextDir := 0
+            canceledEvent := true
+        else if momentumAligned and rsiSupportive
+            nextReadiness := READY_ARMED
+            nextDir := mapDir
+            armedEntered := true
+        else
+            nextReadiness := READY_PREP
+            nextDir := mapDir
+    else if prevReadiness == READY_ARMED
+        if not relevantLocation or momentumStronglyOpposes or rsiOpposes or participationState == PSE_CONTRARY
+            nextReadiness := READY_WAIT
+            nextDir := 0
+            canceledEvent := true
+        else if momentumAligned and rsiSupportive and participationState == PSE_CONFIRM
+            nextReadiness := READY_CONFIRMED
+            nextDir := mapDir
+            confirmEvent := true
+        else
+            nextReadiness := READY_ARMED
+            nextDir := mapDir
+    else if prevReadiness == READY_CONFIRMED
+        nextReadiness := READY_ALIGNED
+        nextDir := mapDir
+    else if prevReadiness == READY_ALIGNED
+        if momentumStronglyOpposes and rsiOpposes
+            nextReadiness := READY_WAIT
+            nextDir := 0
+            canceledEvent := true
+        else
+            nextReadiness := READY_ALIGNED
+            nextDir := mapDir
+
+    executionReadiness := nextReadiness
+    executionDir := nextDir
+    executionStrength := nextStrength
+
+bool confirmLong = confirmEvent and executionDir == 1
+bool confirmShort = confirmEvent and executionDir == -1
+
+// ---------------------------------------------------------------------------
+// Lower-pane renderer — one numeric scale, no RSI/volume dashboard
+// ---------------------------------------------------------------------------
+color mteColor = not mteReady ? color.new(color.gray, 65) :
+     mteState == MTE_UP_ACCEL ? color.new(color.teal, 0) :
+     mteState == MTE_UP_DECEL ? color.new(color.teal, 45) :
+     mteState == MTE_TURN_DOWN ? color.new(color.orange, 5) :
+     mteState == MTE_DOWN_ACCEL ? color.new(color.red, 0) :
+     mteState == MTE_DOWN_DECEL ? color.new(color.red, 45) :
+     mteState == MTE_TURN_UP ? color.new(color.aqua, 5) :
+     color.new(color.gray, 60)
+
+color strengthBg = executionStrength == STRENGTH_REACTION_RISK ? color.new(color.red, 82) :
+     executionStrength == STRENGTH_EXHAUSTED ? color.new(color.orange, 87) :
+     executionStrength == STRENGTH_FADING ? color.new(color.yellow, 92) : na
+bgcolor(strengthBg, title="Força")
+
+plot(mteReady ? mteCore : na, "Momentum", style=plot.style_histogram, color=mteColor, linewidth=2)
+hline(0.0, "Zero", color=color.new(color.gray, 70))
+
+plot(armedEntered ? mteCore : na, "ARMADO", style=plot.style_circles, color=color.new(color.yellow, 0), linewidth=3)
+plotshape(confirmLong ? mteCore : na, title="CONFIRMA LONG", style=shape.triangleup, location=location.absolute, color=color.new(color.lime, 0), size=size.small)
+plotshape(confirmShort ? mteCore : na, title="CONFIRMA SHORT", style=shape.triangledown, location=location.absolute, color=color.new(color.red, 0), size=size.small)
+
+// One-line last-bar cue for standalone readability and direct parity checks
+// against Market Map's embedded Decision Panel. It is intentionally not a
+// second full semantic panel.
+var table statusCue = table.new(position.top_right, 1, 1, bgcolor=color.new(color.black, 86), frame_color=color.new(color.gray, 75), frame_width=1)
+if barstate.islast
+    string statusText = f_execution_txt(executionReadiness, executionDir) + " • " + f_strength_txt(executionStrength)
+    color statusColor = executionReadiness == READY_CONFIRMED ? (executionDir == 1 ? color.lime : color.red) :
+         executionReadiness == READY_ARMED ? color.yellow :
+         executionReadiness == READY_PREP ? color.aqua :
+         executionReadiness == READY_ALIGNED ? (executionDir == 1 ? color.lime : color.red) :
+         color.silver
+    table.cell(statusCue, 0, 0, statusText, text_color=statusColor, text_size=size.small)
+
+// ---------------------------------------------------------------------------
+// Data Window diagnostics — hidden from normal pane
+// ---------------------------------------------------------------------------
+plot(EXECUTION_CONTRACT, "EX Audit • Contract", color=color.new(color.white, 100), display=display.data_window)
+plot(EXECUTION_DEFAULTS_VERSION, "EX Audit • Defaults", color=color.new(color.white, 100), display=display.data_window)
+plot(barstate.isconfirmed ? 1 : 0, "EX Audit • Confirmado", color=color.new(color.white, 100), display=display.data_window)
+
+plot(mteReady ? 1 : 0, "EX MTE • Ready", color=color.new(color.white, 100), display=display.data_window)
+plot(mteCore, "EX MTE • Core", color=color.new(color.white, 100), display=display.data_window)
+plot(mteAccel, "EX MTE • Aceleração", color=color.new(color.white, 100), display=display.data_window)
+plot(mteNeutralBand, "EX MTE • Banda neutra", color=color.new(color.white, 100), display=display.data_window)
+plot(mteTurnBand, "EX MTE • Banda turn", color=color.new(color.white, 100), display=display.data_window)
+plot(mteState, "EX MTE • Estado", color=color.new(color.white, 100), display=display.data_window)
+
+plot(rsiReady ? 1 : 0, "EX RSE • Ready", color=color.new(color.white, 100), display=display.data_window)
+plot(rsiLocal, "EX RSE • RSI local", color=color.new(color.white, 100), display=display.data_window)
+plot(rsiStep, "EX RSE • Passo", color=color.new(color.white, 100), display=display.data_window)
+plot(rsiState, "EX RSE • Estado", color=color.new(color.white, 100), display=display.data_window)
+plot(rsiContextValue, "EX RSE • RSI contexto confirmado", color=color.new(color.white, 100), display=display.data_window)
+plot(rsiContextDir, "EX RSE • Direção contexto", color=color.new(color.white, 100), display=display.data_window)
+
+plot(pseReady ? 1 : 0, "EX PSE • Ready", color=color.new(color.white, 100), display=display.data_window)
+plot(relativeVolume, "EX PSE • Volume relativo", color=color.new(color.white, 100), display=display.data_window)
+plot(pressureProxy, "EX PSE • Pressão proxy", color=color.new(color.white, 100), display=display.data_window)
+plot(strongExpansion ? 1 : 0, "EX PSE • Expansão forte", color=color.new(color.white, 100), display=display.data_window)
+plot(directionalPressure, "EX PSE • Pressão direcional", color=color.new(color.white, 100), display=display.data_window)
+plot(participationState, "EX PSE • Estado", color=color.new(color.white, 100), display=display.data_window)
+
+plot(mapDir, "EX MM • MapDir", color=color.new(color.white, 100), display=display.data_window)
+plot(executionLocation, "EX MM • Localização", color=color.new(color.white, 100), display=display.data_window)
+plot(thesisInvalidated ? 1 : 0, "EX MM • Tese invalidada", color=color.new(color.white, 100), display=display.data_window)
+plot(mmRegimeStructureConflict ? 1 : 0, "EX MM • Conflito estrutural", color=color.new(color.white, 100), display=display.data_window)
+
+plot(executionReadiness, "EX • Readiness", color=color.new(color.white, 100), display=display.data_window)
+plot(executionDir, "EX • Direção", color=color.new(color.white, 100), display=display.data_window)
+plot(executionStrength, "EX • Força", color=color.new(color.white, 100), display=display.data_window)
+plot(preparingEntered ? 1 : 0, "EX EVT • Preparando", color=color.new(color.white, 100), display=display.data_window)
+plot(armedEntered ? 1 : 0, "EX EVT • Armado", color=color.new(color.white, 100), display=display.data_window)
+plot(confirmEvent ? 1 : 0, "EX EVT • Confirma", color=color.new(color.white, 100), display=display.data_window)
+plot(canceledEvent ? 1 : 0, "EX EVT • Cancela", color=color.new(color.white, 100), display=display.data_window)
+plot(reactionRiskEntered ? 1 : 0, "EX EVT • Risco reação", color=color.new(color.white, 100), display=display.data_window)

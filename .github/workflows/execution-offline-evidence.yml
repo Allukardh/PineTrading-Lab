@@ -6,14 +6,14 @@ name: Execution offline evidence
 on:
   workflow_dispatch:
   push:
-    branches: ["research/execution-engine-design"]
+    branches: ["research/execution-engine-design", "feat/execution-0.1.0"]
     paths:
       - ".github/workflows/execution-offline-evidence.yml"
       - "tools/execution_historical_evidence.py"
       - "tools/momentum_turn_reference.py"
       - "tools/rsi_state_reference.py"
       - "tools/participation_reference.py"
-      - "manifests/execution-research-defaults-v1.json"
+      - "manifests/execution-research-defaults-v2.json"
       - "manifests/suite-semantics-v1.json"
       - "manifests/binance-spot-btcusdt.production-2026-09-24.json"
       - "manifests/binance-spot-ethusdt.production-2026-09-24.json"

@@ -112,7 +112,7 @@ def main() -> None:
     if mm_path.exists():
         mm = norm(mm_path.read_text(encoding="utf-8"))
         required_mm = [
-            'indicator("Market Map v0.1.0"',
+            'indicator("Market Map v0.2.0"',
             '_expr[1], barmerge.gaps_off, barmerge.lookahead_on',
             'int FAST_LEN = 21',
             'int MID_LEN = 50',
@@ -132,6 +132,9 @@ def main() -> None:
             'table.cell(panel, 0, 5, "DESTINO"',
             'table.cell(panel, 0, 6, "LIQ ↑"',
             'table.cell(panel, 0, 8, "INVALIDA"',
+            'table.cell(panel, 0, 10, "EXECUÇÃO"',
+            'table.cell(panel, 0, 11, "FORÇA"',
+            'table.cell(panel, 1, 0, "v0.2.0"',
             'liqAboveSource := "PDH"',
             'liqAboveSource := "PWH"',
             'liqBelowSource := "PDL"',

@@ -42,3 +42,5 @@ jobs:
         run: python tools/check_suite_semantics.py
       - name: Validate Execution research defaults
         run: python -m tools.check_execution_research_defaults
+      - name: Validate Execution Pine production contract
+        run: python tools/check_execution_pine_contract.py
