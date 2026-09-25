@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** STABLE  
-**Active product front:** Execution evidence research — component gate complete — branch reconciliation + pre-registered Binance evidence block  
+**Checkpoint state:** PREPARED  
+**Active product front:** Execution integrated Market Map-conditioned evidence block  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -83,7 +83,7 @@ Issue #9 is closed as completed.
 **Issue:** #11 — Execution Engine research — momentum, RSI and participation  
 **PR:** #12 — Research: Execution Engine architecture  
 **Branch:** `research/execution-engine-design`  
-**Head:** `bfd4cad9c35eddf5acdd4df2bf52ba47bddba2f0`
+**Head:** `4ac244a8456c3018137d3a3833f0085d4df59189`
 
 Production `execution.pine` intentionally does **not** exist yet.
 
@@ -137,54 +137,43 @@ Do not rerun or reinterpret the hypothetical-direction component gate unless a c
 
 ## 4. Exact next atomic work
 
-### PREPARED block — 2026-09-24
+### PREPARED block — integrated Market Map → Execution evidence
 
-Current intent:
-1. reconcile PR #12 / `research/execution-engine-design` with current `main`;
-2. verify research/static integrity after reconciliation;
-3. execute the pre-registered historical evidence plan for MTE-A / RSE-A / PSE-A against accepted Binance datasets with candidate defaults unchanged;
-4. classify evidence before any production Pine or retuning;
-5. persist all result artifacts/reports and return this handoff to STABLE.
+Current durable input:
+- Market Map 0.1.0 accepted on `main`;
+- offline-equivalent Market Map kernel already validated;
+- MTE-A / RSE-A / PSE-A component decision = **KEEP**;
+- component matrix BTC/ETH/AVAX already closed; do not rerun it without a concrete defect.
 
-Expected durable evidence:
-- reconciled PR #12 head;
-- unchanged candidate manifests/reference implementations unless a proven defect is found;
-- machine-readable historical evidence;
-- explicit KEEP / REFINE / REMOVE / INSUFFICIENT EVIDENCE decisions tied to pre-registered questions;
-- no `execution.pine` creation in this block.
+Current PR #12 head before this block:
+`4ac244a8456c3018137d3a3833f0085d4df59189`
 
-Recovery if interrupted:
-- compare this checkpoint with actual PR #12 head;
-- inspect only new commits/runs/artifacts;
-- if PR #12 did not move, resume reconciliation/evidence execution;
-- if it moved, infer completed steps from GitHub and continue from the delta.
+Exact intended sequence:
 
-### Planned sequence
-
-This block is now **PREPARED**.
-
-Intended durable sequence:
-1. reconcile PR #12 / `research/execution-engine-design` with current `main`;
-2. verify the branch still satisfies its semantic/static test contracts after reconciliation;
-3. reread the pre-registered Execution evidence plan and candidate implementations;
-4. run the plan against the accepted Binance datasets with candidate defaults unchanged;
-5. classify MTE-A / RSE-A / PSE-A as KEEP / REFINE / REMOVE / INSUFFICIENT EVIDENCE from the pre-registered questions;
-6. retune only if a specific semantic/evidence defect is demonstrated;
-7. keep production `execution.pine` blocked until this evidence gate closes.
+1. connect the accepted offline Market Map semantics to the existing Market Map → Execution bridge;
+2. derive actual coherent `mapDir`, thesis validity and location states rather than hypothetical LONG/SHORT component direction;
+3. drive the canonical `execution_state_reference.py` through historical bars;
+4. measure PREPARANDO / ARMADO / CONFIRMA / ALINHADO transitions, cancellations and direction balance;
+5. measure Strength only under actual Market Map direction and determine whether NORMAL / PERDENDO FORÇA / EXAUSTÃO saturates;
+6. measure RISCO DE REAÇÃO specifically at meaningful Market Map locations;
+7. verify that short RSE recovery/fade semantics do not create pathological setup churn;
+8. change no candidate default unless this integrated evidence demonstrates a named semantic pathology.
 
 Expected durable outputs:
-- reconciled PR #12 head and green static/semantic checks;
-- machine-readable historical evidence;
-- concise research worklog with counts/distributions/cross-engine overlap;
-- updated Issue #11 / PR #12 state;
-- STABLE handoff pointing to the next evidence discriminant.
+- deterministic integrated evidence runner + tests;
+- machine-readable BTC integrated evidence;
+- concise worklog/Issue #11/PR #12 decision;
+- no production `execution.pine` unless this gate closes cleanly.
+
+Operator evidence required:
+- **none** during this offline block.
 
 Recovery if interrupted:
-- compare this PREPARED checkpoint with the actual PR #12 head / workflow runs;
-- inspect only the delta created after this checkpoint;
-- do not redo Market Map work or reread old chats.
+- compare actual PR #12 head/runs with `4ac244a...`;
+- inspect only new commits/runs/artifacts;
+- do not redo the component BTC/ETH/AVAX gate;
+- resume from the first incomplete integration step.
 
-No operator TradingView work is needed before the offline Execution evidence is reviewed.
 
 ## 5. Repository hygiene state
 
