@@ -1,9 +1,9 @@
 //@version=6
-indicator("Execution v0.1.0", shorttitle="Execution", overlay=false, max_bars_back=5000)
+indicator("Execution v0.2.0", shorttitle="Execution", overlay=false, max_bars_back=5000)
 
 // ============================================================================
-// PineTrading-Lab — Execution 0.1.0
-// Production implementation of the accepted Execution research contract.
+// PineTrading-Lab — Execution 0.2.0 candidate
+// Phase G translation of the accepted Suite 0.2 research contract.
 //
 // Production kernel:
 //   - MTE-A momentum kernel
@@ -15,9 +15,15 @@ indicator("Execution v0.1.0", shorttitle="Execution", overlay=false, max_bars_ba
 // ============================================================================
 
 // ---------------------------------------------------------------------------
+// Minimal operator control
+// ---------------------------------------------------------------------------
+groupExecution = "Execução"
+string responseProfile = input.string("PADRÃO", "Perfil de resposta", options=["PADRÃO", "ANTECIPADO"], group=groupExecution)
+
+// ---------------------------------------------------------------------------
 // Accepted defaults v2 — engine-owned, not operator tuning inputs
 // ---------------------------------------------------------------------------
-int EXECUTION_CONTRACT = 1
+int EXECUTION_CONTRACT = 2
 int EXECUTION_DEFAULTS_VERSION = 2
 
 int MTE_FAST_EMA = 8
@@ -81,6 +87,45 @@ int STRENGTH_FADING = 1
 int STRENGTH_EXHAUSTED = 2
 int STRENGTH_REACTION_RISK = 3
 
+// Suite 0.2 Opportunity / operator projection codes.
+int OPP_NONE = 0
+int OPP_BREAKOUT_EXPANSION = 1
+int OPP_REACCELERATION = 2
+int OPP_REGIME_REVERSAL = 3
+int OPP_RANGE_ROTATION = 4
+
+int OPP_STAGE_NONE = 0
+int OPP_STAGE_CANDIDATE = 1
+int OPP_STAGE_STRONG = 2
+int OPP_STAGE_ACCEPTED = 3
+
+int OP_READY_WAIT = 0
+int OP_READY_PREP = 1
+int OP_READY_ARMED = 2
+int OP_READY_CONFIRMED = 3
+int OP_READY_ALIGNED = 4
+int OP_READY_CONFLICT = 5
+
+int PATH_NONE = 0
+int PATH_FROZEN_0_1 = 1
+int PATH_TREND_V2 = 2
+int PATH_RANGE_ANY1 = 3
+int PATH_MULTI = 4
+
+int BREAK_OTHER = 0
+int BREAK_EARLY_TRANSITION = 1
+int BREAK_FRESH_EXPANSION = 2
+int BREAK_PULLBACK_RESOLUTION = 3
+int BREAK_REACCELERATION = 4
+
+int REVERSAL_PRIOR_REGIME_MIN_BARS = 8
+int REACCELERATION_REGIME_MIN_BARS = 8
+float BREAK_DECISIVE_ATR = 0.50
+
+float RANGE_BOUNDARY_DRIFT_MAX = 0.20
+float RANGE_MIN_HEIGHT_ATR = 2.0
+float RANGE_EDGE_FRACTION = 0.20
+
 // ---------------------------------------------------------------------------
 // Deterministic research-parity helpers
 // ---------------------------------------------------------------------------
@@ -133,6 +178,59 @@ f_strength_txt(_state) =>
      _state == STRENGTH_EXHAUSTED ? "EXAUSTÃO" :
      _state == STRENGTH_REACTION_RISK ? "RISCO DE REAÇÃO" :
      "NORMAL"
+
+f_momentum_aligned(_dir, _state) =>
+    _dir == 1 ? (_state == MTE_TURN_UP or _state == MTE_UP_ACCEL) :
+     _dir == -1 ? (_state == MTE_TURN_DOWN or _state == MTE_DOWN_ACCEL) : false
+
+f_momentum_strongly_opposes(_dir, _state) =>
+    _dir == 1 ? (_state == MTE_TURN_DOWN or _state == MTE_DOWN_ACCEL) :
+     _dir == -1 ? (_state == MTE_TURN_UP or _state == MTE_UP_ACCEL) : true
+
+f_rsi_local_supports(_dir, _state) =>
+    _dir == 1 ? (_state == RSI_BULL or _state == RSI_RECOVERING_OVERSOLD or _state == RSI_RECOVERING_OVERBOUGHT) :
+     _dir == -1 ? (_state == RSI_BEAR or _state == RSI_FADING_OVERBOUGHT or _state == RSI_FADING_OVERSOLD) : false
+
+f_rsi_local_opposes(_dir, _state) =>
+    _dir == 1 ? (_state == RSI_BEAR or _state == RSI_FADING_OVERBOUGHT or _state == RSI_EXTREME_OVERBOUGHT) :
+     _dir == -1 ? (_state == RSI_BULL or _state == RSI_RECOVERING_OVERSOLD or _state == RSI_EXTREME_OVERSOLD) : true
+
+f_rsi_supports(_dir, _state, _ctx) =>
+    f_rsi_local_supports(_dir, _state) and _ctx != -_dir
+
+f_rsi_opposes(_dir, _state, _ctx) =>
+    f_rsi_local_opposes(_dir, _state) or (_dir != 0 and _ctx == -_dir)
+
+f_pse_state(_dir, _ready, _relVolume, _pressure) =>
+    int result = PSE_NEUTRAL
+    if _ready and _dir != 0
+        float directional = _pressure * _dir
+        result := _relVolume < PSE_CONTRACTED_BELOW ? PSE_WEAK :
+             _relVolume >= PSE_EXPANDED_AT_OR_ABOVE and directional >= PSE_PRESSURE_MIN ? PSE_CONFIRM :
+             _relVolume >= PSE_EXPANDED_AT_OR_ABOVE and directional <= -PSE_PRESSURE_MIN ? PSE_CONTRARY :
+             PSE_NEUTRAL
+    result
+
+f_ready_urgency(_ready) =>
+    _ready == READY_CONFIRMED ? 4 :
+     _ready == READY_ARMED ? 3 :
+     _ready == READY_PREP ? 2 :
+     _ready == READY_ALIGNED ? 1 : 0
+
+f_operator_txt(_stage, _dir) =>
+    _stage == OP_READY_CONFLICT ? "CONFLITO" :
+     _stage == OP_READY_PREP ? (_dir == 1 ? "PREPARANDO LONG" : _dir == -1 ? "PREPARANDO SHORT" : "AGUARDAR") :
+     _stage == OP_READY_ARMED ? (_dir == 1 ? "ARMADO LONG" : _dir == -1 ? "ARMADO SHORT" : "AGUARDAR") :
+     _stage == OP_READY_CONFIRMED ? (_dir == 1 ? "CONFIRMA LONG" : _dir == -1 ? "CONFIRMA SHORT" : "AGUARDAR") :
+     _stage == OP_READY_ALIGNED ? (_dir == 1 ? "ALINHADO LONG" : _dir == -1 ? "ALINHADO SHORT" : "AGUARDAR") :
+     "AGUARDAR"
+
+f_opp_txt(_kind) =>
+    _kind == OPP_BREAKOUT_EXPANSION ? "BREAKOUT" :
+     _kind == OPP_REACCELERATION ? "REACELERAÇÃO" :
+     _kind == OPP_REGIME_REVERSAL ? "REVERSÃO" :
+     _kind == OPP_RANGE_ROTATION ? "ROTAÇÃO DE RANGE" :
+     "—"
 
 // ---------------------------------------------------------------------------
 // Timeframe policy — identical suite mapping, confirmed HTF only
