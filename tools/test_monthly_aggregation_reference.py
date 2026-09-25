@@ -1,6 +1,7 @@
 import unittest
 from datetime import datetime, timezone
 
+from tools.market_map_offline_core import CONTEXT_TF, DAY_LEVEL_TFS, WEEK_LEVEL_TFS
 from tools.monthly_aggregation_reference import (
     aggregate_calendar_month,
     logical_sha256,
@@ -56,6 +57,12 @@ class MonthlyAggregationTests(unittest.TestCase):
         a, _ = aggregate_calendar_month(data)
         b, _ = aggregate_calendar_month(data)
         self.assertEqual(logical_sha256(a), logical_sha256(b))
+
+
+    def test_monthly_offline_horizon_contract(self):
+        self.assertEqual(CONTEXT_TF["1M"], "1M")
+        self.assertNotIn("1M", DAY_LEVEL_TFS)
+        self.assertNotIn("1M", WEEK_LEVEL_TFS)
 
     def test_rejects_non_monotonic_daily_input(self):
         data = {
