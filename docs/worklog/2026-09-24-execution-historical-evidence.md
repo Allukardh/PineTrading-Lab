@@ -118,3 +118,139 @@ The analyzer emits `REVIEW_REQUIRED`; it does not automatically assign KEEP / RE
 Those decisions are made only after comparing the historical output with the pathology questions written in the pre-registered plan.
 
 No PnL or trade-win metric is calculated.
+
+
+## Historical component evidence — BTC / ETH / AVAX
+
+**Evidence matrix run:** `36077909903` — PASS  
+**Static integrity:** `36077909923` — PASS  
+**Branch head:** `fb833b25e90b2b2ca71e5c1c6680cbb79854e3d1`
+
+Artifacts:
+- BTC: `execution-btc-evidence` — artifact `10840702778`
+- ETH: `execution-eth-evidence` — artifact `10841370010`
+- AVAX: `execution-avax-evidence` — artifact `10841375463`
+
+All three symbols use exact SHA-256-verified production Parquets and **unchanged** research defaults.
+
+### MTE-A — KEEP
+
+Across BTC / ETH / AVAX and 15m / 1h / 4h / 1d / 3d / 1w:
+
+- TURN occupancy stays roughly **29–31%**;
+- state changes stay roughly **32–38 per 100 ready bars**;
+- TURN median dwell is normally **2 bars**, only drifting to ~2.5–3 on some higher-timeframe small samples;
+- direct `UP_ACCEL <-> DOWN_ACCEL` flips remain negligible, at most about **0.3% of state changes**;
+- opposite TURN reversals within 3 bars remain below about **0.2% of TURN episodes**;
+- roughly **31–40%** of TURN episodes reach the signed zero-cross before original-direction acceleration resumes;
+- roughly **60–68%** resume the original direction first.
+
+Interpretation:
+- MTE-A behaves as the intended early counter-acceleration / momentum-turn engine;
+- TURN is not a reversal-probability claim;
+- no numeric retuning is justified.
+
+Decision: **KEEP MTE-A unchanged.**
+
+### RSE-A — KEEP
+
+Across the same matrix:
+
+- extreme RSI states are rare but reachable (~**0.9–5.4%** depending on asset/timeframe);
+- raw oversold/overbought touches consistently produce the intended recovery/fade semantics;
+- on the primary lower timeframes, touch-to-recovery/fade conversion is broadly in the **mid-70% to low-80%** range;
+- confirmed HTF opposition is material without making the engine nearly always blocked;
+- the short 2-bar recovery/fade lifecycle behaves as designed.
+
+The historical lifecycle report shows that most recovery/fade episodes do not themselves persist all the way through the center dead-band. This is **not treated as a defect** because RSE-A explicitly defines those states as brief recent-zone semantics, not as a promise that recovery survives until center.
+
+Cross-engine evidence also does not show that RSE-A is merely MTE-A duplicated under different labels.
+
+Decision: **KEEP RSE-A unchanged.**
+
+Watch item:
+- once actual Market Map direction/location drives the full state machine, verify that the deliberately short recovery/fade semantics do not create ARMADO churn.
+
+### PSE-A — KEEP
+
+Relative-volume bands remain meaningful without per-asset tuning:
+
+- `<0.80x`: roughly **35–52%**;
+- `>=1.20x`: roughly **23–29%**;
+- `>=1.50x`: roughly **12–17%**.
+
+The close-location pressure proxy shows a real but limited relationship to Binance taker imbalance:
+
+- Pearson roughly **0.26–0.35**;
+- Spearman roughly **0.27–0.41**;
+- sign agreement on the large primary samples is generally around **66–75%**;
+- sign agreement tends to improve when relative volume is expanded.
+
+Interpretation:
+- the proxy contains useful reload-safe directional evidence;
+- it is not equivalent to real aggressor flow;
+- Binance taker imbalance remains validation-only.
+
+Decision: **KEEP PSE-A unchanged.**
+
+Semantic lock:
+- never label the proxy buy volume / sell volume / delta / aggressor flow.
+
+### Cross-engine independence
+
+With hypothetical LONG/SHORT component direction:
+
+- all three evidence families align on only about **2.3–5.5%** of eligible bars across the full matrix;
+- pairwise overlap is related, as expected, but no component subsumes the other two;
+- no opaque score is justified.
+
+### Strength mapping — INSUFFICIENT EVIDENCE
+
+The unconditioned hypothetical-direction pass shows two-or-more deterioration families on roughly **24–44%** of bars depending on asset/timeframe/direction.
+
+That is useful diagnostic evidence, but final:
+
+```text
+0 families  -> NORMAL
+1 family    -> PERDENDO FORÇA
+2+ families -> EXAUSTÃO
+```
+
+remains **INSUFFICIENT EVIDENCE** until it is conditioned on an actual coherent Market Map thesis/location.
+
+Production readiness frequency is likewise not approved from hypothetical-direction component research alone.
+
+### Component gate decision
+
+```text
+MTE-A  KEEP
+RSE-A  KEEP
+PSE-A  KEEP
+```
+
+No candidate defaults changed.
+
+Production `execution.pine` remains blocked.
+
+### Exact next evidence gate
+
+Use the accepted/offline-equivalent Market Map to drive:
+
+- actual `mapDir`;
+- APPROACHING;
+- IN_CORRECTION;
+- RETEST;
+- RECLAIM;
+- DESTINATION_NEAR;
+- invalidation/conflict.
+
+Then simulate the canonical Execution state machine and determine whether:
+- PREPARANDO is always-on / never-on;
+- ARMADO occurs at useful frequency and precedes CONFIRMA;
+- confirmations are not pathologically one-sided;
+- one evidence family dominates every confirmation;
+- Strength remains useful under real thesis/location;
+- RISCO DE REAÇÃO clusters at meaningful Market Map locations;
+- short RSE recovery/fade semantics cause integrated setup churn.
+
+Only after that integrated gate may production `execution.pine` be created.
