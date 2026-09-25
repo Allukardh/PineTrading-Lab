@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** STABLE  
-**Active product front:** Suite 0.2 — horizon opportunity architecture closed  
+**Checkpoint state:** PREPARED  
+**Active product front:** Suite 0.2 — thesis management / exit-risk semantics  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,7 +131,7 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### STABLE result — evidence-backed horizon roles
+### PREPARED block — thesis management / exit-risk semantics
 
 Active research:
 - Issue #23
@@ -139,38 +139,57 @@ Active research:
 - branch `research/suite-0.2-opportunity-evidence`
 - stable research head: `93a5b6e9f4200c70d34c17fa1ed02d826a7e8751`
 
-Latest evidence:
-- prior-completed monthly macro-context workflow `36171923939` — PASS;
-- Static integrity `36171923589` — PASS;
-- artifact `10881306134`;
-- worklog: `docs/worklog/2026-09-25-suite-0.2-native-horizons.md`.
-
-Final research horizon roles:
-- 15m / 1H — short-duration + precision-entry;
-- 4H / 1D — primary swing opportunity/execution;
-- 3D — active medium/long opportunity horizon;
-- 1W — valid high-horizon opportunity/context layer with sparse-event confidence;
-- 1M — macro/cycle awareness layer; standalone execution not proven.
-
-Monthly locks:
-- deterministic 1M derivation — KEEP;
-- fixed 50/200 — contextual control;
-- 12/46 — DO NOT PROMOTE;
-- monthly alignment — DO NOT use as hard automatic gate over 3D/1W;
-- only prior completed month may be used for context;
-- no current-month lookahead;
-- no lower-horizon / production / profile changes.
-
-Opportunity Engine research baseline remains:
-- breakout/expansion — KEEP;
-- pullback/retest/reclaim — frozen 0.1 specialty;
-- reacceleration — KEEP;
+Closed research before this block:
+- Opportunity Engine baseline — KEEP;
 - RANGE_ROTATION — KEEP with EDGE_REJECTION + EARLY_ANY1;
-- strict REGIME_REVERSAL — semantic class KEEP; earlier-action evidence remains sparse;
-- OPERATOR_READINESS_V1 — KEEP.
+- OPERATOR_READINESS_V1 — KEEP;
+- horizon roles closed:
+  - 15m/1H short + precision;
+  - 4H/1D primary swing;
+  - 3D medium/long active opportunity;
+  - 1W high-horizon opportunity/context with sparse confidence;
+  - 1M macro/cycle awareness;
+- no production Pine/default/profile changes.
 
-Next product frontier:
-- thesis management / exit-risk semantics.
+Product objective for this block:
+- define market/thesis-management semantics after an opportunity is confirmed/aligned;
+- support spot sell/protect/avoid-chasing decisions and optional bidirectional long/short use;
+- never pretend the script knows the operator's actual position;
+- keep operator language direct and compact;
+- preserve final operator discretion.
+
+Exact intended work:
+1. audit current accepted strength/destination/invalidation semantics and existing opportunity lifecycle;
+2. define deterministic thesis-management candidate states before tuning:
+   - CONTINUATION;
+   - PROTECT;
+   - REALIZATION_RISK;
+   - INVALIDATED / COMPLETED where structurally knowable;
+3. define which evidence belongs to management:
+   - destination proximity/achievement;
+   - MTE/RSE/PSE deterioration;
+   - adverse structural events/reclaim;
+   - thesis invalidation;
+   - opportunity maturity;
+4. keep entry readiness and thesis management separate;
+5. build a frozen-0.1 / accepted-Opportunity-v2 historical management baseline before adding new Pine;
+6. measure timing:
+   - how early PROTECT/REALIZATION_RISK appears relative to destination/invalidation/adverse movement;
+   - churn/flip-flop;
+   - whether warning semantics saturate;
+7. start on BTC 4H/1D, then cross-asset only if semantics are coherent;
+8. no production Pine/default/profile change in this first management block.
+
+Expected durable outputs:
+- thesis-management research contract;
+- deterministic reference model + tests;
+- BTC 4H/1D management evidence;
+- KEEP/REFINE/REMOVE decisions for each management state.
+
+Recovery:
+- compare active branch with `93a5b6e9...`;
+- inspect only newer thesis-management commits/runs/artifacts;
+- do not reopen closed Opportunity/horizon research unless a concrete management defect points back to it.
 
 
 ## 7. Continuity protocol
