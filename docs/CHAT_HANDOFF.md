@@ -131,56 +131,61 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — refined responsiveness/profile quality gate
+### PREPARED block — ANTECIPADO_TREND cross-asset robustness
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- current refined-gate implementation head: `22f13329b1203f6250838b155c8e4164878e656f`
+- durable pre-block research head: `b2e4e2992c8c32ee81f7cf86e193e81132cad6c6`
 
-Closed first-pass profile evidence:
-- BTC workflow `36185483411` — PASS;
+Closed BTC profile gates:
+- first-pass workflow `36185483411` — PASS;
+- refined quality workflow `36186000295` — PASS;
 - Static integrity — PASS;
 - worklog: `docs/worklog/2026-09-25-suite-0.2-responsiveness-profiles.md`.
 
-First-pass decisions:
-- PADRÃO = exact OPERATOR_READINESS_V1 comparator — KEEP;
-- naive all-path ANTECIPADO = REMOVE / DO NOT SHIP;
-- CONFIRMADO +1 persistence = candidate pending quality discrimination.
+Current decisions:
+- PADRÃO = accepted OPERATOR_READINESS_V1 — KEEP;
+- naive all-path ANTECIPADO — REMOVE / DO NOT SHIP;
+- CONFIRMADO +1 — REMOVE / DO NOT SHIP;
+- ANTECIPADO_TREND — KEEP for cross-asset validation.
 
-Why naive ANTECIPADO was rejected:
-- BTC 4H: 854 events, 16.51% converted to PADRÃO, 69.79% quick nonconverted <=3 bars;
-- BTC 1D: 96 events, 10.42% converted, 79.17% quick nonconverted <=3;
-- frozen pullback/retest path dominates the noise;
-- TREND_OPPORTUNITY_V2 conversion is materially higher (41.10% 4H; 33.33% 1D).
+Why ANTECIPADO_TREND survived BTC:
+- 4H BREAKOUT_EXPANSION converted early events: 27 HELD / 1 FAKEOUT;
+- 4H nonconverted early events: 28 HELD / 2 FAKEOUT;
+- 1D breakout converted: 2 HELD / 0 FAKEOUT;
+- 1D breakout nonconverted: 5 HELD / 0 FAKEOUT;
+- nonconversion to PADRÃO therefore does not imply structural failure.
 
-Pre-registered refined gate:
-
-**ANTECIPADO_TREND**
-- only newly-ARMED `TREND_OPPORTUNITY_V2` is eligible;
-- conversion must be earned by TREND itself; another path cannot rescue it;
-- compare BREAKOUT / REACCELERATION structural HELD vs FAKEOUT for converted vs nonconverted;
-- strict REGIME_REVERSAL tracked separately;
-- measure lead bars and ATR move consumed while waiting for PADRÃO.
-
-**CONFIRMADO +1 quality**
-- PADRÃO remains exact unified CONFIRMA;
-- +1 requires persistence of a source that actually confirmed, same direction, no conflict;
-- compare +1-survived vs +1-rejected against capability-aware Management V1.1 outcomes and anchor classes.
+Why CONFIRMADO was removed:
+- BTC 4H +1 rejected 9 PADRÃO signals; 6 later COMPLETED, 3 INVALIDATED;
+- BTC 1D +1 rejected 1 signal and it later COMPLETED;
+- extra delay did not isolate a clearly poorer cohort.
 
 Exact intended work:
-1. run refined BTC 4H/1D quality gate;
-2. determine whether ANTECIPADO_TREND adds useful earlier structural coverage or remains too noisy;
-3. determine whether CONFIRMADO rejects materially poorer theses enough to justify one-bar delay;
-4. only if a candidate survives this quality gate, validate unchanged on ETH/AVAX;
-5. do not force three profiles if evidence supports fewer or none;
-6. no production Pine/default/profile/panel change.
+1. validate unchanged ANTECIPADO_TREND on ETHUSDT 4H/1D;
+2. validate unchanged on AVAXUSDT 4H/1D;
+3. no per-asset retuning;
+4. measure:
+   - BREAKOUT_EXPANSION HELD vs FAKEOUT for converted/nonconverted;
+   - REACCELERATION structural outcomes;
+   - event count;
+   - conversion to PADRÃO;
+   - lead bars / ATR move consumed while waiting;
+   - quick nonconverted churn;
+   - LONG/SHORT balance;
+5. if robust, decide whether product needs only:
+   - PADRÃO
+   - ANTECIPADO
+   rather than a forced three-profile selector;
+6. if not robust, ship no profile selector and keep PADRÃO only;
+7. no production Pine/default/profile/panel change.
 
 Recovery:
-- compare branch with `22f13329...`;
-- inspect only newer profile-quality workflow commits/runs/artifacts;
-- do not reopen closed Opportunity/horizon/management research.
+- compare active branch with `b2e4e299...`;
+- inspect only newer ANTECIPADO_TREND robustness commits/runs/artifacts;
+- do not reopen CONFIRMADO or naive all-path ANTECIPADO without new evidence.
 
 
 ## 7. Continuity protocol
