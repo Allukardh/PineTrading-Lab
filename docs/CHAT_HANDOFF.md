@@ -3,7 +3,7 @@
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
 **Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — RANGE_ROTATION Opportunity v2 integration A/B  
+**Active product front:** Suite 0.2 — RANGE_ROTATION execution-evidence composition  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,55 +131,53 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — RANGE_ROTATION Opportunity v2 integration A/B
+### PREPARED block — RANGE_ROTATION execution-evidence composition
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- accepted RANGE_ROTATION research head: `905fc9adf190b0c1b12d17d2109027302ee8a410`
+- durable pre-block research head: `5684e96fa99d8c894541c8d9a884c653e660c547`
 
-Locks:
-- accepted Opportunity v2 breakout/reacceleration composition is not reopened;
-- RANGE_ROTATION primary trigger = EDGE_REJECTION;
-- SWEEP_RECLAIM is auxiliary only;
-- frozen Execution 0.1 remains independent;
-- MTE/RSE/PSE meanings unchanged;
-- no production Pine/default/profile change.
+Closed integration A/B:
+- workflow `36158262670` — PASS;
+- Static integrity `36158262562` — PASS;
+- worklog: `docs/worklog/2026-09-25-suite-0.2-range-rotation.md`.
 
-Pre-registered integration variants:
+Decisions:
+- RANGE_ROTATION structural label remains KEEP;
+- EDGE_REJECTION -> STRONG -> next-bar structural progress -> ACCEPTED remains KEEP;
+- CONTEXT_GUARDED hard regime filter — NOT PROVEN;
+- accepted breakout/reacceleration Opportunity v2 composition remains unchanged;
+- generic Opportunity-v2 readiness composition for RANGE_ROTATION — REFINE.
 
-**A — ALL_EDGE**
-- every confirmed EDGE_REJECTION may enter Opportunity readiness.
-
-**B — CONTEXT_GUARDED**
-- NEUTRAL and WITH_REGIME EDGE_REJECTION may enter Opportunity readiness;
-- AGAINST_REGIME remains awareness-only.
-
-Range lifecycle for both:
-1. confirmed EDGE_REJECTION starts as STRONG;
-2. next-bar structural persistence + directional progress inside the same compatible range is required for ACCEPTED;
-3. invalidation / incompatible range change clears the frame;
-4. no backdating.
+Observed bottleneck:
+- BTC 4H: 74 actionable -> 58.11% PREP -> 5.41% ARMED -> 1 CONFIRMA;
+- the only confirmation came 6 bars after source and after midpoint;
+- BTC 1D: 4 rotations, all reached midpoint structurally, zero confirmations.
 
 Exact intended work:
-1. extend research OpportunityFrame with range identity/geometry only as needed;
-2. build range-specific frame timeline without changing breakout/reacceleration frames;
-3. run both A/B on BTC 4H/1D;
-4. compare:
-   - RANGE_ROTATION opportunity-only coverage;
-   - PREP/ARMED/CONFIRMA latency;
-   - quick cancellation/churn;
-   - midpoint/opposite/failure split among confirmed vs not confirmed;
-   - ALL_EDGE vs CONTEXT_GUARDED discrimination;
-5. preserve exact frozen 0.1 path;
-6. only if useful, expand unchanged integration to ETH/AVAX;
-7. no Pine or profiles.
+1. instrument accepted MTE/RSE/PSE evidence on RANGE_ROTATION source bar and first ACCEPTED bar;
+2. classify:
+   - momentum aligned / strongly opposing / other;
+   - RSI supportive / opposing / extreme/exhaustion;
+   - HTF RSI aligned / opposing / neutral;
+   - PSE CONFIRM / NEUTRAL / WEAK / CONTRARY;
+3. split distributions by structural outcome:
+   - OPPOSITE_REACHED;
+   - MID_REACHED;
+   - FAILED_BEFORE_MID;
+   - CENSORED;
+4. identify candidate range-specific composition without changing indicator state definitions;
+5. pre-register the next readiness counterfactual before implementation;
+6. start on BTC 4H/1D;
+7. only then validate unchanged composition on ETH/AVAX;
+8. no production Pine/default/profile change.
 
 Recovery:
-- compare active branch with `905fc9ad...`;
-- inspect only newer range-integration commits/runs/artifacts;
-- do not reopen accepted range detector or Opportunity-v2 base composition unless a concrete defect appears.
+- compare active branch with `5684e96...`;
+- inspect only newer RANGE_ROTATION feature-evidence commits/runs/artifacts;
+- do not reopen detector thresholds, regime filter, breakout/reacceleration baseline, or production Pine.
 
 
 ## 7. Continuity protocol
