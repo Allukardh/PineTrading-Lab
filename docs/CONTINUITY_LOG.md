@@ -707,6 +707,47 @@ Causal consequence:
 
 ---
 
+### 2026-09-25 — Suite 0.2 breakout acceptance contract narrowed by cross-asset evidence
+
+BTC / ETH / AVAX 4H/1D evidence established a useful distinction between:
+- a structural breakout **candidate**;
+- an early **strong/sustained** breakout;
+- a later **accepted** breakout.
+
+Cross-asset findings:
+- structural penetration normalized by ATR is the most stable contemporaneous held-vs-fakeout discriminator;
+- PSE participation confirmation adds useful candidate quality;
+- making MTE a mandatory breakout-acceptance gate adds little incremental discrimination and unnecessarily duplicates downstream Execution timing;
+- a strong breakout candle should not be treated as final confirmation;
+- two subsequent confirmed closes holding beyond the broken structural level (`HOLD_2`) are the strongest minimal acceptance anchor tested so far;
+- allowing decisive penetration + PSE + first held close to advance one bar earlier has a measurable fakeout cost and therefore belongs to provisional/arming semantics rather than final acceptance.
+
+Research decision:
+- BREAKOUT candidate lifecycle becomes conceptually:
+  `CANDIDATE -> STRONG/SUSTAINED -> ACCEPTED`;
+- this may later map naturally to `PREPARANDO -> ARMADO -> CONFIRMA` without adding visible panel complexity;
+- no production mapping is authorized yet.
+
+Regime-transition evidence across BTC/ETH/AVAX also confirmed:
+- the first opposite structural break against a mature regime is too broad to become an actionable trade signal;
+- strict coherent `REGIME_REVERSAL` remains valid;
+- earlier actionable reversal remains **INSUFFICIENT EVIDENCE**;
+- future work should research base/acceptance/follow-through rather than weakening canonical `map_dir`.
+
+Runs:
+- breakout acceptance matrix `36143637064` — PASS;
+- feature matrix `36143819846` — PASS.
+
+Detailed worklog:
+`docs/worklog/2026-09-25-suite-0.2-breakout-acceptance.md`
+
+Causal consequence:
+- responsiveness should come from opportunity lifecycle semantics, not global threshold relaxation;
+- next discriminant is structural context partition + deterministic `REACCELERATION` episodes;
+- profiles remain unapproved.
+
+---
+
 ## 9. Current continuation checkpoint
 
 The exact volatile checkpoint belongs in:
