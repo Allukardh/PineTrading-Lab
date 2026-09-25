@@ -796,6 +796,34 @@ Detailed worklog:
 
 ---
 
+### 2026-09-25 — Suite 0.2 Phase F integrated research promoted
+
+PR #25 completed the evidence-first Suite 0.2 research program through Phase F and was promoted to `main`.
+
+Promotion merge:
+- `74d58a4376f004ec0548e2f9a3640f0d82119c35`
+
+Durable accepted research decisions:
+- Opportunity Engine v2 uses independent opportunity paths rather than disguising new setups as correction/retest locations;
+- breakout/expansion and reacceleration are accepted trend opportunity classes;
+- RANGE_ROTATION uses a confirmed structural range + EDGE_REJECTION and its evidence-backed EARLY_ANY1 readiness;
+- OPERATOR_READINESS_V1 arbitrates independent paths without mutating them;
+- PADRÃO remains the global default;
+- ANTECIPADO survives only as an evidence-backed TREND posture on 15m / 1H / 4H / 1D / 3D;
+- CONFIRMADO +1 was tested and removed;
+- Thesis Management V1.1 is capability-aware and never invents missing target/invalidation anchors;
+- management semantics hold unchanged across 15m / 1H / 4H / 1D / 3D;
+- 1W management is semantically coherent but sparse;
+- 1M is retained as macro/cycle awareness only and is not an execution-management timeframe.
+
+Methodological consequence:
+- Suite 0.2 production implementation is now allowed to encode the accepted research contract;
+- research thresholds/semantics must not be casually reopened during Pine implementation;
+- any implementation discrepancy is first treated as parity/translation defect, not an invitation to retune;
+- production still requires compile/static gates, targeted TradingView parity, direct UX validation and the Portuguese operator guide.
+
+---
+
 ## 9. Current continuation checkpoint
 
 The exact volatile checkpoint belongs in:
