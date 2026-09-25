@@ -131,61 +131,55 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — Suite 0.2 Phase G production Pine integration
+### PREPARED block — Phase G cross-script Pine parity
 
-Canonical research promotion:
-- PR #25 merge `74d58a4376f004ec0548e2f9a3640f0d82119c35`;
-- Phase F — CLOSED / KEEP.
+Active implementation:
+- Issue #26
+- draft PR #27
+- branch `feat/suite-0.2-phase-g`
+- durable implementation head: `12f778e301f22e27a62eb6eb5972ff067a845c45`
 
-Accepted production baseline lineage:
-- Market Map 0.1.0 promotion `0eeb0d37b256a950cfb38f627fa3521bb213d380`;
-- Execution 0.1.0 promotion `a7557df2d0142441ea782dba4b8c3f95ebc38371`.
+Implementation contract:
+- `docs/design/SUITE_0_2_PINE_IMPLEMENTATION.md`
+- contract commit `355957d2f4c5b463a3b7b1bba4fcb39b65ca3067`
 
-Phase G objective:
-- implement the accepted Suite 0.2 research contract in the existing **two-script topology**;
-- preserve close-confirmed/reload-safe semantics;
-- increase internal intelligence without increasing operator-facing clutter;
-- make the visible panel more direct;
-- keep research telemetry/audit available without forcing it into the normal chart.
+Execution 0.2 standalone status:
+- Opportunity Engine structural bookkeeping — implemented;
+- TREND_OPPORTUNITY_V2 frame/readiness — implemented;
+- RANGE_ROTATION structural box + EDGE_REJECTION + EARLY_ANY1 — implemented;
+- frozen 0.1 readiness path — preserved independently;
+- OPERATOR_READINESS_V1 — implemented;
+- PADRÃO + scoped ANTECIPADO posture — implemented;
+- Thesis Management V1.1 capability-aware anchors/states — implemented;
+- standalone cue uses unified operator semantics;
+- Data Window audits independent paths/operator/management;
+- Pine compile on `12f778e3...` — PASS (run `36197574904`).
 
-Implementation locks:
-- do not retune accepted opportunity/profile/management semantics during translation;
-- frozen 0.1 behavior remains historical lineage and regression comparator;
-- Opportunity Engine v2 paths remain internally independent until OPERATOR_READINESS_V1 projection;
-- PADRÃO is default;
-- ANTECIPADO is TREND-only on 15m / 1H / 4H / 1D / 3D;
-- no CONFIRMADO profile;
-- RANGE_ROTATION uses accepted EARLY_ANY1 semantics;
-- capability-aware Thesis Management V1.1 starts only from PADRÃO CONFIRMA;
-- 1W remains PADRÃO;
-- 1M remains macro/cycle awareness only;
-- no synthetic target/invalidation anchors;
-- no third runtime indicator.
+Known non-defect:
+- Static integrity is expected to remain red until `tools/check_execution_pine_contract.py` is upgraded from literal 0.1 tokens to the 0.2 production contract.
 
-Expected Phase G sequence:
-1. Issue #26 + branch `feat/suite-0.2-phase-g` created from current `main`;
-2. audit accepted research reference files and current Pine 0.1 implementation;
-3. write a Pine implementation contract/mapping before editing logic;
-4. implement Market Map 0.2 candidate;
-5. implement Execution 0.2 candidate with cross-script parity;
-6. add/update offline/static parity tests;
-7. pass Static integrity + Pine compile;
-8. only then request a compact TradingView validation matrix;
-9. finish `docs/GUIA_DO_OPERADOR.md` in Portuguese before promotion.
-
-Operator-facing target remains direct:
-- CENÁRIO
-- OPORTUNIDADE
-- LADO
-- AÇÃO
-- ALVO
-- GESTÃO
-- INVALIDA
-- CORREÇÃO only when relevant
+Exact intended work:
+1. do **not** reopen the compiled Execution semantics unless a parity/compile defect appears;
+2. mirror the same accepted 0.2 semantics into Market Map's embedded Execution consumer using its already-computed structural variables;
+3. expose the direct panel vocabulary:
+   - CENÁRIO
+   - OPORTUNIDADE
+   - LADO
+   - AÇÃO
+   - ALVO
+   - GESTÃO
+   - INVALIDA
+   - CORREÇÃO only when relevant;
+4. keep detailed technical fields in Data Window;
+5. upgrade the static Pine contract checker to validate 0.2 cross-script invariants rather than 0.1 version strings;
+6. require Market Map + Execution Pine compile PASS and Static integrity PASS before any TradingView request;
+7. only then run a small cross-script/reload manual matrix;
+8. Portuguese operator guide remains mandatory before 0.2 promotion.
 
 Recovery:
-- if interrupted, compare current Phase G branch/PR with this checkpoint;
-- inspect only commits/runs newer than the Phase G branch point;
+- compare Phase G branch against `12f778e3...`;
+- inspect only newer Market Map/checker commits/runs;
+- the compiled standalone Execution is a protected translation milestone;
 - do not reopen Phase A–F research without a concrete parity defect.
 
 
