@@ -39,7 +39,9 @@ def analyze(tf,datasets,tick):
     ctx=_build_operator_paths(tf,datasets,tick)
     projections,path_rows=_projections(ctx)
     a=_trend_early_quality(ctx,projections,path_rows)
-    a["rows"]=len(ctx["data"]["close"])
+    # Preserve a["rows"] as the canonical event-row list returned by
+    # _trend_early_quality(). Candle count is separate metadata.
+    a["market_rows"]=len(ctx["data"]["close"])
     return a
 
 
