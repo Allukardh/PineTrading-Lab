@@ -105,6 +105,34 @@ def match_near_confirms(
     return out
 
 
+def match_near_opposite_confirms(
+    a: Sequence[ConfirmEvent],
+    b: Sequence[ConfirmEvent],
+    *,
+    window_bars: int=3,
+) -> list[NearConfirmMatch]:
+    if window_bars<0:
+        raise ValueError("window_bars must be >= 0")
+
+    candidates=[]
+    for ia,ea in enumerate(a):
+        for ib,eb in enumerate(b):
+            if ea.direction==eb.direction:
+                continue
+            dist=abs(ea.bar-eb.bar)
+            if dist<=window_bars:
+                candidates.append((dist,ea.bar,eb.bar,ia,ib,ea.direction))
+
+    candidates.sort()
+    used_a=set(); used_b=set(); out=[]
+    for dist,abar,bbar,ia,ib,direction in candidates:
+        if ia in used_a or ib in used_b:
+            continue
+        used_a.add(ia); used_b.add(ib)
+        out.append(NearConfirmMatch(abar,bbar,direction,dist))
+    return out
+
+
 def triple_overlap(a: Sequence,b: Sequence,c: Sequence) -> dict:
     if not (len(a)==len(b)==len(c)):
         raise ValueError("path lengths must match")
