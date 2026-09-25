@@ -3,7 +3,7 @@
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
 **Checkpoint state:** PREPARED  
-**Active product front:** Execution evidence research — branch reconciliation + pre-registered Binance evidence block  
+**Active product front:** Execution evidence research — historical validation block in flight — branch reconciliation + pre-registered Binance evidence block  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -110,6 +110,30 @@ Important contracts:
 - Market Map location vocabulary is the context bridge.
 
 ## 4. Exact next atomic work
+
+### PREPARED block — 2026-09-24
+
+Current intent:
+1. reconcile PR #12 / `research/execution-engine-design` with current `main`;
+2. verify research/static integrity after reconciliation;
+3. execute the pre-registered historical evidence plan for MTE-A / RSE-A / PSE-A against accepted Binance datasets with candidate defaults unchanged;
+4. classify evidence before any production Pine or retuning;
+5. persist all result artifacts/reports and return this handoff to STABLE.
+
+Expected durable evidence:
+- reconciled PR #12 head;
+- unchanged candidate manifests/reference implementations unless a proven defect is found;
+- machine-readable historical evidence;
+- explicit KEEP / REFINE / REMOVE / INSUFFICIENT EVIDENCE decisions tied to pre-registered questions;
+- no `execution.pine` creation in this block.
+
+Recovery if interrupted:
+- compare this checkpoint with actual PR #12 head;
+- inspect only new commits/runs/artifacts;
+- if PR #12 did not move, resume reconciliation/evidence execution;
+- if it moved, infer completed steps from GitHub and continue from the delta.
+
+### Planned sequence
 
 This block is now **PREPARED**.
 
