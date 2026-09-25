@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** STABLE  
-**Active product front:** Execution 0.1.0 final TradingView parity gate  
+**Checkpoint state:** PREPARED  
+**Active product front:** Execution 0.1.0 promotion  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -109,43 +109,42 @@ The semantic contract is frozen by:
 
 ## 4. Exact next atomic work
 
-### Final operator gate — batched
+### PREPARED promotion block — 2026-09-24
 
-Use the latest PR #21 branch `feat/execution-0.1.0` and replace/update **both** scripts in TradingView:
+Operator TradingView parity evidence is complete and PASS:
 
-- `src/core/market-map.pine`
-- `src/core/execution.pine`
+- BTCUSDT 4H before reload:
+  - Market Map EXECUÇÃO = `AGUARDAR`
+  - Market Map FORÇA = `NORMAL`
+  - standalone Execution cue = `AGUARDAR • NORMAL`
 
-Use defaults only.
+- BTCUSDT 4H after reload:
+  - same semantic state across both scripts;
+  - no material reload mismatch observed.
 
-Provide exactly three screenshots:
+- BTCUSDT 1D after reload:
+  - Market Map EXECUÇÃO = `PREPARANDO LONG`
+  - Market Map FORÇA = `NORMAL`
+  - standalone Execution cue = `PREPARANDO LONG • NORMAL`
 
-1. **BTCUSDT 4H — before reload**
-   - full chart with Market Map panel visible;
-   - Execution lower pane visible, including its top-right status cue.
+No additional manual test cycle is justified without a concrete defect.
 
-2. **BTCUSDT 4H — after one F5/page reload**
-   - same symbol/timeframe/defaults/layout;
-   - both Market Map panel and Execution status cue visible.
+Current PR #21 head:
+`5fdea1e7be173ea9cec500eba70f00e35c153b67`
 
-3. **BTCUSDT 1D — after reload**
-   - same defaults;
-   - both scripts visible.
+Promotion sequence:
+1. reconcile PR #21 with current `main` if needed;
+2. re-run Static integrity + Pine compile on the reconciled head;
+3. mark PR #21 ready;
+4. merge Execution 0.1.0;
+5. close Issue #20;
+6. update README / CANONICAL_STATE / CHANGELOG / CONTINUITY_LOG / this handoff to the accepted two-indicator suite state.
 
-Primary checks:
-- Market Map `EXECUÇÃO` text == standalone Execution status cue readiness text;
-- Market Map `FORÇA` text == standalone Execution status cue strength text;
-- reload does not change confirmed semantic state;
-- lower pane is readable without duplicating the full Market Map panel;
-- no material Market Map structural/UX regression from the embedded Execution rows.
-
-Do not hunt for CONFIRMA/ARMADO or force a rare market state. Current live state is acceptable.
-
-If this passes:
-1. record visual/reload parity;
-2. mark PR #21 ready;
-3. promote Execution 0.1.0;
-4. return handoff to accepted two-indicator suite state.
+Recovery if interrupted:
+- inspect PR #21 head vs this checkpoint;
+- inspect only newer commits/checks;
+- do not repeat TradingView screenshots;
+- continue from the first incomplete promotion step.
 
 
 ## 5. Continuity protocol
