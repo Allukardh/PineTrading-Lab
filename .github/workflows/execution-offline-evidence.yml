@@ -85,7 +85,9 @@ jobs:
             --canonical-manifest manifests/binance-spot-btcusdt.production-2026-09-24.json \
             --output-json "$RUNNER_TEMP/execution-btc-evidence.json" \
             --output-md "$RUNNER_TEMP/execution-btc-evidence.md" \
-            --code-sha "$GITHUB_SHA"
+            --code-sha "$GITHUB_SHA" \
+            --market-map-integration \
+            --tick-size 0.01
 
       - name: Upload BTC evidence
         uses: actions/upload-artifact@v7
