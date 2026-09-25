@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** STABLE  
-**Active product front:** Suite 0.2 — Opportunity v2 research baseline accepted  
+**Checkpoint state:** PREPARED  
+**Active product front:** Suite 0.2 — RANGE_ROTATION episode research  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,46 +131,41 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### STABLE result — Opportunity Engine composition v2
+### PREPARED block — deterministic RANGE_ROTATION research
 
-Research baseline:
+Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- accepted research head: `329cdcac039f11cd1a81bf9138cfe67ab83a142f`
+- accepted Opportunity v2 research head: `329cdcac039f11cd1a81bf9138cfe67ab83a142f`
 
-Evidence:
-- BTC/ETH/AVAX 4H/1D robustness: `36151556125` — PASS;
-- 15-symbol 1D universe: `36151995405` — PASS;
-- Static integrity: `36151995191`, `36152002815` — PASS;
-- worklog: `docs/worklog/2026-09-25-suite-0.2-opportunity-v2-universe.md`.
+Locks:
+- Opportunity composition v2 is not reopened in this block;
+- frozen Execution 0.1 remains independent;
+- RANGE_ROTATION must be defined independently from Execution result;
+- do not implement blind mean-reversion;
+- no production Pine/default/profile change.
 
-Accepted research decisions:
-- parallel Opportunity architecture — **KEEP**;
-- composition v2 — **KEEP as first accepted Opportunity Engine research baseline**;
-- 4H — KEEP;
-- 1D — KEEP;
-- CANDIDATE = awareness only;
-- STRONG may PREPARAR;
-- ACCEPTED required for final Opportunity confirmation;
-- accepted follow-through may arm with supportive RSI/HTF and non-opposing momentum;
-- source participation may be remembered only when source qualified STRONG;
-- raw REGIME_TRANSITION remains non-actionable;
-- strict REGIME_REVERSAL remains valid but earlier-action evidence is insufficient;
-- frozen Execution 0.1 remains independent and unchanged;
-- no profiles or production Pine changes.
+Exact intended work:
+1. audit existing MM-0 structure/pivot/liquidity telemetry that can identify a stable range without adding an arbitrary indicator family;
+2. define deterministic candidate range boundaries and a minimum stability contract;
+3. define rotation opportunity only near a meaningful range edge with rejection/sweep/reclaim evidence and usable room toward opposite range liquidity;
+4. keep candidate/confirmation timing honest and never backdate;
+5. measure frozen 0.1 response first on BTC 4H/1D;
+6. measure structural outcome diagnostics (rotation held/failed/ambiguous where possible);
+7. only if label quality is useful, integrate RANGE_ROTATION into Opportunity v2 counterfactual;
+8. no profiles; no Pine.
 
-15-symbol daily highlights:
-- BREAKOUT expanded 4.01% -> 6.22%; positive new-path gain on 13/15 symbols;
-- breakout Opportunity-path HELD 3.93% vs FAKEOUT 0.61%;
-- REACCELERATION expanded 0.84% -> 5.04%;
-- 0.81 CONFIRMA / 1000 bars;
-- 7.17 CANCEL / 1000 bars;
-- confirmations: 15 LONG / 16 SHORT.
+Expected durable outputs:
+- range-rotation episode reference + tests;
+- BTC 4H/1D range-rotation evidence report;
+- KEEP/REFINE/REMOVE/INSUFFICIENT decision;
+- exact next discriminant.
 
-Next research frontier:
-- RANGE_ROTATION episode contract and frozen-0.1 / Opportunity-v2 response;
-- no automatic production implementation follows from the accepted research baseline.
+Recovery:
+- compare active branch with `329cdcac...`;
+- inspect only newer range-rotation commits/runs/artifacts;
+- do not rerun closed breakout/reacceleration/composition-v2 work unless a concrete defect appears.
 
 
 ## 7. Continuity protocol
