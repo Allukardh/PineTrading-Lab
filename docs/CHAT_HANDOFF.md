@@ -3,7 +3,7 @@
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
 **Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — Phase G production Pine integration  
+**Active product front:** Suite 0.2 — Phase G TradingView cross-script/reload gate  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,65 +131,75 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — Phase G cross-script Pine parity
+### PREPARED block — Phase G TradingView cross-script/reload validation
 
 Active implementation:
 - Issue #26
 - draft PR #27
 - branch `feat/suite-0.2-phase-g`
-- durable implementation head: `12f778e301f22e27a62eb6eb5972ff067a845c45`
+- current branch head: `4b1eb9c5cc43b135fc40aac79b0c76a5fcb7a5ce`
+- compiled Pine candidate head: `88efeb6e92ec186d46ad2b4b0315cf84dea40970`
 
 Implementation contract:
 - `docs/design/SUITE_0_2_PINE_IMPLEMENTATION.md`
-- contract commit `355957d2f4c5b463a3b7b1bba4fcb39b65ca3067`
 
-Execution 0.2 standalone status:
-- Opportunity Engine structural bookkeeping — implemented;
-- TREND_OPPORTUNITY_V2 frame/readiness — implemented;
-- RANGE_ROTATION structural box + EDGE_REJECTION + EARLY_ANY1 — implemented;
-- frozen 0.1 readiness path — preserved independently;
-- OPERATOR_READINESS_V1 — implemented;
-- PADRÃO + scoped ANTECIPADO posture — implemented;
-- Thesis Management V1.1 capability-aware anchors/states — implemented;
-- standalone cue uses unified operator semantics;
-- Data Window audits independent paths/operator/management;
-- Pine compile on `12f778e3...` — PASS (run `36197574904`).
+Manual validation contract:
+- `docs/testing/SUITE_0_2_PHASE_G_VALIDATION.md`
 
-Known non-defect:
-- Static integrity is expected to remain red until `tools/check_execution_pine_contract.py` is upgraded from literal 0.1 tokens to the 0.2 production contract.
+Automated Phase G gate — CLOSED:
+- Pine compile `36199944975` — **PASS**
+- Static integrity `36199944904` — **PASS**
+- Market Map v0.2.0 compiles
+- Execution v0.2.0 compiles
+- cross-script static/default/semantic contract checker passes
+- no research retuning was introduced during compile cleanup
 
-Current compile defect discovered after the recorded milestone:
-- PR #27 head `bd3233326f7615882a2b9de19259257eafb45480`;
-- Static integrity PASS;
-- Pine compile FAIL run `36198248541`;
-- Market Map compiles;
-- Execution fails because the monthly macro block references `f_sec` and `MM_MID_LEN/MM_SLOW_LEN` before the Execution Market Map consumer/helper/constants are declared;
-- fix is relocation only; do not change semantics.
+Current runtime contract:
+- frozen 0.1 correction/retest/reclaim path independent;
+- TREND_OPPORTUNITY_V2 independent;
+- RANGE_EARLY_ANY1 independent;
+- OPERATOR_READINESS_V1 arbitrates;
+- PADRÃO default;
+- scoped ANTECIPADO only for accepted trend opportunities;
+- Thesis Management V1.1 starts only from PADRÃO CONFIRMA;
+- no synthetic anchors;
+- 1W PADRÃO only;
+- 1M macro/cycle awareness only;
+- direct operator UX in Market Map;
+- compact standalone Execution cue.
 
-Exact intended work:
-1. relocate the Execution monthly-macro calculation after `MM_*` constants + `f_mm_sec`, preserving the formula exactly;
-2. require Pine compile PASS + Static integrity PASS;
-3. do **not** reopen the compiled Execution semantics unless a parity/compile defect appears;
-2. mirror the same accepted 0.2 semantics into Market Map's embedded Execution consumer using its already-computed structural variables;
-3. expose the direct panel vocabulary:
-   - CENÁRIO
-   - OPORTUNIDADE
-   - LADO
-   - AÇÃO
-   - ALVO
-   - GESTÃO
-   - INVALIDA
-   - CORREÇÃO only when relevant;
-4. keep detailed technical fields in Data Window;
-5. upgrade the static Pine contract checker to validate 0.2 cross-script invariants rather than 0.1 version strings;
-6. require Market Map + Execution Pine compile PASS and Static integrity PASS before any TradingView request;
-7. only then run a small cross-script/reload manual matrix;
-8. Portuguese operator guide remains mandatory before 0.2 promotion.
+Exact manual matrix now required:
+
+1. BTCUSDT **4H**, both scripts, defaults, PADRÃO;
+2. BTCUSDT **1D**, same;
+3. BTCUSDT **3D**, same;
+4. BTCUSDT **1W**, same;
+5. reload TradingView on BTCUSDT 4H with inputs unchanged and capture the same state again;
+6. BTCUSDT 4H with **both scripts** set to ANTECIPADO; no other input change.
+
+Where practical, screenshots should include Market Map panel + standalone Execution lower pane/cue and Data Window.
+
+Hard PASS:
+- no Market Map/Execution direction/readiness contradiction;
+- no contradictory unified CONFIRMA;
+- management state/anchors agree when active;
+- 4H confirmed state survives reload;
+- ANTECIPADO never creates fake PADRÃO CONFIRMA or starts management;
+- no obvious high-horizon contradiction.
+
+Do not tune thresholds from this matrix.
+
+After manual PASS:
+1. record operator evidence;
+2. create/finalize `docs/GUIA_DO_OPERADOR.md` in Portuguese;
+3. reconcile PR #27 with current `main` if required;
+4. rerun final Static integrity + Pine compile;
+5. only then promote Suite 0.2.
 
 Recovery:
-- compare Phase G branch against `12f778e3...`;
-- inspect only newer Market Map/checker commits/runs;
-- the compiled standalone Execution is a protected translation milestone;
+- if interrupted while waiting for screenshots, do not redo Phase G implementation;
+- inspect only newer PR #27 commits/runs and supplied TradingView evidence;
+- candidate Pine is protected at `88efeb6e...`;
 - do not reopen Phase A–F research without a concrete parity defect.
 
 
