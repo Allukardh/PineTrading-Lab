@@ -15,6 +15,9 @@ groupView = "Visual"
 showMAs = input.bool(true, "Mostrar médias", group=groupView)
 showPanel = input.bool(true, "Mostrar painel", group=groupView)
 
+groupExecution = "Execução"
+string responseProfile = input.string("PADRÃO", "Perfil de resposta", options=["PADRÃO", "ANTECIPADO"], group=groupExecution)
+
 groupAdvanced = "Avançado / Diagnóstico"
 showStructureDetails = input.bool(false, "Mostrar BOS/CHoCH e zonas secundárias", group=groupAdvanced)
 
@@ -114,6 +117,61 @@ int EX_STRENGTH_FADING = 1
 int EX_STRENGTH_EXHAUSTED = 2
 int EX_STRENGTH_REACTION_RISK = 3
 
+// Suite 0.2 Opportunity / operator / management codes.
+int EX_OPP_NONE = 0
+int EX_OPP_BREAKOUT_EXPANSION = 1
+int EX_OPP_REACCELERATION = 2
+int EX_OPP_REGIME_REVERSAL = 3
+int EX_OPP_RANGE_ROTATION = 4
+
+int EX_OPP_STAGE_NONE = 0
+int EX_OPP_STAGE_CANDIDATE = 1
+int EX_OPP_STAGE_STRONG = 2
+int EX_OPP_STAGE_ACCEPTED = 3
+
+int EX_OP_READY_WAIT = 0
+int EX_OP_READY_PREP = 1
+int EX_OP_READY_ARMED = 2
+int EX_OP_READY_CONFIRMED = 3
+int EX_OP_READY_ALIGNED = 4
+int EX_OP_READY_CONFLICT = 5
+
+int EX_PATH_NONE = 0
+int EX_PATH_FROZEN_0_1 = 1
+int EX_PATH_TREND_V2 = 2
+int EX_PATH_RANGE_ANY1 = 3
+int EX_PATH_MULTI = 4
+
+int EX_BREAK_OTHER = 0
+int EX_BREAK_EARLY_TRANSITION = 1
+int EX_BREAK_FRESH_EXPANSION = 2
+int EX_BREAK_PULLBACK_RESOLUTION = 3
+int EX_BREAK_REACCELERATION = 4
+
+int EX_REVERSAL_PRIOR_REGIME_MIN_BARS = 8
+int EX_REACCELERATION_REGIME_MIN_BARS = 8
+float EX_BREAK_DECISIVE_ATR = 0.50
+
+float EX_RANGE_BOUNDARY_DRIFT_MAX = 0.20
+float EX_RANGE_MIN_HEIGHT_ATR = 2.0
+float EX_RANGE_EDGE_FRACTION = 0.20
+
+int EX_MGMT_NONE = 0
+int EX_MGMT_CONTINUATION = 1
+int EX_MGMT_PROTECT = 2
+int EX_MGMT_REALIZATION_RISK = 3
+int EX_MGMT_COMPLETED = 4
+int EX_MGMT_INVALIDATED = 5
+int EX_MGMT_AMBIGUOUS = 6
+
+int EX_CAP_NONE = 0
+int EX_CAP_TARGET_ONLY = 1
+int EX_CAP_INVALIDATION_ONLY = 2
+int EX_CAP_FULL = 3
+
+float EX_MGMT_TARGET_NEAR_ATR = 0.30
+float EX_MGMT_INVALID_WARN_ATR = 0.20
+
 bool detailed = showStructureDetails
 
 // ---------------------------------------------------------------------------
@@ -207,6 +265,93 @@ f_ex_strength_txt(_state) =>
      _state == EX_STRENGTH_EXHAUSTED ? "EXAUSTÃO" :
      _state == EX_STRENGTH_REACTION_RISK ? "RISCO DE REAÇÃO" :
      "NORMAL"
+
+f_ex_momentum_aligned_dir(_dir, _state) =>
+    _dir == 1 ? (_state == EX_MTE_TURN_UP or _state == EX_MTE_UP_ACCEL) :
+     _dir == -1 ? (_state == EX_MTE_TURN_DOWN or _state == EX_MTE_DOWN_ACCEL) : false
+
+f_ex_momentum_opposes_dir(_dir, _state) =>
+    _dir == 1 ? (_state == EX_MTE_TURN_DOWN or _state == EX_MTE_DOWN_ACCEL) :
+     _dir == -1 ? (_state == EX_MTE_TURN_UP or _state == EX_MTE_UP_ACCEL) : true
+
+f_ex_rsi_local_supports_dir(_dir, _state) =>
+    _dir == 1 ? (_state == EX_RSI_BULL or _state == EX_RSI_RECOVERING_OVERSOLD or _state == EX_RSI_RECOVERING_OVERBOUGHT) :
+     _dir == -1 ? (_state == EX_RSI_BEAR or _state == EX_RSI_FADING_OVERBOUGHT or _state == EX_RSI_FADING_OVERSOLD) : false
+
+f_ex_rsi_local_opposes_dir(_dir, _state) =>
+    _dir == 1 ? (_state == EX_RSI_BEAR or _state == EX_RSI_FADING_OVERBOUGHT or _state == EX_RSI_EXTREME_OVERBOUGHT) :
+     _dir == -1 ? (_state == EX_RSI_BULL or _state == EX_RSI_RECOVERING_OVERSOLD or _state == EX_RSI_EXTREME_OVERSOLD) : true
+
+f_ex_rsi_supports_dir(_dir, _state, _ctx) =>
+    f_ex_rsi_local_supports_dir(_dir, _state) and _ctx != -_dir
+
+f_ex_rsi_opposes_dir(_dir, _state, _ctx) =>
+    f_ex_rsi_local_opposes_dir(_dir, _state) or (_dir != 0 and _ctx == -_dir)
+
+f_ex_pse_state_dir(_dir, _ready, _relVolume, _pressure) =>
+    int result = EX_PSE_NEUTRAL
+    if _ready and _dir != 0
+        float directional = _pressure * _dir
+        result := _relVolume < EX_PSE_CONTRACTED_BELOW ? EX_PSE_WEAK :
+             _relVolume >= EX_PSE_EXPANDED_AT_OR_ABOVE and directional >= EX_PSE_PRESSURE_MIN ? EX_PSE_CONFIRM :
+             _relVolume >= EX_PSE_EXPANDED_AT_OR_ABOVE and directional <= -EX_PSE_PRESSURE_MIN ? EX_PSE_CONTRARY :
+             EX_PSE_NEUTRAL
+    result
+
+f_ex_ready_urgency(_ready) =>
+    _ready == EX_READY_CONFIRMED ? 4 :
+     _ready == EX_READY_ARMED ? 3 :
+     _ready == EX_READY_PREP ? 2 :
+     _ready == EX_READY_ALIGNED ? 1 : 0
+
+f_ex_operator_txt(_stage, _dir) =>
+    _stage == EX_OP_READY_CONFLICT ? "CONFLITO" :
+     _stage == EX_OP_READY_PREP ? (_dir == 1 ? "PREPARANDO LONG" : _dir == -1 ? "PREPARANDO SHORT" : "AGUARDAR") :
+     _stage == EX_OP_READY_ARMED ? (_dir == 1 ? "ARMADO LONG" : _dir == -1 ? "ARMADO SHORT" : "AGUARDAR") :
+     _stage == EX_OP_READY_CONFIRMED ? (_dir == 1 ? "CONFIRMA LONG" : _dir == -1 ? "CONFIRMA SHORT" : "AGUARDAR") :
+     _stage == EX_OP_READY_ALIGNED ? (_dir == 1 ? "ALINHADO LONG" : _dir == -1 ? "ALINHADO SHORT" : "AGUARDAR") :
+     "AGUARDAR"
+
+f_ex_opp_txt(_kind) =>
+    _kind == EX_OPP_BREAKOUT_EXPANSION ? "BREAKOUT" :
+     _kind == EX_OPP_REACCELERATION ? "REACELERAÇÃO" :
+     _kind == EX_OPP_REGIME_REVERSAL ? "REVERSÃO" :
+     _kind == EX_OPP_RANGE_ROTATION ? "ROTAÇÃO DE RANGE" :
+     "—"
+
+f_ex_momentum_deteriorates_dir(_dir, _state) =>
+    _dir == 1 ? (_state == EX_MTE_UP_DECEL or _state == EX_MTE_TURN_DOWN or _state == EX_MTE_DOWN_ACCEL or _state == EX_MTE_DOWN_DECEL) :
+     _dir == -1 ? (_state == EX_MTE_DOWN_DECEL or _state == EX_MTE_TURN_UP or _state == EX_MTE_UP_ACCEL or _state == EX_MTE_UP_DECEL) : false
+
+f_ex_rsi_deteriorates_dir(_dir, _state) =>
+    _dir == 1 ? (_state == EX_RSI_FADING_OVERBOUGHT or _state == EX_RSI_EXTREME_OVERBOUGHT) :
+     _dir == -1 ? (_state == EX_RSI_RECOVERING_OVERSOLD or _state == EX_RSI_EXTREME_OVERSOLD) : false
+
+f_ex_strength_for_dir(_dir, _destinationNear, _mte, _rsi, _pse) =>
+    int generic = (f_ex_momentum_deteriorates_dir(_dir, _mte) ? 1 : 0) + (f_ex_rsi_deteriorates_dir(_dir, _rsi) ? 1 : 0) + (_pse == EX_PSE_CONTRARY ? 1 : 0)
+    int destination = (f_ex_momentum_deteriorates_dir(_dir, _mte) ? 1 : 0) + (f_ex_rsi_deteriorates_dir(_dir, _rsi) ? 1 : 0) + ((_pse == EX_PSE_WEAK or _pse == EX_PSE_CONTRARY) ? 1 : 0)
+    _destinationNear and destination >= 2 ? EX_STRENGTH_REACTION_RISK :
+     generic >= 2 ? EX_STRENGTH_EXHAUSTED :
+     generic == 1 ? EX_STRENGTH_FADING : EX_STRENGTH_NORMAL
+
+f_ex_same_level(_a, _b) =>
+    float tol = 1e-9 * math.max(1.0, math.max(math.abs(_a), math.abs(_b)))
+    math.abs(_a - _b) <= tol
+
+f_ex_target_usable(_dir, _confirmClose, _target) =>
+    not na(_target) and _dir != 0 and _dir * (_target - _confirmClose) > 0
+
+f_ex_invalidation_usable(_dir, _confirmClose, _invalidation) =>
+    not na(_invalidation) and _dir != 0 and _dir * (_confirmClose - _invalidation) > 0
+
+f_ex_management_txt(_state) =>
+    _state == EX_MGMT_CONTINUATION ? "CONTINUIDADE" :
+     _state == EX_MGMT_PROTECT ? "PROTEGER" :
+     _state == EX_MGMT_REALIZATION_RISK ? "REALIZAÇÃO" :
+     _state == EX_MGMT_COMPLETED ? "CONCLUÍDA" :
+     _state == EX_MGMT_INVALIDATED ? "INVALIDADA" :
+     _state == EX_MGMT_AMBIGUOUS ? "AMBÍGUA" :
+     "—"
 
 f_impulse_acceptance(_startBar, _endBar, _low, _high) =>
     float vwapValue = na
