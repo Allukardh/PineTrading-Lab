@@ -1,0 +1,69 @@
+{
+  "materialization": {
+    "date_utc": "2026-09-24",
+    "github_actions_run_id": 36012752615,
+    "source_branch": "infra/binance-market-data",
+    "source_head_sha": "3162bb959b83c67ad41bf505f6e3342b1895ac26",
+    "pipeline_version": "0.2.0",
+    "schema_version": "binance-spot-kline-v1",
+    "total_candles": 420144,
+    "total_source_files": 651,
+    "total_verified_checksums": 651,
+    "total_checksum_missing": 0,
+    "total_checksum_mismatch": 0,
+    "total_duplicates": 0,
+    "consolidated_size_bytes": 39767643
+  },
+  "market": "spot",
+  "symbol": "ETHUSDT",
+  "datasets": [
+    {
+      "timeframe": "15m",
+      "first_date": "2017-08-17T04:00:00Z",
+      "last_date": "2026-08-31T23:45:00Z",
+      "candles": 316414,
+      "dataset_sha256": "a21720575b3f20d3b083dd1fc61eaf311bd1cd38f32fd03c73f8989093a41573",
+      "status": "ok_with_findings"
+    },
+    {
+      "timeframe": "1h",
+      "first_date": "2017-08-17T04:00:00Z",
+      "last_date": "2026-08-31T23:00:00Z",
+      "candles": 79117,
+      "dataset_sha256": "b2295b1de4448333253fc0741c26ca3faf2b8a6802df57ce11c3d30012dc1a63",
+      "status": "ok_with_findings"
+    },
+    {
+      "timeframe": "4h",
+      "first_date": "2017-08-17T04:00:00Z",
+      "last_date": "2026-08-31T20:00:00Z",
+      "candles": 19794,
+      "dataset_sha256": "b540dce0575ebd3e44560cb14d6ca5c3e01643d1f3f9d0e28b20b542e476c853",
+      "status": "ok_with_findings"
+    },
+    {
+      "timeframe": "1d",
+      "first_date": "2017-08-17T00:00:00Z",
+      "last_date": "2026-08-31T00:00:00Z",
+      "candles": 3302,
+      "dataset_sha256": "6d6eca8ac9be5ea451bb848a78a0dbd33f0eb755fdab448ef8862b9e45ba3871",
+      "status": "ok"
+    },
+    {
+      "timeframe": "3d",
+      "first_date": "2017-08-17T00:00:00Z",
+      "last_date": "2026-07-01T00:00:00Z",
+      "candles": 1061,
+      "dataset_sha256": "53c147c7e909f3ac611db9d0a67570551b10a6ae1141df52134292cacc6d0833",
+      "status": "ok_with_findings"
+    },
+    {
+      "timeframe": "1w",
+      "first_date": "2017-08-14T00:00:00Z",
+      "last_date": "2026-06-29T00:00:00Z",
+      "candles": 456,
+      "dataset_sha256": "885484db14e9c9355cf35fba150dfbbbcd783b811854b32ce80e012b07fe9b66",
+      "status": "ok_with_findings"
+    }
+  ]
+}
