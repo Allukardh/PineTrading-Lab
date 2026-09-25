@@ -4,7 +4,7 @@
 **Date:** 2026-09-24  
 **Checkpoint state:** PREPARED  
 **Active product front:** Suite 0.2 — Phase G TradingView cross-script/reload gate  
-**Operator evidence required now:** none
+**Operator evidence required now:** yes — 6 TradingView screenshots
 
 ## 1. Resume order
 
