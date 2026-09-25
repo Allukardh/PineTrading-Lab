@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** STABLE  
-**Active product front:** none — accepted two-indicator suite baseline complete  
+**Checkpoint state:** PREPARED  
+**Active product front:** Suite 0.2 opportunity expansion + responsiveness research  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,22 +131,36 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-There is **no automatic engineering action pending**.
+### PREPARED block — Suite 0.2 roadmap / research charter
 
-When work resumes, first identify the next real product objective from:
-- observed live-use defect;
-- UX friction;
-- semantic/parity mismatch;
-- new evidence question;
-- explicitly chosen 0.x improvement.
+The accepted 0.1.0 baseline is **frozen**:
+- Market Map 0.1.0 promotion merge: `0eeb0d37b256a950cfb38f627fa3521bb213d380`
+- Execution 0.1.0 promotion merge: `a7557df2d0142441ea782dba4b8c3f95ebc38371`
+- no 0.1.0 engine/default change is allowed merely to pursue more signals.
 
-Before that next substantial block, write a new PREPARED checkpoint here with:
-- exact objective;
-- current refs;
-- expected durable evidence;
-- recovery rule.
+New product objective:
+- expand from pullback/retest-centric execution into a broader opportunity engine;
+- preserve the two-indicator topology and increase internal intelligence without increasing operator-facing clutter;
+- support directional opportunity interpretation for spot buy/sell and optional long/short use without coupling engine logic to an exchange;
+- explicitly research medium/long-horizon behavior across 4H / 1D / 3D / 1W / 1M while preserving 15m / 1H as short-trade and precision-entry horizons;
+- measure responsiveness/latency before deciding whether operator profiles are justified;
+- make the visible panels more direct, leaving internal semantics/engine vocabulary behind the scenes;
+- require a Portuguese operator guide in the repository before Suite 0.2 promotion.
 
-Do not reopen completed Market Map/Execution foundation work merely to keep the project moving.
+Expected durable outputs for this planning block:
+1. Suite 0.2 roadmap/design charter;
+2. Opportunity Engine taxonomy + trade-lifecycle contract;
+3. horizon/timeframe + responsiveness/profile research plan;
+4. direct operator-language UX target;
+5. mandatory Portuguese operator-guide deliverable recorded;
+6. tracking issue + dedicated research branch/PR.
+
+Recovery if interrupted:
+- compare this PREPARED checkpoint with GitHub;
+- inspect only newer issue/branch/PR/docs;
+- do not modify the frozen 0.1.0 Pine baselines during roadmap work;
+- continue from the first missing roadmap artifact.
+
 
 ## 7. Continuity protocol
 
