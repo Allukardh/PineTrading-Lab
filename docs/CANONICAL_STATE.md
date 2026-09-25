@@ -1,8 +1,8 @@
 # Canonical State
 
 **Date:** 2026-09-24  
-**Phase:** Trading Suite Architecture v1 — Execution 0.1.0 production implementation  
-**Primary accepted product baseline:** Market Map 0.1.0 on `main`  
+**Phase:** Trading Suite Architecture v1 — accepted two-indicator baseline  
+**Accepted product baseline:** Market Map 0.1.0 + Execution 0.1.0 on `main`  
 **Preserved engineering baseline:** SignalGate Dashboard 0.1.0  
 **Active architecture:** two runtime indicators — Market Map (with embedded Decision Panel) + Execution
 
@@ -210,18 +210,34 @@ Integrated evidence:
 - reaction-risk semantics remained unsaturated and concentrated appropriately near destination.
 
 ### Execution 0.1.0
-**Primary active production focus.**
+**ACCEPTED PRODUCT BASELINE** on `main`.
 
-Issue: #20 — production implementation + Market Map semantic parity.
+Promotion:
+`a7557df2d0142441ea782dba4b8c3f95ebc38371`
 
-Production `execution.pine` may now be created, but must initially preserve the accepted research defaults/semantics exactly. Parameter tuning remains blocked unless production parity exposes a named semantic defect.
+Accepted production contract:
+- lower-pane MTE-A / RSE-A / PSE-A timing engine;
+- self-contained accepted Market Map context/location consumer;
+- close-confirmed readiness state machine;
+- strength semantics preserved from the accepted research contract;
+- one-line standalone semantic cue, not a duplicate full Decision Panel;
+- embedded Market Map `EXECUÇÃO` + `FORÇA` parity;
+- cross-script Data Window parity diagnostics.
+
+Promotion evidence:
+- final reconciled Static integrity: PASS — `36084356518`;
+- final reconciled Pine compile: PASS — `36084356547`;
+- BTCUSDT 4H before/after reload cross-script semantic parity: PASS;
+- BTCUSDT 1D post-reload `PREPARANDO LONG • NORMAL` parity: PASS;
+- no material Market Map structural/UX regression observed.
+
+Issue #20 is closed as completed.
 
 ### Current product sequence
-1. implement production `execution.pine` from the accepted research contract;
-2. enforce semantic-kernel parity between the Execution lower pane and Market Map embedded Decision Panel;
-3. run Pine compile/static parity;
-4. run targeted TradingView 15m/1h/4h reload/UX validation;
-5. only then promote Execution 0.1.0 and advance the integrated suite.
+1. treat Market Map 0.1.0 + Execution 0.1.0 as the accepted two-indicator suite baseline;
+2. do not reopen engine tuning without a concrete semantic, parity or market-behavior defect;
+3. evolve 0.x only through evidence-backed product/UX improvements;
+4. reserve 1.0.0 for a later integrated maturity milestone, not merely for code completeness.
 
 ## Version lineage
 
