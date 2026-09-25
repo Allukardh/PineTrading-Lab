@@ -67,23 +67,26 @@ Profiles are **optional**, not mandatory.
 
 A product should expose a profile selector only when materially different operating styles cannot be handled well by one robust automatic/default engine.
 
-If used, a likely contract is:
+Suite 0.2 introduces an evidence-gated candidate contract:
 
-### Sniper
-- strongest confirmation requirement
-- fewer signals
-- later entries
-- tighter noise rejection
+### ANTECIPADO
+- earlier opportunity recognition;
+- lower confirmation burden where evidence supports it;
+- especially relevant to regime reversals, breakouts and reacceleration;
+- no lookahead or historical repaint;
+- persistent actionable states remain timing-safe.
 
-### Balanced
-- general discretionary trading use
-- compromise between timing and confirmation
+### PADRÃO
+- the accepted 0.1 behavior is the anchor/reference;
+- do not mutate this comparator while researching alternatives;
+- remains the recommended default unless evidence proves another single default is better.
 
-### Aggressive
-- earlier signals
-- more opportunities
-- accepts weaker confirmation
-- still must obey structural invalidation and timing safety
+### CONFIRMADO
+- later/more selective;
+- stronger structural/HTF/participation burden;
+- useful only if it materially improves false-start behavior without consuming too much of the move.
+
+These names describe **timing/confirmation posture**, not risk appetite or leverage.
 
 A profile must change coherent behavior bundles. It must not be a random collection of unrelated numbers.
 
@@ -100,11 +103,16 @@ Manual overrides are exceptions.
 ## Validation requirement
 
 Any change to a default/profile must document:
-- what user-visible behavior changes
-- why the new default is preferred
-- compile/timing impact
-- visual regression evidence
-- market-behavior evidence when applicable
+- what user-visible behavior changes;
+- why the new default is preferred;
+- compile/timing impact;
+- visual regression evidence;
+- market-behavior evidence when applicable;
+- measured latency vs the frozen PADRÃO comparator;
+- cancellation/churn cost;
+- remaining structural room when the signal appears.
+
+Suite 0.2 must first measure 0.1 latency. If ANTECIPADO / PADRÃO / CONFIRMADO do not create meaningful coherent tradeoffs, ship **no profile selector**.
 
 Do not tune defaults only to make a single historical screenshot look better.
 
