@@ -80,6 +80,7 @@ def _metric_for_rule(
     held_total = fakeout_total = unresolved_total = 0
     accepted_held = accepted_fakeout = accepted_unresolved = 0
     delays = []
+    delay_counts = Counter()
     displacements = []
 
     for episode in episodes:
@@ -110,6 +111,7 @@ def _metric_for_rule(
 
         if decision.delay_bars is not None:
             delays.append(float(decision.delay_bars))
+            delay_counts[str(decision.delay_bars)] += 1
 
         bar = decision.accepted_bar
         if (
@@ -149,6 +151,7 @@ def _metric_for_rule(
         "base_resolved_held_share_pct": base_held_share,
         "held_share_lift_vs_base": lift,
         "delay_bars": distribution(delays),
+        "delay_counts": dict(sorted(delay_counts.items())),
         "acceptance_displacement_atr": distribution(displacements),
     }
 
@@ -222,6 +225,8 @@ def analyze_timeframe(timeframe: str, datasets: dict[str, dict], tick_size: floa
         BreakoutAcceptance.HOLD_2,
         BreakoutAcceptance.PSE_OR_HOLD_1,
         BreakoutAcceptance.PSE_MTE_OR_HOLD_1,
+        BreakoutAcceptance.PSE_OR_HOLD_2,
+        BreakoutAcceptance.PSE_MTE_OR_HOLD_2,
     ]
 
     return {
@@ -263,17 +268,18 @@ def markdown_report(report: dict) -> str:
             f"- breakout candidates: **{item['episodes']}**",
             f"- outcomes: `{json.dumps(item['outcomes'], sort_keys=True)}`",
             "",
-            "| rule | held recall % | fakeout accepted % | held share among accepted % | lift vs base | median delay bars | median displacement ATR |",
-            "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+            "| rule | held recall % | fakeout accepted % | held share among accepted % | lift vs base | delay-path counts | median delay bars | median displacement ATR |",
+            "| --- | ---: | ---: | ---: | ---: | --- | ---: | ---: |",
         ]
         for rule, metric in item["rules"].items():
             lines.append(
-                "| {rule} | {rec} | {fake} | {share} | {lift} | {delay} | {disp} |".format(
+                "| {rule} | {rec} | {fake} | {share} | {lift} | {paths} | {delay} | {disp} |".format(
                     rule=rule,
                     rec=_fmt(metric["held_recall_pct"]),
                     fake=_fmt(metric["fakeout_acceptance_pct"]),
                     share=_fmt(metric["accepted_resolved_held_share_pct"]),
                     lift=_fmt(metric["held_share_lift_vs_base"], 3),
+                    paths=json.dumps(metric["delay_counts"], sort_keys=True),
                     delay=_fmt(metric["delay_bars"]["median"]),
                     disp=_fmt(metric["acceptance_displacement_atr"]["median"]),
                 )
