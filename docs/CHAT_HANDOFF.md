@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — deterministic 1M derivation and evidence  
+**Checkpoint state:** STABLE  
+**Active product front:** Suite 0.2 — deterministic 1M derivation closed  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,43 +131,35 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — deterministic 1M derivation and evidence
+### STABLE result — deterministic 1M derivation and baseline evidence
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `3ffa1ea611620482541379a594b206cdc3366176`
+- stable research head: `9c47c227ceed6de0ba83e3d0e4c30c1ed7f74470`
 
-Closed higher-horizon gate:
-- 15-symbol 3D/1W workflow `36169376120` — PASS;
-- Static integrity `36169375869`, `36169380801` — PASS;
-- 3D = KEEP;
-- 1W semantics = KEEP, opportunity-effectiveness confidence sparse.
+Evidence:
+- deterministic monthly workflow `36170246108` — PASS;
+- Static integrity `36170246044`, `36170252004` — PASS;
+- artifact `10879033883` contains report + 15 derived 1M Parquets;
+- worklog: `docs/worklog/2026-09-25-suite-0.2-native-horizons.md`.
 
-Exact intended work:
-1. define deterministic UTC calendar-month OHLCV aggregation from accepted 1D production candles;
-2. add unit tests for month boundaries / OHLCV semantics / deterministic output;
-3. do **not** substitute 1W for 1M;
-4. add research-only 1M horizon support to the offline kernel only where required;
-5. keep daily reference levels disabled on 1M;
-6. explicitly document whether weekly structural reference levels remain part of 1M research semantics;
-7. run first 1M evidence on BTC/ETH/AVAX;
-8. if coherent, run full 15-symbol 1M robustness;
-9. report:
-   - derived monthly row counts / provenance hashes;
-   - trend opportunity breadth / confirmations;
-   - RANGE_ROTATION breadth / +1 acceptance / confirms / failed-before-mid;
-   - OPERATOR_READINESS parity/conflicts;
-   - latency in bars and calendar time where observable;
-10. no per-symbol/horizon retuning;
-11. no profiles or production Pine/default changes;
-12. native 1M pipeline artifacts remain unnecessary unless parity/reproducibility evidence proves otherwise.
+Decisions:
+- deterministic UTC calendar-month aggregation from accepted 1D — KEEP;
+- no 1W substitution;
+- 1M self-confirmed context for this gate;
+- daily reference levels OFF;
+- weekly reference levels OFF;
+- 0 / 15 symbols have 200 monthly candles;
+- fixed 21/50/200 monthly regime basis — REFINE / not viable as actionable monthly baseline;
+- zero monthly trend confirmations are explained by regime maturity constraints, not treated as evidence that monthly trading is poor;
+- no native 1M market-data pipeline artifact required yet;
+- no production Pine/default/profile changes.
 
-Recovery:
-- compare active branch with `3ffa1ea...`;
-- inspect only newer monthly aggregation / 1M support / evidence commits and runs;
-- do not reopen closed 3D/1W decisions unless a monthly implementation defect exposes a shared higher-horizon bug.
+Preregistered next discriminant:
+- `FIXED_21_50_200` control;
+- `WEEK_EQUIV_5_12_46` monthly-only candidate derived from elapsed-time equivalence to accepted weekly 21/50/200.
 
 
 ## 7. Continuity protocol
