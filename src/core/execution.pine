@@ -35,8 +35,8 @@ float RSI_CENTER_LOW = 48.0
 float RSI_CENTER_HIGH = 52.0
 float RSI_OVERBOUGHT = 70.0
 float RSI_OVERSOLD = 30.0
-float RSI_EXTREME_OVERBOUGHT = 80.0
-float RSI_EXTREME_OVERSOLD = 20.0
+float RSI_EXTREME_OVERBOUGHT_LEVEL = 80.0
+float RSI_EXTREME_OVERSOLD_LEVEL = 20.0
 float RSI_MIN_STEP = 0.25
 int RSI_ZONE_MEMORY_BARS = 2
 
@@ -170,9 +170,9 @@ bool recentOverbought = rsiReady and not na(recentRsiMax) and recentRsiMax >= RS
 
 int rsiState = RSI_NEUTRAL
 if rsiReady
-    if rsiLocal >= RSI_EXTREME_OVERBOUGHT
+    if rsiLocal >= RSI_EXTREME_OVERBOUGHT_LEVEL
         rsiState := RSI_EXTREME_OVERBOUGHT
-    else if rsiLocal <= RSI_EXTREME_OVERSOLD
+    else if rsiLocal <= RSI_EXTREME_OVERSOLD_LEVEL
         rsiState := RSI_EXTREME_OVERSOLD
     else if recentOversold and rsiLocal < RSI_CENTER_HIGH and rsiStep >= RSI_MIN_STEP
         rsiState := RSI_RECOVERING_OVERSOLD
