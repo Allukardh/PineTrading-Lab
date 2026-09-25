@@ -3,7 +3,7 @@
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
 **Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — Opportunity Engine counterfactual  
+**Active product front:** Suite 0.2 — parallel Opportunity Readiness counterfactual  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,45 +131,55 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — first Opportunity Engine counterfactual
+### PREPARED block — parallel Opportunity Readiness counterfactual
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `fc63622245a179425be2258da1e268ba278a9681`
+- durable pre-block research head: `393cd929452f1531eac7657625aca52dcccb1896`
 
-Accepted research inputs:
-- frozen 0.1 pullback/retest behavior;
-- breakout lifecycle:
-  - CANDIDATE
-  - STRONG/SUSTAINED
-  - ACCEPTED (HOLD_2 anchor);
-- `REACCELERATION` — KEEP;
-- strict coherent REGIME_REVERSAL — KEEP;
-- raw REGIME_TRANSITION_CANDIDATE — non-actionable;
-- profiles — still unapproved.
+Closed first counterfactual:
+- workflow `36150302803` — PASS
+- Static integrity `36150302804` — PASS
+- worklog: `docs/worklog/2026-09-25-suite-0.2-opportunity-counterfactual.md`
+
+Decision from first counterfactual:
+- explicit OpportunityFrame abstraction — **KEEP**;
+- projecting new opportunity context through old `Location.APPROACHING` — **REFINE / DO NOT PROMOTE**;
+- accepted MTE/RSE/PSE semantics — **KEEP**;
+- frozen 0.1 pullback/retest path must remain independent.
+
+Why REFINE:
+- broader opportunity coverage improved modestly;
+- churn increased;
+- 1D breakout confirmation became later;
+- held/fakeout discrimination remained weak on 1D;
+- ~2–3% of frozen relevant-location states diverged because opportunity-derived state leaked into the old path.
 
 Exact intended work:
-1. define a research-only Opportunity Engine state/context object separate from old `Location`;
-2. preserve 0.1 correction/retest/reclaim behavior exactly as the PADRÃO comparator;
-3. add breakout and reacceleration lifecycle context without pretending they are correction zones;
-4. feed opportunity context into a counterfactual Execution readiness machine while keeping accepted MTE/RSE/PSE semantics unchanged;
-5. compare frozen 0.1 vs counterfactual on:
-   - opportunity coverage;
-   - PREPARANDO / ARMADO / CONFIRMA timing;
-   - cancellation/churn;
-   - held/fakeout structural diagnostics;
-   - direction balance;
-6. begin on BTC 4H/1D;
-7. only if semantics hold, expand unchanged to ETH/AVAX;
-8. no production Pine/default/profile change in this block;
-9. RANGE_ROTATION remains deferred.
+1. create a separate research-only Opportunity Readiness state machine;
+2. keep frozen Execution 0.1 state completely independent for correction/retest/reclaim;
+3. Opportunity Readiness consumes `OpportunityFrame` directly;
+4. lifecycle:
+   - CANDIDATE -> may PREPARAR only;
+   - STRONG -> may ARMAR when accepted MTE/RSE evidence aligns;
+   - ACCEPTED -> required before CONFIRMA;
+5. preserve accepted MTE/RSE/PSE definitions and chart-close confirmation;
+6. measure BTC 4H/1D:
+   - new opportunity coverage;
+   - latency/displacement;
+   - quick cancellation/churn;
+   - held/fakeout diagnostics;
+7. require exact frozen 0.1 parity by construction;
+8. only if semantics hold, expand unchanged to ETH/AVAX;
+9. no production Pine/default/profile change;
+10. RANGE_ROTATION remains deferred.
 
 Recovery:
-- compare branch with `fc636222...`;
+- compare branch with `393cd929...`;
 - inspect only newer commits/runs/artifacts;
-- do not rerun closed breakout/reacceleration discovery work unless a defect appears.
+- do not rerun closed breakout/reacceleration or location-projection experiments unless a defect appears.
 
 
 ## 7. Continuity protocol
