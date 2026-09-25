@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — breakout/regime acceptance discriminant research  
+**Checkpoint state:** STABLE  
+**Active product front:** Suite 0.2 — breakout/regime acceptance evidence complete  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,42 +131,42 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — opportunity acceptance / follow-through discriminants
+### STABLE result — breakout / regime-transition discriminants
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
+- latest durable research head: `2437142bcbec23876128895ce11e565a1ed8dbc9`
 
-Frozen comparator remains unchanged:
-- Market Map 0.1.0 — `0eeb0d37b256a950cfb38f627fa3521bb213d380`
-- Execution 0.1.0 — `a7557df2d0142441ea782dba4b8c3f95ebc38371`
+Frozen 0.1 comparator remains unchanged.
 
-Last stable baseline:
-- research result `1cba5126d6bbf219c6e6c5e44e1114d535c60217`
-- workflow `36095191710` — PASS
-- worklog `docs/worklog/2026-09-25-suite-0.2-latency-baseline.md`
+Closed evidence:
+- BTC/ETH/AVAX breakout acceptance matrix `36143637064` — PASS
+- BTC/ETH/AVAX candidate-feature matrix `36143819846` — PASS
+- detailed worklog: `docs/worklog/2026-09-25-suite-0.2-breakout-acceptance.md`
 
-Exact intended work:
-1. inspect contemporaneous features available on BREAKOUT_CANDIDATE and REGIME_TRANSITION_CANDIDATE bars;
-2. compare those features against retrospective held/fakeout and practical 12/24/48-bar regime outcomes;
-3. distinguish candidate quality without backdating later knowledge;
-4. research external/TradingView techniques only where they answer an identified evidence gap;
-5. prefer price/structure/volatility/participation features already available in the two-engine architecture over adding new indicator families;
-6. define a minimal acceptance/follow-through contract only if features demonstrate useful separation;
-7. do not modify production Pine or frozen 0.1 defaults;
-8. do not create profiles in this block.
+Decisions:
+- break penetration — KEEP
+- PSE confirmation — KEEP
+- MTE as mandatory breakout acceptance gate — REMOVE
+- `HOLD_2` — KEEP as confirmed breakout-acceptance anchor
+- decisive/PSE + first held close — provisional/arming evidence only
+- raw regime-transition candidate as actionable trade — REMOVE
+- strict coherent regime reversal — KEEP
+- earlier actionable regime reversal — INSUFFICIENT EVIDENCE
+- profiles remain unapproved
 
-Expected durable outputs:
-- candidate-feature evidence runner + tests;
-- feature/outcome report on BTC 4H/1D;
-- documented KEEP/REFINE/REMOVE decisions for proposed acceptance evidence;
-- exact next discriminant for REACCELERATION / RANGE_ROTATION or Opportunity Engine counterfactual.
+No production Pine/default changed.
+
+Exact next discriminant:
+- partition structural break context;
+- define deterministic `REACCELERATION` episodes independently of Execution result;
+- measure frozen 0.1 coverage/latency before any Opportunity Engine counterfactual.
 
 Recovery:
-- inspect PR #25 branch commits/runs newer than `1cba512...`;
-- do not rerun the frozen 0.1 baseline unless a measurement defect is found;
-- resume from the first incomplete feature/discriminant step.
+- do not rerun breakout/regime evidence unless a measurement defect appears;
+- resume from structural context partition / REACCELERATION.
 
 
 ## 7. Continuity protocol
