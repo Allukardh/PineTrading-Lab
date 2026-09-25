@@ -5,9 +5,39 @@ All notable project changes are documented here.
 ## [Unreleased]
 
 ### Next
-- Run the pre-registered Execution evidence research plan against accepted Binance datasets.
-- Keep production `execution.pine` blocked until MTE-A / RSE-A / PSE-A evidence is reviewed.
-- Integrate validated Execution semantics into the embedded Market Map Decision Panel without creating a third runtime indicator.
+- Treat Market Map 0.1.0 + Execution 0.1.0 as the accepted two-indicator suite baseline.
+- Make further 0.x changes only from concrete semantic, parity, usability or market-behavior evidence.
+- Keep SignalGate as an engineering donor/baseline rather than a third runtime product.
+
+## [Execution 0.1.0] - 2026-09-24
+
+### Added
+- Production Execution lower pane implementing the accepted MTE-A / RSE-A / PSE-A research contract.
+- Self-contained accepted Market Map context/location consumer for standalone Execution use.
+- Close-confirmed readiness states: AGUARDAR / PREPARANDO / ARMADO / CONFIRMA / ALINHADO.
+- Strength states: NORMAL / PERDENDO FORÇA / EXAUSTÃO / RISCO DE REAÇÃO.
+- One-line standalone semantic status cue instead of a second full Decision Panel.
+- Embedded Market Map `EXECUÇÃO` + `FORÇA` rows and cross-script Data Window parity fields.
+
+### Preserved contracts
+- MTE TURN remains early counter-acceleration/preparation evidence, not a reversal guarantee.
+- RSE RECOVERING/FADING remains a short recent-zone semantic with confirmed HTF context.
+- PSE pressure remains an OHLC close-location proxy, never true aggressor buy/sell flow.
+- Actionable state transitions remain chart-close confirmed.
+- Accepted research defaults remain frozen unless a named defect justifies change.
+
+### Validation
+- Historical Execution research contract: PASS before production Pine.
+- Integrated MM-conditioned Execution evidence: PASS.
+- Final reconciled Static integrity: PASS — `36084356518`.
+- Final reconciled Pine compile: PASS — `36084356547`.
+- BTCUSDT 4H Market Map/Execution semantic parity before and after reload: PASS.
+- BTCUSDT 1D post-reload `PREPARANDO LONG • NORMAL` cross-script parity: PASS.
+
+### Promotion
+- PR #21 merged to `main`.
+- Merge commit: `a7557df2d0142441ea782dba4b8c3f95ebc38371`.
+- Issue #20 closed as completed.
 
 ## [Market Map 0.1.0] - 2026-09-24
 
