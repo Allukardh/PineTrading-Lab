@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — 1M macro-context role for 3D/1W  
+**Checkpoint state:** STABLE  
+**Active product front:** Suite 0.2 — horizon opportunity architecture closed  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,57 +131,46 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — prior-completed 1M macro context for 3D/1W
+### STABLE result — evidence-backed horizon roles
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `eda3f81ac03ec6351add373c83d7814b0af0d8d8`
+- stable research head: `93a5b6e9f4200c70d34c17fa1ed02d826a7e8751`
 
-Closed monthly regime comparison:
-- workflow `36171266299` — PASS;
-- FIXED 50/200 = control;
-- WEEK_EQUIV 12/46 = do not promote as standalone monthly regime basis;
-- standalone 1M execution role = not proven.
+Latest evidence:
+- prior-completed monthly macro-context workflow `36171923939` — PASS;
+- Static integrity `36171923589` — PASS;
+- artifact `10881306134`;
+- worklog: `docs/worklog/2026-09-25-suite-0.2-native-horizons.md`.
 
-Hypothesis:
-- 1M may be more useful as a macro/cycle context layer for accepted 3D/1W opportunity execution than as a standalone confirmation engine.
+Final research horizon roles:
+- 15m / 1H — short-duration + precision-entry;
+- 4H / 1D — primary swing opportunity/execution;
+- 3D — active medium/long opportunity horizon;
+- 1W — valid high-horizon opportunity/context layer with sparse-event confidence;
+- 1M — macro/cycle awareness layer; standalone execution not proven.
 
-Time-safety lock:
-- a 3D/1W bar may use **only the prior completed monthly bar**;
-- no current incomplete month state;
-- no backdating.
+Monthly locks:
+- deterministic 1M derivation — KEEP;
+- fixed 50/200 — contextual control;
+- 12/46 — DO NOT PROMOTE;
+- monthly alignment — DO NOT use as hard automatic gate over 3D/1W;
+- only prior completed month may be used for context;
+- no current-month lookahead;
+- no lower-horizon / production / profile changes.
 
-Exact intended work:
-1. derive deterministic 1M from the same accepted 1D data;
-2. run both monthly context descriptors:
-   - FIXED 50/200 control;
-   - WEEK_EQUIV 12/46 research comparator;
-3. map accepted 3D/1W opportunity episodes to prior-completed monthly state;
-4. classify relation separately for:
-   - monthly `regime_dir`;
-   - monthly `map_dir`;
-   as ALIGNED / NEUTRAL / OPPOSING;
-5. do **not** alter accepted 3D/1W Opportunity readiness in this block;
-6. stratify BREAKOUT_EXPANSION / REACCELERATION / strict REGIME_REVERSAL by:
-   - candidate counts;
-   - HELD / FAKEOUT / other structural outcomes;
-   - accepted Opportunity confirm counts/outcomes;
-   - relation to prior monthly state;
-7. compare whether monthly context provides stable discrimination on 3D and/or 1W;
-8. no hard filtering from this first study;
-9. no per-symbol tuning;
-10. no production Pine/default/profile changes.
+Opportunity Engine research baseline remains:
+- breakout/expansion — KEEP;
+- pullback/retest/reclaim — frozen 0.1 specialty;
+- reacceleration — KEEP;
+- RANGE_ROTATION — KEEP with EDGE_REJECTION + EARLY_ANY1;
+- strict REGIME_REVERSAL — semantic class KEEP; earlier-action evidence remains sparse;
+- OPERATOR_READINESS_V1 — KEEP.
 
-Decision target:
-- if monthly context is informative, define 1M as macro/cycle layer and then test an explicit context-aware rule;
-- if not informative, keep 1M awareness-only and do not force it into execution.
-
-Recovery:
-- compare active branch with `eda3f81a...`;
-- inspect only newer monthly-context commits/runs/artifacts;
-- do not reopen closed monthly basis, 3D/1W, or lower-horizon gates.
+Next product frontier:
+- thesis management / exit-risk semantics.
 
 
 ## 7. Continuity protocol
