@@ -89,6 +89,7 @@ def main() -> int:
         "baseline_reference": "prior_confirmed_ema",
         "pressure_min": PRESSURE_MIN,
         "strength_deterioration": "contrary_only",
+        "destination_reaction_evidence": "weak_or_contrary",
     }
     _expect(participation, expected_participation, "participation defaults")
 
