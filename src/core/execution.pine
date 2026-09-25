@@ -105,6 +105,19 @@ f_confirmed_sec(_tf, _expr) =>
          request.security(syminfo.tickerid, _tf, _expr[1], barmerge.gaps_off, barmerge.lookahead_on) :
          _expr
 
+f_execution_txt(_stage, _dir) =>
+    _stage == READY_PREP ? (_dir == 1 ? "PREPARANDO LONG" : _dir == -1 ? "PREPARANDO SHORT" : "AGUARDAR") :
+     _stage == READY_ARMED ? (_dir == 1 ? "ARMADO LONG" : _dir == -1 ? "ARMADO SHORT" : "AGUARDAR") :
+     _stage == READY_CONFIRMED ? (_dir == 1 ? "CONFIRMA LONG" : _dir == -1 ? "CONFIRMA SHORT" : "AGUARDAR") :
+     _stage == READY_ALIGNED ? (_dir == 1 ? "ALINHADO LONG" : _dir == -1 ? "ALINHADO SHORT" : "AGUARDAR") :
+     "AGUARDAR"
+
+f_strength_txt(_state) =>
+    _state == STRENGTH_FADING ? "PERDENDO FORÇA" :
+     _state == STRENGTH_EXHAUSTED ? "EXAUSTÃO" :
+     _state == STRENGTH_REACTION_RISK ? "RISCO DE REAÇÃO" :
+     "NORMAL"
+
 // ---------------------------------------------------------------------------
 // Timeframe policy — identical suite mapping, confirmed HTF only
 // ---------------------------------------------------------------------------
@@ -841,6 +854,19 @@ hline(0.0, "Zero", color=color.new(color.gray, 70))
 plot(armedEntered ? mteCore : na, "ARMADO", style=plot.style_circles, color=color.new(color.yellow, 0), linewidth=3)
 plotshape(confirmLong ? mteCore : na, title="CONFIRMA LONG", style=shape.triangleup, location=location.absolute, color=color.new(color.lime, 0), size=size.small)
 plotshape(confirmShort ? mteCore : na, title="CONFIRMA SHORT", style=shape.triangledown, location=location.absolute, color=color.new(color.red, 0), size=size.small)
+
+// One-line last-bar cue for standalone readability and direct parity checks
+// against Market Map's embedded Decision Panel. It is intentionally not a
+// second full semantic panel.
+var table statusCue = table.new(position.top_right, 1, 1, bgcolor=color.new(color.black, 86), frame_color=color.new(color.gray, 75), frame_width=1)
+if barstate.islast
+    string statusText = f_execution_txt(executionReadiness, executionDir) + " • " + f_strength_txt(executionStrength)
+    color statusColor = executionReadiness == READY_CONFIRMED ? (executionDir == 1 ? color.lime : color.red) :
+         executionReadiness == READY_ARMED ? color.yellow :
+         executionReadiness == READY_PREP ? color.aqua :
+         executionReadiness == READY_ALIGNED ? (executionDir == 1 ? color.lime : color.red) :
+         color.silver
+    table.cell(statusCue, 0, 0, statusText, text_color=statusColor, text_size=size.small)
 
 // ---------------------------------------------------------------------------
 // Data Window diagnostics — hidden from normal pane
