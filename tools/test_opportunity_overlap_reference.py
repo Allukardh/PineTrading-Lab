@@ -7,6 +7,7 @@ from tools.opportunity_overlap_reference import (
     ConfirmEvent,
     confirm_events,
     match_near_confirms,
+    match_near_opposite_confirms,
     pairwise_overlap,
     triple_overlap,
 )
@@ -45,6 +46,13 @@ class OpportunityOverlapTests(unittest.TestCase):
         m=match_near_confirms(a,b,window_bars=3)
         self.assertEqual(len(m),3)
         self.assertEqual(sorted(x.distance_bars for x in m),[1,1,2])
+
+    def test_near_opposite_confirm_matching(self):
+        a=[ConfirmEvent(10,1),ConfirmEvent(20,-1)]
+        b=[ConfirmEvent(12,-1),ConfirmEvent(18,1)]
+        m=match_near_opposite_confirms(a,b,window_bars=3)
+        self.assertEqual(len(m),2)
+        self.assertEqual(sorted(x.distance_bars for x in m),[2,2])
 
     def test_confirm_events(self):
         xs=[
