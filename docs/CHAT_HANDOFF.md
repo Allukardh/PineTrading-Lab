@@ -163,7 +163,7 @@ Implementation locks:
 - no third runtime indicator.
 
 Expected Phase G sequence:
-1. create a dedicated implementation issue + branch from current `main`;
+1. Issue #26 + branch `feat/suite-0.2-phase-g` created from current `main`;
 2. audit accepted research reference files and current Pine 0.1 implementation;
 3. write a Pine implementation contract/mapping before editing logic;
 4. implement Market Map 0.2 candidate;
