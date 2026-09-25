@@ -259,6 +259,33 @@ def markdown(report: dict) -> str:
 
     lines += [
         "",
+        "## REALIZATION_RISK episode diagnostics",
+        "",
+        "| symbol | source | kind | dir | capability | outcome | live bars | realization bars | entries | runs | max run | first progress | lead bars | warning->continuation |",
+        "| --- | --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+    ]
+    for row in report["realization_episode_details"]:
+        lines.append(
+            "| {symbol} | {source} | {kind} | {direction} | {cap} | {outcome} | {live} | {rb} | {entries} | {runs} | {maxrun} | {progress} | {lead} | {back} |".format(
+                symbol=row["symbol"],
+                source=row["source"],
+                kind=row["opportunity_kind"],
+                direction=row["direction"],
+                cap=row["anchor_capability"],
+                outcome=row["outcome"],
+                live=row["bars_live"],
+                rb=row["realization_bars"],
+                entries=row["realization_entries"],
+                runs=row["realization_run_count"],
+                maxrun=row["realization_max_run"],
+                progress=_fmt(row["first_realization_progress"]),
+                lead=_fmt(row["realization_lead_bars"]),
+                back=row["warning_to_continuation_transitions"],
+            )
+        )
+
+    lines += [
+        "",
         "## Guardrails",
         "",
         "- Same V1.1 logic for all 15 symbols.",
@@ -300,6 +327,31 @@ def main() -> int:
             }
         per_symbol[symbol] = analyze("1d", datasets, args.tick_size)
 
+    realization_episode_details = []
+    for symbol, item in per_symbol.items():
+        for row in item["results"]:
+            if row["first_realization_bar"] is None:
+                continue
+            realization_episode_details.append({
+                "symbol": symbol,
+                "thesis_id": row["thesis_id"],
+                "source": row["source"],
+                "opportunity_kind": row["opportunity_kind"],
+                "direction": "LONG" if row["direction"] == 1 else "SHORT",
+                "anchor_capability": row["anchor_capability"],
+                "outcome": row["outcome"],
+                "bars_live": row["bars_live"],
+                "first_realization_bar": row["first_realization_bar"],
+                "first_realization_progress": row["first_realization_progress"],
+                "realization_lead_bars": row["realization_lead_bars"],
+                "realization_bars": row["realization_bars"],
+                "realization_entries": row["realization_entries"],
+                "realization_run_count": row["realization_run_count"],
+                "realization_max_run": row["realization_max_run"],
+                "realization_median_run": row["realization_median_run"],
+                "warning_to_continuation_transitions": row["warning_to_continuation_transitions"],
+            })
+
     report = {
         "metadata": {
             "code_sha": args.code_sha,
@@ -310,6 +362,10 @@ def main() -> int:
         },
         "symbols": per_symbol,
         "aggregate": aggregate(per_symbol),
+        "realization_episode_details": sorted(
+            realization_episode_details,
+            key=lambda x: (-x["realization_bars"], x["symbol"], x["thesis_id"]),
+        ),
     }
 
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
