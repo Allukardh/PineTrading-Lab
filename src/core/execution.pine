@@ -300,6 +300,16 @@ string contextTf = chartSec <= tf15Sec ? "60" :
      chartSec <= tfDSec ? "W" :
      timeframe.period
 
+// High-horizon macro context: prior completed calendar month only.
+// It is descriptive context and never a hard execution filter.
+bool monthlyMacroOnly = timeframe.ismonthly
+bool monthlyMacroContextEnabled = timeframe.period == "3D" or timeframe.period == "W"
+float monthlyMacroRaw = monthlyMacroContextEnabled ? f_sec("M",
+     ta.ema(close, MM_MID_LEN) > ta.ema(close, MM_SLOW_LEN) and ta.ema(close, MM_SLOW_LEN) >= ta.ema(close, MM_SLOW_LEN)[3] and close > ta.ema(close, MM_SLOW_LEN) ? 1.0 :
+     ta.ema(close, MM_MID_LEN) < ta.ema(close, MM_SLOW_LEN) and ta.ema(close, MM_SLOW_LEN) <= ta.ema(close, MM_SLOW_LEN)[3] and close < ta.ema(close, MM_SLOW_LEN) ? -1.0 : 0.0) : na
+bool monthlyMacroAvailable = monthlyMacroContextEnabled and not na(monthlyMacroRaw)
+int monthlyMacroDir = monthlyMacroAvailable ? int(monthlyMacroRaw) : 0
+
 // ---------------------------------------------------------------------------
 // MTE-A — volatility-normalized EMA spread
 // ---------------------------------------------------------------------------
@@ -1487,9 +1497,10 @@ if barstate.isconfirmed
 // ---------------------------------------------------------------------------
 // OPERATOR_READINESS_V1 — pure projection across independent paths
 // ---------------------------------------------------------------------------
-bool frozenActive = executionReadiness != READY_WAIT and executionDir != 0
-bool trendActive = trendReadiness != READY_WAIT and trendReadinessDir != 0
-bool rangeActive = rangeReadiness != READY_WAIT and rangeReadinessDir != 0
+bool executionHorizonEnabled = not monthlyMacroOnly
+bool frozenActive = executionHorizonEnabled and executionReadiness != READY_WAIT and executionDir != 0
+bool trendActive = executionHorizonEnabled and trendReadiness != READY_WAIT and trendReadinessDir != 0
+bool rangeActive = executionHorizonEnabled and rangeReadiness != READY_WAIT and rangeReadinessDir != 0
 
 int operatorDirCandidate = 0
 bool operatorConflict = false
@@ -1719,7 +1730,8 @@ if barstate.islast
     string opportunityCue = operatorOppKind != OPP_NONE ? " • " + f_opp_txt(operatorOppKind) : ""
     string profileCue = anticipatedPosture ? " • ANTECIPADO" : ""
     string managementCue = managementState != MGMT_NONE ? " • " + f_management_txt(managementState) : ""
-    string statusText = f_operator_txt(operatorReadiness, operatorDir) + opportunityCue + profileCue + managementCue
+    string macroCue = monthlyMacroContextEnabled ? (monthlyMacroAvailable ? (monthlyMacroDir == 1 ? " • MACRO ALTA" : monthlyMacroDir == -1 ? " • MACRO BAIXA" : " • MACRO NEUTRO") : " • MACRO —") : monthlyMacroOnly ? " • MACRO / CICLO" : ""
+    string statusText = f_operator_txt(operatorReadiness, operatorDir) + opportunityCue + profileCue + managementCue + macroCue
     color statusColor = operatorReadiness == OP_READY_CONFLICT ? color.orange :
          operatorReadiness == OP_READY_CONFIRMED ? (operatorDir == 1 ? color.lime : color.red) :
          operatorReadiness == OP_READY_ARMED ? color.yellow :
@@ -1798,6 +1810,10 @@ plot(operatorOppKind, "EX 0.2 • Operator oportunidade", color=color.new(color.
 plot(operatorConfirmEvent ? 1 : 0, "EX 0.2 • Operator confirma", color=color.new(color.white, 100), display=display.data_window)
 plot(anticipatedPosture ? 1 : 0, "EX 0.2 • Perfil antecipado ativo", color=color.new(color.white, 100), display=display.data_window)
 plot(anticipatedEvent ? 1 : 0, "EX 0.2 • Evento antecipado", color=color.new(color.white, 100), display=display.data_window)
+plot(monthlyMacroContextEnabled ? 1 : 0, "EX 0.2 • Macro mensal habilitado", color=color.new(color.white, 100), display=display.data_window)
+plot(monthlyMacroAvailable ? 1 : 0, "EX 0.2 • Macro mensal disponível", color=color.new(color.white, 100), display=display.data_window)
+plot(monthlyMacroDir, "EX 0.2 • Macro mensal direção", color=color.new(color.white, 100), display=display.data_window)
+plot(monthlyMacroOnly ? 1 : 0, "EX 0.2 • Mensal macro-only", color=color.new(color.white, 100), display=display.data_window)
 
 plot(managementActive ? 1 : 0, "EX 0.2 • Gestão ativa", color=color.new(color.white, 100), display=display.data_window)
 plot(managementState, "EX 0.2 • Gestão estado", color=color.new(color.white, 100), display=display.data_window)
