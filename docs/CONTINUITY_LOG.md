@@ -605,6 +605,53 @@ Causal consequence:
 
 ---
 
+### 2026-09-24 — Execution 0.1.0 promoted; accepted two-indicator suite baseline complete
+
+Production Execution was implemented only after the historical research contract had been accepted.
+
+Production scope:
+- MTE-A / RSE-A / PSE-A v2 semantics;
+- self-contained accepted Market Map context/location consumer;
+- close-confirmed readiness state machine;
+- strength state machine;
+- compact lower-pane renderer;
+- one-line standalone semantic cue;
+- the same `EXECUÇÃO` + `FORÇA` semantics embedded in Market Map;
+- cross-script Data Window parity fields.
+
+A production integration defect was caught before promotion:
+- `execution.pine` initially declared READY/STRENGTH semantic constants after helper functions that referenced them;
+- TradingView compile failed while Market Map itself still compiled;
+- the fix moved those constants before the helpers without changing any semantic value or threshold.
+
+The final operator TradingView gate used both production candidates together.
+
+Observed parity:
+- BTCUSDT 4H before reload: Market Map `AGUARDAR / NORMAL`; standalone Execution `AGUARDAR • NORMAL`;
+- BTCUSDT 4H after reload: same semantic state across both scripts;
+- BTCUSDT 1D after reload: Market Map `PREPARANDO LONG / NORMAL`; standalone Execution `PREPARANDO LONG • NORMAL`;
+- the lower pane remained compact and did not become a duplicate full Decision Panel;
+- no material Market Map structural/UX regression was observed.
+
+Final reconciled automated evidence:
+- Static integrity `36084356518` — PASS;
+- Pine compile `36084356547` — PASS;
+- branch was 0 commits behind `main` before promotion.
+
+Promotion:
+- PR #21 merged to `main`;
+- merge commit: `a7557df2d0142441ea782dba4b8c3f95ebc38371`;
+- Issue #20 closed as completed.
+
+Causal consequence:
+- the reboot no longer has an open foundation/product-creation gate;
+- the canonical suite baseline is now **Market Map 0.1.0 + Execution 0.1.0**;
+- SignalGate remains donor/baseline only;
+- future work should begin from real product use, a demonstrated defect, a new evidence question or an explicitly chosen 0.x improvement;
+- do not reopen the legacy six-script architecture, historical Execution research, MM-0 lifecycle audit or parameter tuning by default.
+
+---
+
 ## 9. Current continuation checkpoint
 
 The exact volatile checkpoint belongs in:
@@ -613,10 +660,12 @@ The exact volatile checkpoint belongs in:
 
 Current durable macro state:
 - Market Map 0.1.0 is accepted on `main`;
-- final runtime topology is Market Map + embedded Decision Panel, plus Execution lower pane;
+- Execution 0.1.0 is accepted on `main`;
+- final runtime topology is **two indicators**: Market Map overlay + embedded Decision Panel, and Execution lower pane;
 - SignalGate is a preserved engineering donor/baseline, not a final runtime product;
-- Binance historical-data infrastructure is accepted and available for evidence work;
-- Execution Issue #11 / PR #12 is the only active product research front;
-- production `execution.pine` remains blocked on the pre-registered historical evidence gate.
+- Binance historical-data infrastructure is accepted and available for future evidence work;
+- the reboot foundation is complete at the 0.1.0 suite-baseline level;
+- no production gate is currently open;
+- future 0.x changes require a concrete semantic, parity, usability or market-behavior reason.
 
-Future chats must read `CHAT_HANDOFF.md` for exact refs and next atomic work rather than relying on this slow-memory section.
+Future chats must read `CHAT_HANDOFF.md` for the exact current objective instead of reopening completed foundation work.
