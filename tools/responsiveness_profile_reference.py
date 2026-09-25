@@ -35,6 +35,19 @@ class ProfileMode(str, Enum):
     CONFIRMADO = "CONFIRMADO"
 
 
+# Final Suite 0.2 Phase E product scope. This is a policy gate, not a
+# collection of tunable thresholds.
+ANTICIPATED_TREND_TIMEFRAMES = frozenset({"15m", "1h", "4h", "1d", "3d"})
+ANTICIPATED_TREND_KINDS = frozenset({"BREAKOUT_EXPANSION", "REACCELERATION"})
+
+
+def anticipated_trend_supported(timeframe: str, opportunity_kind: str) -> bool:
+    return (
+        timeframe in ANTICIPATED_TREND_TIMEFRAMES
+        and opportunity_kind in ANTICIPATED_TREND_KINDS
+    )
+
+
 @dataclass(frozen=True)
 class ProfileEvent:
     mode: ProfileMode
