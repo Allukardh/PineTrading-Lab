@@ -31,6 +31,18 @@ The reboot now reduces the six legacy end-user indicators to **two runtime indic
 
 Market Map 0.1.0 and Execution 0.1.0 are the accepted two-indicator suite baseline on `main`. Market Map owns the overlay + embedded Decision Panel; Execution owns the lower timing pane. SignalGate Dashboard 0.1.0 remains preserved only as a timing/reload/alert engineering baseline and donor, **not** a third final runtime product. Legacy MA 6x, Fibonacci and the other archived scripts remain research evidence/donors, not compatibility requirements. The exact continuation checkpoint lives in `docs/CHAT_HANDOFF.md`.
 
+### Active evolution — Suite 0.2
+
+The 0.1.0 two-indicator baseline is frozen while Issue #23 researches:
+- broader opportunity classes beyond pullback/retest;
+- responsiveness/latency and evidence-gated profiles;
+- 4H/1D swing plus 3D/1W/1M medium/long horizons;
+- direct operator-facing language with richer semantics kept under the hood.
+
+Roadmap: `docs/roadmap/SUITE_0_2_ROADMAP.md`  
+Opportunity contract: `docs/design/OPPORTUNITY_ENGINE.md`  
+Evidence plan: `docs/testing/SUITE_0_2_EVIDENCE_PLAN.md`
+
 See:
 - `docs/TRADING_SYSTEM_DESIGN.md`
 - `docs/DEFAULTS_AND_PROFILES.md`

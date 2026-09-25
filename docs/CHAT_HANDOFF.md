@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 opportunity expansion + responsiveness research  
+**Checkpoint state:** STABLE  
+**Active product front:** Suite 0.2 opportunity expansion + responsiveness research — roadmap defined  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,35 +131,46 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — Suite 0.2 roadmap / research charter
+### Suite 0.2 roadmap — durable state
 
-The accepted 0.1.0 baseline is **frozen**:
-- Market Map 0.1.0 promotion merge: `0eeb0d37b256a950cfb38f627fa3521bb213d380`
-- Execution 0.1.0 promotion merge: `a7557df2d0142441ea782dba4b8c3f95ebc38371`
-- no 0.1.0 engine/default change is allowed merely to pursue more signals.
+Tracking:
+- Issue #23 — `Suite 0.2: Opportunity Engine, responsiveness and direct operator UX`
+- documentation PR #24 — `docs/suite-0.2-roadmap`
 
-New product objective:
-- expand from pullback/retest-centric execution into a broader opportunity engine;
-- preserve the two-indicator topology and increase internal intelligence without increasing operator-facing clutter;
-- support directional opportunity interpretation for spot buy/sell and optional long/short use without coupling engine logic to an exchange;
-- explicitly research medium/long-horizon behavior across 4H / 1D / 3D / 1W / 1M while preserving 15m / 1H as short-trade and precision-entry horizons;
-- measure responsiveness/latency before deciding whether operator profiles are justified;
-- make the visible panels more direct, leaving internal semantics/engine vocabulary behind the scenes;
-- require a Portuguese operator guide in the repository before Suite 0.2 promotion.
+Frozen comparators:
+- Market Map 0.1.0 — `0eeb0d37b256a950cfb38f627fa3521bb213d380`
+- Execution 0.1.0 — `a7557df2d0142441ea782dba4b8c3f95ebc38371`
 
-Expected durable outputs for this planning block:
-1. Suite 0.2 roadmap/design charter;
-2. Opportunity Engine taxonomy + trade-lifecycle contract;
-3. horizon/timeframe + responsiveness/profile research plan;
-4. direct operator-language UX target;
-5. mandatory Portuguese operator-guide deliverable recorded;
-6. tracking issue + dedicated research branch/PR.
+Roadmap artifacts:
+- `docs/roadmap/SUITE_0_2_ROADMAP.md`
+- `docs/design/OPPORTUNITY_ENGINE.md`
+- `docs/testing/SUITE_0_2_EVIDENCE_PLAN.md`
 
-Recovery if interrupted:
-- compare this PREPARED checkpoint with GitHub;
-- inspect only newer issue/branch/PR/docs;
-- do not modify the frozen 0.1.0 Pine baselines during roadmap work;
-- continue from the first missing roadmap artifact.
+Accepted 0.2 research direction:
+- opportunity classes: regime reversal, breakout/expansion, pullback/retest, reacceleration, range rotation;
+- management/exit-risk is a thesis-management output, not a mandatory position command;
+- 4H/1D are primary swing horizons;
+- 3D/1W/1M are explicit medium/long research horizons;
+- 15m/1H remain short/precision horizons;
+- engine remains directional/exchange-agnostic;
+- visible language becomes more direct while richer semantics remain behind the scenes;
+- profiles are not pre-approved features: ANTECIPADO / PADRÃO / CONFIRMADO are research candidates only;
+- `docs/GUIA_DO_OPERADOR.md` in Portuguese is mandatory before 0.2 promotion.
+
+Exact next research block after PR #24 is promoted:
+1. create a dedicated 0.2 research branch from current `main`;
+2. define deterministic historical opportunity-episode labels before changing Pine;
+3. build the **0.1 latency/missed-opportunity baseline**;
+4. quantify bars/ATR displacement from opportunity onset to PREPARANDO / ARMADO / CONFIRMA;
+5. classify why 0.1 misses opportunities;
+6. only then design/test earlier opportunity logic or profiles.
+
+No production Pine/default change is authorized during that baseline-measurement block.
+
+Recovery:
+- if interrupted before PR #24 merges, inspect PR #24 and its checks;
+- if PR #24 is already merged, do not redo the roadmap;
+- resume from the opportunity-episode / 0.1-latency evidence block.
 
 
 ## 7. Continuity protocol
