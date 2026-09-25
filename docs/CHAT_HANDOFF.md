@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — 15-symbol 3D/1W robustness  
+**Checkpoint state:** STABLE  
+**Active product front:** Suite 0.2 — 3D/1W robustness closed  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,48 +131,46 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — 15-symbol 3D/1W robustness
+### STABLE result — 15-symbol 3D / 1W robustness
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `080d75942c9757530657f75a34794fcb761ac809`
+- stable research head: `3ffa1ea611620482541379a594b206cdc3366176`
 
-Locks:
-- accepted 15m/1H/4H/1D semantics unchanged;
-- RANGE_ROTATION EARLY_ANY1 unchanged;
-- Opportunity v2 trend unchanged;
-- OPERATOR_READINESS_V1 unchanged;
-- no per-symbol/per-horizon retuning;
-- no profiles;
-- no production Pine/default change.
+Evidence:
+- 15-symbol 3D/1W workflow `36169376120` — PASS;
+- Static integrity `36169375869`, `36169380801` — PASS;
+- artifact `10879982066`;
+- worklog: `docs/worklog/2026-09-25-suite-0.2-native-horizons.md`.
 
-Unresolved native horizons:
-- 3D: BTC/ETH/AVAX sample too small;
-- 1W: extremely sparse representative sample.
+Decisions:
+- 3D trend Opportunity v2 — KEEP unchanged;
+- 3D RANGE_ROTATION EARLY_ANY1 — KEEP unchanged;
+- 3D OPERATOR_READINESS_V1 — KEEP unchanged;
+- 1W semantic/operator machinery — KEEP unchanged;
+- 1W opportunity-effectiveness confidence — INSUFFICIENT due sparse event frequency;
+- no weekly retuning/profile;
+- accepted 15m/1H/4H/1D semantics remain unchanged;
+- no production Pine/default changes.
 
-Exact intended work:
-1. run unchanged accepted paths on 3D and 1W for all 15 symbols;
-2. use exact SHA-verified production 3D/1W Parquets;
-3. aggregate:
-   - trend breakout/reacceleration/reversal episode breadth;
-   - held vs fakeout confirmation coverage;
-   - confirmation latency in bars and real days/weeks;
-   - RANGE_ROTATION episode breadth;
-   - +1 acceptance;
-   - confirmations and FAILED_BEFORE_MID;
-   - room to opposite edge;
-   - operator parity/conflicts/confirm suppression;
-4. report number of symbols with actual events vs zero-event scarcity;
-5. distinguish semantic weakness from insufficient sample;
-6. decide 3D and 1W research status;
-7. if native higher horizons are coherent, derive reproducible 1M next;
-8. no tuning from sparse individual symbols.
+Key aggregate 3D evidence:
+- breakout candidates 106; HELD/FAKEOUT confirms 9/0;
+- reacceleration candidates 106; HELD/FAKEOUT confirms 6/0;
+- range episodes 26 across 11 symbols; 7 confirms; 0 failed-before-mid;
+- operator parity 100%; zero conflicts.
 
-Recovery:
-- compare active branch with `080d7594...`;
-- inspect only newer 3D/1W universe commits/runs/artifacts.
+Key 1W evidence:
+- breakout candidates 45;
+- reacceleration candidates 23;
+- range episodes 8 across 6 symbols;
+- one range confirm, zero failed-before-mid;
+- operator parity 100%; zero conflicts;
+- frequency remains too sparse for strong effectiveness conclusions.
+
+Next research frontier:
+- deterministic 1M calendar aggregation from accepted 1D production data.
 
 
 ## 7. Continuity protocol
