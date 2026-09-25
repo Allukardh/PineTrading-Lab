@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** STABLE  
-**Active product front:** Suite 0.2 — breakout/regime acceptance evidence complete  
+**Checkpoint state:** PREPARED  
+**Active product front:** Suite 0.2 — structural context partition + REACCELERATION evidence  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,42 +131,45 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### STABLE result — breakout / regime-transition discriminants
+### PREPARED block — structural context partition / REACCELERATION
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- latest durable research head: `2437142bcbec23876128895ce11e565a1ed8dbc9`
+- durable pre-block head: `2437142bcbec23876128895ce11e565a1ed8dbc9`
 
-Frozen 0.1 comparator remains unchanged.
+Closed evidence that must not be redone:
+- frozen 0.1 latency baseline;
+- breakout held/fakeout feature study;
+- BTC/ETH/AVAX breakout acceptance/follow-through;
+- regime-transition discriminant study.
 
-Closed evidence:
-- BTC/ETH/AVAX breakout acceptance matrix `36143637064` — PASS
-- BTC/ETH/AVAX candidate-feature matrix `36143819846` — PASS
-- detailed worklog: `docs/worklog/2026-09-25-suite-0.2-breakout-acceptance.md`
+Exact intended work:
+1. classify structural breaks by contemporaneous market context rather than treating every coherent break as one opportunity class;
+2. define a deterministic `REACCELERATION` episode independent of Execution readiness/results;
+3. distinguish reacceleration from:
+   - fresh breakout/expansion;
+   - pullback/retest;
+   - early regime transition;
+4. use only structural/price context for the episode label where possible; MTE/RSE/PSE remain candidate response/features, not the event oracle;
+5. measure frozen 0.1 PREPARANDO / ARMADO / CONFIRMA coverage and latency on REACCELERATION;
+6. inspect whether reacceleration is currently missed mainly because `LOCATION_NOT_RELEVANT`;
+7. do not change production Pine/defaults;
+8. do not create profiles in this block;
+9. defer RANGE_ROTATION until the trend/continuation partition is stable.
 
-Decisions:
-- break penetration — KEEP
-- PSE confirmation — KEEP
-- MTE as mandatory breakout acceptance gate — REMOVE
-- `HOLD_2` — KEEP as confirmed breakout-acceptance anchor
-- decisive/PSE + first held close — provisional/arming evidence only
-- raw regime-transition candidate as actionable trade — REMOVE
-- strict coherent regime reversal — KEEP
-- earlier actionable regime reversal — INSUFFICIENT EVIDENCE
-- profiles remain unapproved
-
-No production Pine/default changed.
-
-Exact next discriminant:
-- partition structural break context;
-- define deterministic `REACCELERATION` episodes independently of Execution result;
-- measure frozen 0.1 coverage/latency before any Opportunity Engine counterfactual.
+Expected durable outputs:
+- structural context classifier/reference + tests;
+- REACCELERATION episode contract;
+- 0.1 latency/coverage report on BTC 4H/1D first;
+- KEEP/REFINE/REMOVE decision for the episode contract;
+- exact next discriminant for Opportunity Engine counterfactual or RANGE_ROTATION.
 
 Recovery:
-- do not rerun breakout/regime evidence unless a measurement defect appears;
-- resume from structural context partition / REACCELERATION.
+- compare the research branch against `2437142...`;
+- inspect only newer commits/runs/artifacts;
+- do not reopen breakout acceptance decisions without a concrete defect.
 
 
 ## 7. Continuity protocol
