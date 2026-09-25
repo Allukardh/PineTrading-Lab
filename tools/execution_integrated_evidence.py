@@ -220,6 +220,7 @@ def summarize_integrated(
         for i in coherent
         if samples[i].result.state.readiness in {Readiness.CONFIRMED, Readiness.ALIGNED}
     ]
+    active_exec_set = set(active_exec)
     strength_active = Counter(samples[i].result.state.strength.name for i in active_exec)
 
     transitions = Counter(
@@ -393,7 +394,7 @@ def summarize_integrated(
             families.append("PSE")
         combo = "+".join(families) if families else "NONE"
         strength_family_combo_coherent[combo] += 1
-        if i in active_exec:
+        if i in active_exec_set:
             strength_family_combo_active[combo] += 1
 
     reaction_risk = [
