@@ -147,7 +147,10 @@ def detect_episodes(
             and (
                 snap.retest_event
                 or snap.reclaim_event
-                or _zone_touch(snap, float(highs[i]), float(lows[i]))
+                or (
+                    not snap.new_thesis_event
+                    and _zone_touch(snap, float(highs[i]), float(lows[i]))
+                )
             )
         ):
             seen_reaction_theses.add(snap.thesis_key)
