@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** STABLE  
-**Active product front:** Suite 0.2 — Phase E profile research closed  
+**Checkpoint state:** PREPARED  
+**Active product front:** Suite 0.2 — Phase F1 integrated readiness/profile evidence  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,46 +131,50 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### STABLE result — Phase E responsiveness/profile research CLOSED
+### PREPARED block — Phase F1 integrated readiness/profile evidence
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- final Phase E research head: `9aa85020e9b062e72724e5a6cda76ec532735380`
+- durable pre-block research head: `9aa85020e9b062e72724e5a6cda76ec532735380`
 
-Final high-horizon evidence:
-- 15-symbol 3D/1W workflow `36192491182` — PASS;
-- Static integrity `36192491180` — PASS;
-- high-horizon aggregation regression test — PASS;
-- all 30 canonical 3D/1W Parquets reverified by SHA-256.
+Accepted components:
+- frozen Execution 0.1 path;
+- TREND_OPPORTUNITY_V2;
+- RANGE_EARLY_ANY1;
+- OPERATOR_READINESS_V1;
+- final Phase E profile policy:
+  - PADRÃO global default;
+  - ANTECIPADO only for BREAKOUT_EXPANSION + REACCELERATION on 15m/1H/4H/1D/3D;
+  - all other paths/classes/horizons remain PADRÃO;
+- 1M remains macro/cycle awareness.
 
-Final profile policy:
-- PADRÃO — KEEP, global recommended default;
-- ANTECIPADO — KEEP as scoped TREND posture;
-  - horizons: 15m / 1H / 4H / 1D / 3D;
-  - early opportunity classes: BREAKOUT_EXPANSION + REACCELERATION;
-- pullback/retest/reclaim — PADRÃO;
-- RANGE_ROTATION — PADRÃO;
-- strict REGIME_REVERSAL — PADRÃO;
-- 1W execution — PADRÃO;
-- 1M — macro/cycle awareness, not execution profile;
-- CONFIRMADO +1 — REMOVE / DO NOT SHIP.
+F1 exact intended work:
+1. build one composition gate over accepted independent paths;
+2. BTC primary across 15m / 1H / 4H / 1D / 3D / 1W;
+3. validate:
+   - internal paths remain unmutated;
+   - OPERATOR_READINESS parity/urgency remains exact;
+   - PADRÃO confirms remain preserved;
+   - ANTECIPADO events come only from supported TREND path/classes/horizons;
+   - unsupported classes/horizons produce zero profile override;
+   - opposite-direction conflicts remain non-actionable;
+   - early profile posture never starts thesis management by itself;
+4. if BTC passes, run unchanged F1 on ETH/AVAX;
+5. no per-asset/horizon tuning;
+6. no production Pine/default/panel changes.
 
-3D final universe:
-- 65 early TREND events on 15/15 symbols;
-- BREAKOUT converted 9 HELD / 0 FAKEOUT; nonconverted 10 HELD / 3 FAKEOUT;
-- REACCELERATION converted 6/0; nonconverted 9/0;
-- median converted lead 1 bar.
+F2 after F1:
+- capability-aware Thesis Management V1.1 horizon expansion;
+- preserve accepted 4H/1D management behavior;
+- test 15m/1H/3D/1W unchanged;
+- 1M excluded from execution management.
 
-1W:
-- only 4 breakout/reacceleration early events;
-- none converted;
-- evidence insufficient for weekly ANTECIPADO;
-- no weekly-specific retuning authorized.
-
-Phase E is closed.
-Next roadmap phase: Phase F integrated evidence.
+Recovery:
+- compare active branch with `9aa85020...`;
+- inspect only newer Phase F1 commits/runs/artifacts;
+- do not reopen closed Phase E profile variants.
 
 
 ## 7. Continuity protocol
