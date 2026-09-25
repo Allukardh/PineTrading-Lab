@@ -3,8 +3,8 @@
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
 **Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — Phase G TradingView re-entry after runtime plot-count repair  
-**Operator evidence required now:** yes — BTCUSDT 4H PADRÃO smoke screenshot
+**Active product front:** Suite 0.2 — Phase G TradingView cross-script/reload matrix  
+**Operator evidence required now:** yes — remaining BTCUSDT 1D / 3D / 1W / 4H reload / 4H ANTECIPADO captures
 
 ## 1. Resume order
 
@@ -171,11 +171,26 @@ Runtime repair completed on Phase G branch:
 - Static integrity `36202404767` — **PASS**;
 - no trading semantic/default retuning.
 
+TradingView re-entry result:
+- BTCUSDT 4H PADRÃO smoke — **PASS**;
+- both repaired scripts render; RE10140 is gone;
+- Market Map = MISTO / CONFLITO, OPORTUNIDADE NENHUMA, AÇÃO AGUARDAR, GESTÃO —;
+- standalone Execution = AGUARDAR;
+- no visible cross-script contradiction;
+- this screenshot counts as the original matrix's BTCUSDT 4H PADRÃO capture.
+
+Supplemental 4H PADRÃO cross-asset sanity also supplied for ETH, AVAX, XRP, SUI, DOT, DOGE, NEAR, SOL and HBAR:
+- exercised WAIT, PREP, ARMED, active CONTINUIDADE management, mixed/conflict, transition, trend, correction and retest/reclaim states;
+- no obvious Market Map ↔ Execution semantic contradiction observed;
+- evidence is supplemental only and does not replace the official BTC matrix;
+- no tuning decision taken.
+
 Immediate next discriminant:
-1. operator loads both repaired scripts on BTCUSDT 4H / PADRÃO;
-2. capture one smoke screenshot;
-3. if both scripts render without RE10140, resume the remaining original matrix: 1D, 3D, 1W, 4H reload, 4H ANTECIPADO;
-4. if either script still hits a plot-count runtime error, stop and treat it as a plot-budget implementation defect.
+1. BTCUSDT 1D PADRÃO;
+2. BTCUSDT 3D PADRÃO;
+3. BTCUSDT 1W PADRÃO;
+4. BTCUSDT 4H PADRÃO after reload with unchanged inputs;
+5. BTCUSDT 4H with both scripts ANTECIPADO and no other input changes.
 
 Current runtime contract:
 - frozen 0.1 correction/retest/reclaim path independent;
