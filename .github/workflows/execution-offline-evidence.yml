@@ -1,5 +1,9 @@
 name: Execution offline evidence
 
+# Evidence rerun marker: branch reconciliation 2026-09-24.
+# This comment intentionally carries no semantic/default change; touching this
+# workflow is the safe push trigger when workflow_dispatch is unavailable here.
+
 on:
   workflow_dispatch:
   push:
