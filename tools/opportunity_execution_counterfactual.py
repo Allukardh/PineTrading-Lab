@@ -44,6 +44,7 @@ class OpportunityKind(IntEnum):
     BREAKOUT_EXPANSION = 1
     REACCELERATION = 2
     REGIME_REVERSAL = 3
+    RANGE_ROTATION = 4
 
 
 class OpportunityStage(IntEnum):
