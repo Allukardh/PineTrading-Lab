@@ -131,73 +131,60 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — thesis-management warning-channel discrimination
+### PREPARED block — thesis-management structural-midpoint discrimination
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `0f0f49879bab0e212697f88a2a10be9c2a859c0d`
+- durable pre-block research head: `b3606aac660895d2545cc640b047193c45d7d913`
 
-Closed V0 evidence:
-- initial workflow `36178916973` — PASS;
-- diagnostic workflow `36179166386` — PASS;
-- Static integrity — PASS;
-- contract: `docs/design/THESIS_MANAGEMENT.md`;
+Closed channel comparison:
+- workflow `36179495417` — PASS;
+- Static integrity `36179495413` — PASS;
 - worklog: `docs/worklog/2026-09-25-suite-0.2-thesis-management.md`.
 
-V0 decisions:
-- CONTINUATION — KEEP baseline;
-- COMPLETED — KEEP;
-- INVALIDATED — KEEP;
-- AMBIGUOUS — KEEP;
-- PROTECT V0 — REFINE;
-- REALIZATION_RISK V0 — REFINE;
-- FADING — diagnostic only.
+Discarded candidates:
+- PROTECT_STRICT — REMOVE: lower saturation but worse churn;
+- FAVORABLE_FADING — REMOVE: completed/invalidated reach nearly identical;
+- FAVORABLE_EXHAUSTED — REMOVE as sole realization path: sparse and non-discriminative.
 
-Observed V0 problem:
-- PROTECT catches 82.61% of BTC 4H invalidations, median 15-bar lead;
-- but occupies 22.99% of live 4H bars and 39.60% of 1D bars;
-- bare structural warning dominates PROTECT load;
-- REALIZATION_RISK = 0 because close-near <=0.30 ATR rarely occurs before intrabar target hit.
+Pre-registered next candidates:
 
-Pre-registered candidate channels:
-
-**PROTECT_STRICT**
-- invalidation <= accepted 0.20 ATR; OR
+**PROTECT_CORE**
 - Strength EXHAUSTED; OR
-- structural warning + at least one deterioration family.
+- invalidation within accepted 0.20 ATR;
+- structural warning remains diagnostic only.
 
-**FAVORABLE_FADING**
-- positive close progress from confirmation toward frozen target; AND
+**MIDPATH_FADING**
+- progress from confirmation toward frozen target >= 0.50; AND
 - Strength FADING or worse;
 - non-terminal.
 
-**FAVORABLE_EXHAUSTED**
-- positive close progress; AND
+**MIDPATH_EXHAUSTED**
+- progress >= 0.50; AND
 - Strength EXHAUSTED / REACTION_RISK;
 - non-terminal.
 
+Locks:
+- 0.50 is the semantic midpoint of the frozen confirmation-to-target path;
+- no threshold search/optimization;
+- target-near 0.30 ATR and invalidation warning 0.20 ATR unchanged;
+- MTE/RSE/PSE definitions unchanged;
+- V0 state machine not mutated during comparison;
+- no production Pine/default/profile/panel change.
+
 Exact intended work:
-1. add diagnostic-only counterfactual telemetry for those three channels;
-2. do not mutate V0 states yet;
-3. run BTC 4H/1D unchanged data;
-4. compare:
-   - live-bar saturation;
-   - completed vs invalidated episode reach;
-   - warning lead time;
-   - warning progress;
-   - flip-flop/churn;
-   - source-path distribution;
-5. choose/refine semantics based on separation, not maximum signal count;
-6. preregister management V1 before implementing any state change;
-7. only after BTC semantic evidence, validate unchanged on ETH/AVAX;
-8. no production Pine/default/profile/panel change.
+1. add diagnostic-only telemetry for PROTECT_CORE / MIDPATH_FADING / MIDPATH_EXHAUSTED;
+2. rerun BTC 4H/1D;
+3. compare saturation/churn, completed-vs-invalidated reach, lead time and source breadth;
+4. if one protection and one realization channel are semantically coherent, preregister Management V1 before implementation;
+5. otherwise refine from the measured failure mode;
+6. only after BTC V1 semantics are locked, validate unchanged on ETH/AVAX.
 
 Recovery:
-- compare active branch with `0f0f498...`;
-- inspect only newer thesis-management diagnostic commits/runs/artifacts;
-- do not reopen accepted Opportunity/horizon research.
+- compare active branch with `b3606aa...`;
+- inspect only newer thesis-management midpoint diagnostic commits/runs/artifacts.
 
 
 ## 7. Continuity protocol
