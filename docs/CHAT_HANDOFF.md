@@ -3,7 +3,7 @@
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
 **Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — parallel Opportunity Readiness counterfactual  
+**Active product front:** Suite 0.2 — opportunity-specific evidence composition  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,55 +131,48 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — parallel Opportunity Readiness counterfactual
+### PREPARED block — opportunity-specific evidence composition
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `393cd929452f1531eac7657625aca52dcccb1896`
+- durable pre-block research head: `a0bab498cdf4aa9a7b3686318e7b5bac7d110dc8`
 
-Closed first counterfactual:
-- workflow `36150302803` — PASS
-- Static integrity `36150302804` — PASS
-- worklog: `docs/worklog/2026-09-25-suite-0.2-opportunity-counterfactual.md`
+Closed evidence:
+- first location-projection counterfactual — REFINE / do not promote;
+- parallel Opportunity Readiness architecture — **KEEP**;
+- worklog: `docs/worklog/2026-09-25-suite-0.2-parallel-opportunity.md`;
+- BTC run `36150884208` — PASS.
 
-Decision from first counterfactual:
-- explicit OpportunityFrame abstraction — **KEEP**;
-- projecting new opportunity context through old `Location.APPROACHING` — **REFINE / DO NOT PROMOTE**;
-- accepted MTE/RSE/PSE semantics — **KEEP**;
-- frozen 0.1 pullback/retest path must remain independent.
-
-Why REFINE:
-- broader opportunity coverage improved modestly;
-- churn increased;
-- 1D breakout confirmation became later;
-- held/fakeout discrimination remained weak on 1D;
-- ~2–3% of frozen relevant-location states diverged because opportunity-derived state leaked into the old path.
+Observed problem in first parallel composition:
+- frozen 0.1 is now exactly independent;
+- CANDIDATE -> PREPARANDO produces excessive short-lived readiness churn;
+- REACCELERATION gained no new confirmations;
+- the old pullback requirement for fresh simultaneous MTE/RSE/PSE is too literal after structural follow-through.
 
 Exact intended work:
-1. create a separate research-only Opportunity Readiness state machine;
-2. keep frozen Execution 0.1 state completely independent for correction/retest/reclaim;
-3. Opportunity Readiness consumes `OpportunityFrame` directly;
-4. lifecycle:
-   - CANDIDATE -> may PREPARAR only;
-   - STRONG -> may ARMAR when accepted MTE/RSE evidence aligns;
-   - ACCEPTED -> required before CONFIRMA;
-5. preserve accepted MTE/RSE/PSE definitions and chart-close confirmation;
-6. measure BTC 4H/1D:
-   - new opportunity coverage;
+1. keep the parallel architecture;
+2. make CANDIDATE an Opportunity-awareness state only — no Execution PREPARANDO;
+3. let STRONG enter PREPARANDO;
+4. let ACCEPTED arm directly when RSI/HTF is supportive and momentum is not strongly opposing;
+5. retain source participation evidence when a source qualified as STRONG;
+6. allow ACCEPTED confirmation with current PSE CONFIRM **or remembered strong-source PSE**, while preserving PSE state semantics;
+7. do not require fresh MTE acceleration again after structural HOLD_2 if momentum remains non-opposing;
+8. strict REGIME_REVERSAL remains conservative;
+9. rerun BTC 4H/1D and compare:
+   - opportunity-only coverage;
+   - held/fakeout split;
+   - PREP/ARMED churn;
    - latency/displacement;
-   - quick cancellation/churn;
-   - held/fakeout diagnostics;
-7. require exact frozen 0.1 parity by construction;
-8. only if semantics hold, expand unchanged to ETH/AVAX;
-9. no production Pine/default/profile change;
-10. RANGE_ROTATION remains deferred.
+   - REACCELERATION reachability;
+10. frozen Execution 0.1 remains untouched;
+11. no profiles or production Pine changes.
 
 Recovery:
-- compare branch with `393cd929...`;
+- compare branch with `a0bab498...`;
 - inspect only newer commits/runs/artifacts;
-- do not rerun closed breakout/reacceleration or location-projection experiments unless a defect appears.
+- resume from the first incomplete composition step.
 
 
 ## 7. Continuity protocol
