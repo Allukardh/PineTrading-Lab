@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** STABLE  
-**Active product front:** Suite 0.2 — deterministic 1M derivation closed  
+**Checkpoint state:** PREPARED  
+**Active product front:** Suite 0.2 — monthly horizon-aware regime basis  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,35 +131,62 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### STABLE result — deterministic 1M derivation and baseline evidence
+### PREPARED block — monthly horizon-aware regime basis
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- stable research head: `9c47c227ceed6de0ba83e3d0e4c30c1ed7f74470`
+- durable pre-block research head: `9c47c227ceed6de0ba83e3d0e4c30c1ed7f74470`
 
-Evidence:
-- deterministic monthly workflow `36170246108` — PASS;
-- Static integrity `36170246044`, `36170252004` — PASS;
-- artifact `10879033883` contains report + 15 derived 1M Parquets;
-- worklog: `docs/worklog/2026-09-25-suite-0.2-native-horizons.md`.
+Closed monthly gate:
+- deterministic 1M run `36170246108` — PASS;
+- derived monthly datasets are reproducible;
+- fixed 21/50/200 monthly regime cannot mature because 0/15 symbols have 200 months.
 
-Decisions:
-- deterministic UTC calendar-month aggregation from accepted 1D — KEEP;
-- no 1W substitution;
-- 1M self-confirmed context for this gate;
-- daily reference levels OFF;
-- weekly reference levels OFF;
-- 0 / 15 symbols have 200 monthly candles;
-- fixed 21/50/200 monthly regime basis — REFINE / not viable as actionable monthly baseline;
-- zero monthly trend confirmations are explained by regime maturity constraints, not treated as evidence that monthly trading is poor;
-- no native 1M market-data pipeline artifact required yet;
-- no production Pine/default/profile changes.
+Preregistered variants:
 
-Preregistered next discriminant:
-- `FIXED_21_50_200` control;
-- `WEEK_EQUIV_5_12_46` monthly-only candidate derived from elapsed-time equivalence to accepted weekly 21/50/200.
+**FIXED_21_50_200**
+- control;
+- accepted lower-horizon bar-count baseline;
+- known monthly maturity limitation.
+
+**WEEK_EQUIV_5_12_46**
+- monthly-only research candidate;
+- 21 weeks / 4.345 ≈ 5 months;
+- 50 weeks / 4.345 ≈ 12 months;
+- 200 weeks / 4.345 ≈ 46 months;
+- preserves elapsed-time intent from the accepted 1W basis rather than optimizing monthly signal count.
+
+Locks:
+- all 15m/1H/4H/1D/3D/1W semantics unchanged;
+- MTE/RSE/PSE definitions unchanged;
+- Opportunity v2 / RANGE_ROTATION / OPERATOR_READINESS_V1 unchanged;
+- no per-symbol fallback;
+- no profile;
+- no production Pine/default change.
+
+Exact intended work:
+1. parameterize **research-only** Market Map EMA basis for 1M without changing defaults elsewhere;
+2. preserve control 21/50/200 exactly;
+3. test WEEK_EQUIV_5_12_46 on the same deterministic 15-symbol 1M datasets;
+4. report:
+   - bars/symbols with regime readiness;
+   - regime occupancy and LONG/SHORT balance;
+   - regime churn/transitions;
+   - breakout/reacceleration/reversal candidate + confirmation breadth;
+   - HELD vs FAKEOUT confirmation discrimination;
+   - confirmation latency in monthly bars;
+   - RANGE_ROTATION / OPERATOR parity/conflicts;
+   - short-history behavior, especially SUI;
+5. do not select a candidate merely because it creates more signals;
+6. require semantic improvement: mature regime availability + non-pathological churn + preserved structural discrimination;
+7. no production implementation until this research gate closes.
+
+Recovery:
+- compare active branch with `9c47c227...`;
+- inspect only newer monthly-regime commits/runs/artifacts;
+- do not reopen deterministic aggregation or lower-horizon decisions.
 
 
 ## 7. Continuity protocol
