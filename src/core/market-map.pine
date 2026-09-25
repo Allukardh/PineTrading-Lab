@@ -2184,6 +2184,47 @@ plot(exDir, "MM EX • Direção", color=color.new(color.white, 100), display=di
 plot(exStrength, "MM EX • Força", color=color.new(color.white, 100), display=display.data_window)
 plot(exConfirmEvent ? 1 : 0, "MM EX • Confirma evt", color=color.new(color.white, 100), display=display.data_window)
 
+// Suite 0.2 embedded parity diagnostics.
+plot(exTrendOppKind, "MM EX 0.2 • Trend oportunidade", color=color.new(color.white, 100), display=display.data_window)
+plot(exTrendOppStage, "MM EX 0.2 • Trend estágio", color=color.new(color.white, 100), display=display.data_window)
+plot(exTrendOppDir, "MM EX 0.2 • Trend direção", color=color.new(color.white, 100), display=display.data_window)
+plot(exTrendOppSourceBar, "MM EX 0.2 • Trend source bar", color=color.new(color.white, 100), display=display.data_window)
+plot(exTrendOppSourceStrong ? 1 : 0, "MM EX 0.2 • Trend source strong", color=color.new(color.white, 100), display=display.data_window)
+plot(exTrendReadiness, "MM EX 0.2 • Trend readiness", color=color.new(color.white, 100), display=display.data_window)
+plot(exTrendConfirmEvent ? 1 : 0, "MM EX 0.2 • Trend confirma", color=color.new(color.white, 100), display=display.data_window)
+
+plot(exRangeBoxValid ? 1 : 0, "MM EX 0.2 • Range válido", color=color.new(color.white, 100), display=display.data_window)
+plot(exRangeBoxHigh, "MM EX 0.2 • Range high", color=color.new(color.white, 100), display=display.data_window)
+plot(exRangeBoxLow, "MM EX 0.2 • Range low", color=color.new(color.white, 100), display=display.data_window)
+plot(exRangeBoxMid, "MM EX 0.2 • Range mid", color=color.new(color.white, 100), display=display.data_window)
+plot(exRangeOppStage, "MM EX 0.2 • Range estágio", color=color.new(color.white, 100), display=display.data_window)
+plot(exRangeOppDir, "MM EX 0.2 • Range direção", color=color.new(color.white, 100), display=display.data_window)
+plot(exRangeOppSourceBar, "MM EX 0.2 • Range source bar", color=color.new(color.white, 100), display=display.data_window)
+plot(exRangeReadiness, "MM EX 0.2 • Range readiness", color=color.new(color.white, 100), display=display.data_window)
+plot(exRangeIgnitionCount, "MM EX 0.2 • Range ignição", color=color.new(color.white, 100), display=display.data_window)
+plot(exRangeConfirmEvent ? 1 : 0, "MM EX 0.2 • Range confirma", color=color.new(color.white, 100), display=display.data_window)
+
+plot(exOperatorReadiness, "MM EX 0.2 • Operator readiness", color=color.new(color.white, 100), display=display.data_window)
+plot(exOperatorDir, "MM EX 0.2 • Operator direção", color=color.new(color.white, 100), display=display.data_window)
+plot(exOperatorConflict ? 1 : 0, "MM EX 0.2 • Operator conflito", color=color.new(color.white, 100), display=display.data_window)
+plot(exOperatorSourcePath, "MM EX 0.2 • Operator fonte", color=color.new(color.white, 100), display=display.data_window)
+plot(exOperatorOppKind, "MM EX 0.2 • Operator oportunidade", color=color.new(color.white, 100), display=display.data_window)
+plot(exOperatorConfirmEvent ? 1 : 0, "MM EX 0.2 • Operator confirma", color=color.new(color.white, 100), display=display.data_window)
+plot(exAnticipatedPosture ? 1 : 0, "MM EX 0.2 • Perfil antecipado ativo", color=color.new(color.white, 100), display=display.data_window)
+plot(exAnticipatedEvent ? 1 : 0, "MM EX 0.2 • Evento antecipado", color=color.new(color.white, 100), display=display.data_window)
+
+plot(exManagementActive ? 1 : 0, "MM EX 0.2 • Gestão ativa", color=color.new(color.white, 100), display=display.data_window)
+plot(exManagementState, "MM EX 0.2 • Gestão estado", color=color.new(color.white, 100), display=display.data_window)
+plot(exManagementDir, "MM EX 0.2 • Gestão direção", color=color.new(color.white, 100), display=display.data_window)
+plot(exManagementSourcePath, "MM EX 0.2 • Gestão fonte", color=color.new(color.white, 100), display=display.data_window)
+plot(exManagementOppKind, "MM EX 0.2 • Gestão oportunidade", color=color.new(color.white, 100), display=display.data_window)
+plot(exManagementCapability, "MM EX 0.2 • Gestão capacidade", color=color.new(color.white, 100), display=display.data_window)
+plot(exManagementTarget, "MM EX 0.2 • Gestão alvo congelado", color=color.new(color.white, 100), display=display.data_window)
+plot(exManagementInvalidation, "MM EX 0.2 • Gestão invalidação congelada", color=color.new(color.white, 100), display=display.data_window)
+plot(exManagementPathProgress, "MM EX 0.2 • Gestão progresso", color=color.new(color.white, 100), display=display.data_window)
+plot(exManagementTargetRoomAtr, "MM EX 0.2 • Gestão room ATR", color=color.new(color.white, 100), display=display.data_window)
+plot(exManagementInvalidationBufferAtr, "MM EX 0.2 • Gestão buffer ATR", color=color.new(color.white, 100), display=display.data_window)
+
 // Historical diagnostics are intentionally hidden from the chart/status line.
 plot(diagTheses, "MM Hist • Teses", color=color.new(color.white, 100), display=display.data_window)
 plot(diagZoneTouches, "MM Hist • Toques correção", color=color.new(color.white, 100), display=display.data_window)
@@ -2199,61 +2240,101 @@ plot(diagAvgBarsToOutcome, "MM Hist • Barras toque→desfecho", color=color.ne
 plot(diagZoneReactionPct, "MM Hist • Zona→Destino % (engenharia)", color=color.new(color.white, 100), display=display.data_window)
 
 // ---------------------------------------------------------------------------
-// Single semantic panel — no Compact/Full variants
+// Direct operator panel — engine semantics stay under the hood
 // ---------------------------------------------------------------------------
-var table panel = table.new(position.bottom_right, 2, 12, bgcolor=color.new(color.black, 82), frame_color=color.new(color.gray, 55), frame_width=1, border_color=color.new(color.gray, 75))
+var table panel = table.new(position.bottom_right, 2, 9, bgcolor=color.new(color.black, 82), frame_color=color.new(color.gray, 55), frame_width=1, border_color=color.new(color.gray, 75))
 
 if barstate.islast
     if showPanel
-        color regimeColor = regimeDir == 1 ? color.lime : regimeDir == -1 ? color.red : color.silver
-        color phaseColor = phaseTxt == "CORREÇÃO" or phaseTxt == "CORREÇÃO PROFUNDA" ? color.orange : phaseTxt == "RETESTE" ? color.aqua : color.white
+        bool awarenessTrend = exTrendOppStage != EX_OPP_STAGE_NONE and exTrendOppDir != 0
+        bool awarenessRange = exRangeOppStage != EX_OPP_STAGE_NONE and exRangeOppDir != 0
+        bool awarenessFrozen = exRelevantLocation and mapDir != 0
+
+        string scenarioTxt = exOperatorConflict ? "CONFLITO" :
+             exRangeBoxValid and regimeDir == 0 ? "RANGE" :
+             regimeStructureConflict ? "MISTO / CONFLITO" :
+             regimeDir == 1 ? "ALTA" :
+             regimeDir == -1 ? "BAIXA" :
+             mapDir == 1 ? "TRANSIÇÃO ↑" :
+             mapDir == -1 ? "TRANSIÇÃO ↓" : "TRANSIÇÃO"
+
+        int awarenessDir = exOperatorDir != 0 ? exOperatorDir :
+             awarenessTrend ? exTrendOppDir :
+             awarenessRange ? exRangeOppDir :
+             awarenessFrozen ? mapDir : 0
+
+        string directOppTxt = exOperatorOppKind != EX_OPP_NONE ? f_ex_opp_txt(exOperatorOppKind) :
+             awarenessTrend ? f_ex_opp_txt(exTrendOppKind) :
+             awarenessRange ? "ROTAÇÃO DE RANGE" :
+             awarenessFrozen ? (exLocation == EX_LOC_RETEST or exLocation == EX_LOC_RECLAIM ? "RETESTE / RECLAIM" : "CORREÇÃO") :
+             "NENHUMA"
+
+        string sideTxt = awarenessDir == 1 ? "COMPRA / LONG" : awarenessDir == -1 ? "VENDA / SHORT" : "—"
+
+        string actionTxt = exOperatorReadiness != EX_OP_READY_WAIT ? f_ex_operator_txt(exOperatorReadiness, exOperatorDir) :
+             (awarenessTrend or awarenessRange or awarenessFrozen) ? "OBSERVAR" : "AGUARDAR"
+        if exAnticipatedPosture
+            actionTxt := "ANTECIPADO • " + f_ex_operator_txt(exOperatorReadiness, exOperatorDir)
+
+        float rangeDisplayTarget = awarenessRange and exRangeOppDir != 0 ? (exRangeOppDir == 1 ? exRangeOppHigh - exRangeOppEdge : exRangeOppLow + exRangeOppEdge) : na
+        string targetTxt = not na(exManagementTarget) ? f_price(exManagementTarget) :
+             not na(rangeDisplayTarget) ? f_price(rangeDisplayTarget) :
+             activeDestinationTxt
+
+        float rangeDisplayInvalidation = awarenessRange and exRangeOppDir != 0 ? (exRangeOppDir == 1 ? exRangeOppLow : exRangeOppHigh) : na
+        string directInvalidTxt = not na(exManagementInvalidation) ? f_price(exManagementInvalidation) :
+             not na(rangeDisplayInvalidation) ? f_price(rangeDisplayInvalidation) :
+             thesisInvalidated ? "ROMPIDA • " + f_price(invalidation) :
+             f_price(invalidation)
+
+        string correctionTxt = correctionActive ? f_zone(primaryTop, primaryBottom) + "  " + f_stars(correctionConfluence) : ""
+
+        color scenarioColor = scenarioTxt == "ALTA" or scenarioTxt == "TRANSIÇÃO ↑" ? color.lime :
+             scenarioTxt == "BAIXA" or scenarioTxt == "TRANSIÇÃO ↓" ? color.red :
+             scenarioTxt == "CONFLITO" or scenarioTxt == "MISTO / CONFLITO" ? color.orange :
+             scenarioTxt == "RANGE" ? color.aqua : color.silver
+
+        color sideColor = awarenessDir == 1 ? color.lime : awarenessDir == -1 ? color.red : color.silver
+        color actionColor = exOperatorReadiness == EX_OP_READY_CONFLICT ? color.orange :
+             exOperatorReadiness == EX_OP_READY_CONFIRMED ? (exOperatorDir == 1 ? color.lime : color.red) :
+             exOperatorReadiness == EX_OP_READY_ARMED ? color.yellow :
+             exOperatorReadiness == EX_OP_READY_PREP ? color.aqua :
+             exOperatorReadiness == EX_OP_READY_ALIGNED ? (exOperatorDir == 1 ? color.lime : color.red) :
+             (awarenessTrend or awarenessRange or awarenessFrozen) ? color.aqua : color.silver
+
+        color managementColor = exManagementState == EX_MGMT_INVALIDATED ? color.red :
+             exManagementState == EX_MGMT_AMBIGUOUS ? color.orange :
+             exManagementState == EX_MGMT_REALIZATION_RISK ? color.orange :
+             exManagementState == EX_MGMT_PROTECT ? color.yellow :
+             exManagementState == EX_MGMT_COMPLETED ? color.lime :
+             exManagementState == EX_MGMT_CONTINUATION ? color.aqua : color.silver
 
         table.cell(panel, 0, 0, "MARKET MAP", text_color=color.white, text_size=size.small, bgcolor=color.new(color.blue, 72))
-        table.cell(panel, 1, 0, "v0.2.0", text_color=color.silver, text_size=size.tiny, bgcolor=color.new(color.blue, 72))
+        table.cell(panel, 1, 0, "v0.2 • " + responseProfile, text_color=color.silver, text_size=size.tiny, bgcolor=color.new(color.blue, 72))
 
-        table.cell(panel, 0, 1, "REGIME", text_color=color.silver, text_size=size.tiny)
-        table.cell(panel, 1, 1, regimeTxt, text_color=regimeColor, text_size=size.small)
+        table.cell(panel, 0, 1, "CENÁRIO", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 1, scenarioTxt, text_color=scenarioColor, text_size=size.small)
 
-        table.cell(panel, 0, 2, "FASE", text_color=color.silver, text_size=size.tiny)
-        table.cell(panel, 1, 2, phaseTxt, text_color=phaseColor, text_size=size.small)
+        table.cell(panel, 0, 2, "OPORTUNIDADE", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 2, directOppTxt, text_color=directOppTxt == "NENHUMA" ? color.silver : color.aqua, text_size=size.small)
 
-        table.cell(panel, 0, 3, "ESTRUTURA", text_color=color.silver, text_size=size.tiny)
-        table.cell(panel, 1, 3, structureTxt, text_color=color.white, text_size=size.small)
+        table.cell(panel, 0, 3, "LADO", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 3, sideTxt, text_color=sideColor, text_size=size.small)
 
-        table.cell(panel, 0, 4, "CORREÇÃO", text_color=color.silver, text_size=size.tiny)
-        string correctionTxt = correctionActive ? f_zone(primaryTop, primaryBottom) + "  " + f_stars(correctionConfluence) : "—"
-        table.cell(panel, 1, 4, correctionTxt, text_color=color.yellow, text_size=size.small)
+        table.cell(panel, 0, 4, "AÇÃO", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 4, actionTxt, text_color=actionColor, text_size=size.small)
 
-        table.cell(panel, 0, 5, "DESTINO", text_color=color.silver, text_size=size.tiny)
-        table.cell(panel, 1, 5, activeDestinationTxt, text_color=activeDestinationNear ? color.orange : color.aqua, text_size=size.small)
+        table.cell(panel, 0, 5, "ALVO", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 5, targetTxt, text_color=color.aqua, text_size=size.small)
 
-        table.cell(panel, 0, 6, "LIQ ↑", text_color=color.silver, text_size=size.tiny)
-        table.cell(panel, 1, 6, f_price(liqAbove) + " • " + liqAboveSource, text_color=color.fuchsia, text_size=size.small)
+        table.cell(panel, 0, 6, "GESTÃO", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 6, managementTxt, text_color=managementColor, text_size=size.small)
 
-        table.cell(panel, 0, 7, "LIQ ↓", text_color=color.silver, text_size=size.tiny)
-        table.cell(panel, 1, 7, f_price(liqBelow) + " • " + liqBelowSource, text_color=color.fuchsia, text_size=size.small)
+        table.cell(panel, 0, 7, "INVALIDA", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 7, directInvalidTxt, text_color=color.red, text_size=size.small)
 
-        table.cell(panel, 0, 8, "INVALIDA", text_color=color.silver, text_size=size.tiny)
-        string invalidTxt = thesisInvalidated ? "ROMPIDA • " + f_price(invalidation) : f_price(invalidation)
-        table.cell(panel, 1, 8, invalidTxt, text_color=color.red, text_size=size.small)
-
-        table.cell(panel, 0, 9, "CONTEXTO", text_color=color.silver, text_size=size.tiny)
-        string contextTxt = contextTf + " • HTF CONF" + (correctionActive ? " • " + correctionModel : "")
-        table.cell(panel, 1, 9, contextTxt, text_color=color.silver, text_size=size.tiny)
-
-        color executionColor = exReadiness == EX_READY_CONFIRMED ? (exDir == 1 ? color.lime : color.red) :
-             exReadiness == EX_READY_ARMED ? color.yellow :
-             exReadiness == EX_READY_PREP ? color.aqua :
-             exReadiness == EX_READY_ALIGNED ? (exDir == 1 ? color.lime : color.red) :
-             color.silver
-        color strengthColor = exStrength == EX_STRENGTH_REACTION_RISK ? color.red :
-             exStrength == EX_STRENGTH_EXHAUSTED ? color.orange :
-             exStrength == EX_STRENGTH_FADING ? color.yellow : color.silver
-
-        table.cell(panel, 0, 10, "EXECUÇÃO", text_color=color.silver, text_size=size.tiny)
-        table.cell(panel, 1, 10, executionTxt, text_color=executionColor, text_size=size.small)
-
-        table.cell(panel, 0, 11, "FORÇA", text_color=color.silver, text_size=size.tiny)
-        table.cell(panel, 1, 11, strengthTxt, text_color=strengthColor, text_size=size.small)
+        table.cell(panel, 0, 8, correctionActive ? "CORREÇÃO" : "", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 8, correctionTxt, text_color=color.yellow, text_size=size.small)
     else
-        table.clear(panel, 0, 0, 1, 11)
+        table.clear(panel, 0, 0, 1, 8)
+
