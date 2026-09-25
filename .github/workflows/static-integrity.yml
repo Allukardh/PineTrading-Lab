@@ -2,7 +2,7 @@ name: Static integrity
 
 on:
   push:
-    branches: ["main", "feat/**", "fix/**", "audit/**"]
+    branches: ["main", "feat/**", "fix/**", "audit/**", "research/**"]
   pull_request:
 
 permissions:
@@ -24,3 +24,21 @@ jobs:
         run: python tools/test_analyze_market_map_export.py
       - name: Test offline Market Map kernel
         run: python tools/test_market_map_offline.py
+      - name: Test Execution semantic reference model
+        run: python -m unittest tools/test_execution_state_reference.py
+      - name: Test Market Map to Execution bridge
+        run: python -m unittest tools/test_market_execution_bridge_reference.py
+      - name: Test Momentum Turn MTE-A reference
+        run: python -m unittest tools/test_momentum_turn_reference.py
+      - name: Test RSI State RSE-A reference
+        run: python -m unittest tools/test_rsi_state_reference.py
+      - name: Test Participation PSE-A reference
+        run: python -m unittest tools/test_participation_reference.py
+      - name: Test integrated Execution candidate reachability
+        run: python -m unittest tools/test_execution_candidate_reference.py
+      - name: Test Execution historical evidence helpers
+        run: python -m unittest tools/test_execution_historical_evidence.py
+      - name: Validate suite semantic contract
+        run: python tools/check_suite_semantics.py
+      - name: Validate Execution research defaults
+        run: python -m tools.check_execution_research_defaults

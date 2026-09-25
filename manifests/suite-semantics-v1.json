@@ -1,0 +1,79 @@
+{
+  "suite_contract_version": 1,
+  "market_map_audit_schema": 2,
+  "execution_audit_schema_planned": 1,
+  "semantics": {
+    "map_dir": {
+      "0": "NEUTRO_TRANSICAO",
+      "1": "ALTA",
+      "-1": "BAIXA"
+    },
+    "location": {
+      "0": "OUTSIDE",
+      "1": "APPROACHING",
+      "2": "IN_CORRECTION",
+      "3": "RETEST",
+      "4": "RECLAIM",
+      "5": "DESTINATION_NEAR"
+    },
+    "momentum": {
+      "0": "NEUTRAL",
+      "1": "TURN_UP",
+      "2": "UP_ACCEL",
+      "3": "UP_DECEL",
+      "-3": "DOWN_DECEL",
+      "-2": "DOWN_ACCEL",
+      "-1": "TURN_DOWN"
+    },
+    "rsi_state": {
+      "0": "NEUTRAL",
+      "1": "BULL",
+      "2": "RECOVERING_OVERSOLD",
+      "3": "RECOVERING_OVERBOUGHT",
+      "4": "EXTREME_OVERBOUGHT",
+      "-4": "EXTREME_OVERSOLD",
+      "-3": "FADING_OVERSOLD",
+      "-2": "FADING_OVERBOUGHT",
+      "-1": "BEAR"
+    },
+    "participation": {
+      "0": "NEUTRAL",
+      "1": "CONFIRM",
+      "2": "WEAK",
+      "-1": "CONTRARY"
+    },
+    "readiness": {
+      "0": "WAIT",
+      "1": "PREP",
+      "2": "ARMED",
+      "3": "CONFIRMED",
+      "4": "ALIGNED"
+    },
+    "strength": {
+      "0": "NORMAL",
+      "1": "FADING",
+      "2": "EXHAUSTED",
+      "3": "REACTION_RISK"
+    },
+    "rsi_context_dir": {
+      "0": "NEUTRAL",
+      "1": "BULL",
+      "-1": "BEAR"
+    }
+  },
+  "operator_labels_pt_br": {
+    "readiness": {
+      "WAIT": "AGUARDAR",
+      "PREP": "PREPARANDO",
+      "ARMED": "ARMADO",
+      "CONFIRMED": "CONFIRMA",
+      "ALIGNED": "ALINHADO"
+    },
+    "strength": {
+      "NORMAL": "NORMAL",
+      "FADING": "PERDENDO FORÇA",
+      "EXHAUSTED": "EXAUSTÃO",
+      "REACTION_RISK": "RISCO DE REAÇÃO"
+    }
+  }
+}

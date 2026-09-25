@@ -1,0 +1,41 @@
+{
+  "execution_research_defaults_version": 1,
+  "status": "candidate",
+  "momentum_turn": {
+    "candidate": "MTE-A",
+    "source": "hlc3",
+    "fast_ema": 8,
+    "slow_ema": 21,
+    "atr_length": 14,
+    "activity_rma": 20,
+    "neutral_factor": 0.15,
+    "turn_factor": 0.5,
+    "turn_floor": 0.02,
+    "accel_epsilon": 1e-9
+  },
+  "rsi": {
+    "length": 14,
+    "center": 50,
+    "center_deadband_low": 48,
+    "center_deadband_high": 52,
+    "overbought": 70,
+    "oversold": 30,
+    "extended_overbought": 80,
+    "extended_oversold": 20,
+    "minimum_directional_step": 0.25,
+    "zone_memory_bars": 2
+  },
+  "participation": {
+    "baseline": "ema",
+    "baseline_length": 20,
+    "contracted_below": 0.8,
+    "expanded_at_or_above": 1.2,
+    "strong_at_or_above": 1.5,
+    "baseline_reference": "prior_confirmed_ema",
+    "pressure_min": 0.2
+  },
+  "market_map_execution_bridge": {
+    "approach_distance_atr": 0.5,
+    "event_hold_bars": 3
+  }
+}
