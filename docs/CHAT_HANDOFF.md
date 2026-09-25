@@ -3,7 +3,7 @@
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
 **Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — RANGE_ROTATION execution-evidence composition  
+**Active product front:** Suite 0.2 — EARLY_ANY1 15-symbol daily robustness  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,50 +131,54 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — EARLY_ANY1 RANGE_ROTATION cross-asset robustness
+### PREPARED block — EARLY_ANY1 15-symbol 1D robustness
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `1f595a3962146f3aafa03917cc5f12ca60c7c4a4`
+- durable pre-block research head: `827798c9f09472d67ed4bd609fdb2bb9738ad329`
 
-Closed BTC source-arm gate:
-- workflow `36159790705` — PASS;
-- Static integrity `36159790678` — PASS;
+Closed cross-asset 4H gate:
+- BTC source-arm `36159790705` — PASS;
+- ETH/AVAX robustness `36160074161` — PASS;
+- Static integrity `36160074111` — PASS;
 - worklog: `docs/worklog/2026-09-25-suite-0.2-range-rotation.md`.
 
-Decision:
-- EARLY_ANY1 — KEEP provisionally;
-- SELECTIVE_ANY2 — REMOVE from active candidate path.
+Accepted research decision:
+- EARLY_ANY1 4H — **KEEP**;
+- SELECTIVE_ANY2 — **REMOVE** from active candidate path;
+- EARLY_ANY1 1D — **INSUFFICIENT EVIDENCE** across only BTC/ETH/AVAX.
 
-EARLY_ANY1 contract:
-- source EDGE_REJECTION;
+EARLY_ANY1 contract remains frozen:
+- EDGE_REJECTION source;
 - dual MTE + local-RSI opposition -> WAIT;
 - otherwise >=1 ignition family (MTE aligned / local RSI supportive / PSE CONFIRM) -> ARMADO;
 - next-bar structural ACCEPTED from same source -> CONFIRMA;
 - HTF RSI is context, not veto;
-- range invalidation/opposite-edge completion clears setup.
-
-BTC evidence:
-- 4H: 5 confirms, 100% midpoint+, 60% opposite, 0 failed-before-mid;
-- median latency +1 bar;
-- median room 0.99 ATR;
-- cancel load 1.57/1000 bars;
-- 1D: 1 confirm, OPPOSITE_REACHED, 0 failed.
+- no hard regime filter.
 
 Exact intended work:
-1. run unchanged EARLY_ANY1 and comparison telemetry on ETH 4H/1D;
-2. run unchanged on AVAX 4H/1D;
-3. no threshold or asset tuning;
-4. evaluate failed-confirm contamination, midpoint/opposite quality, room, churn and direction;
-5. if robust, accept EARLY_ANY1 as RANGE_ROTATION Opportunity-readiness research baseline;
-6. only then decide how RANGE_ROTATION is merged into the overall Opportunity v2 presentation/arbitration;
+1. run unchanged EARLY_ANY1 on the accepted 15-symbol 1D universe;
+2. use exact SHA-256-verified 1D/1W production Parquets;
+3. no symbol-specific tuning;
+4. aggregate:
+   - EDGE_REJECTION episodes and +1 ACCEPTED breadth;
+   - CONFIRMA count/rate and number of symbols with confirmations;
+   - FAILED_BEFORE_MID confirmations;
+   - confirmed midpoint/opposite/censored outcome split;
+   - LONG/SHORT balance;
+   - before/same/after-midpoint timing;
+   - room to opposite edge;
+   - per-symbol cancellation/event load;
+5. decide EARLY_ANY1 1D KEEP / awareness-only / insufficient;
+6. if accepted, close RANGE_ROTATION readiness research and move to overall Opportunity-v2 arbitration/presentation;
 7. no production Pine/default/profile change.
 
 Recovery:
-- compare branch with `1f595a3...`;
-- inspect only newer source-arm robustness commits/runs/artifacts.
+- compare active branch with `827798c9f0...`;
+- inspect only newer daily-universe commits/runs/artifacts;
+- do not retune RANGE_ROTATION or reopen accepted 4H evidence.
 
 
 ## 7. Continuity protocol
