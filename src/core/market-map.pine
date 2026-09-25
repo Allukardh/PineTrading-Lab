@@ -1332,6 +1332,23 @@ plot(diagInvalidationResolvedNow ? 1 : 0, "MM Audit • Zona→Invalidação evt
 plot(diagAmbiguousNow ? 1 : 0, "MM Audit • Ambíguo evt", color=color.new(color.white, 100), display=display.data_window)
 plot(reclaimEventDir, "MM Audit • Sweep reclaim evt", color=color.new(color.white, 100), display=display.data_window)
 
+// Embedded Execution parity fields. These mirror the lower-pane semantic
+// consumer and make cross-script reload/parity defects diagnosable.
+plot(EX_DEFAULTS_VERSION, "MM EX • Defaults", color=color.new(color.white, 100), display=display.data_window)
+plot(exMteCore, "MM EX • MTE core", color=color.new(color.white, 100), display=display.data_window)
+plot(exMteState, "MM EX • MTE estado", color=color.new(color.white, 100), display=display.data_window)
+plot(exRsiLocal, "MM EX • RSI local", color=color.new(color.white, 100), display=display.data_window)
+plot(exRsiState, "MM EX • RSE estado", color=color.new(color.white, 100), display=display.data_window)
+plot(exRsiContextDir, "MM EX • RSI contexto", color=color.new(color.white, 100), display=display.data_window)
+plot(exRelativeVolume, "MM EX • Volume relativo", color=color.new(color.white, 100), display=display.data_window)
+plot(exPressureProxy, "MM EX • Pressão proxy", color=color.new(color.white, 100), display=display.data_window)
+plot(exParticipationState, "MM EX • PSE estado", color=color.new(color.white, 100), display=display.data_window)
+plot(exLocation, "MM EX • Localização", color=color.new(color.white, 100), display=display.data_window)
+plot(exReadiness, "MM EX • Readiness", color=color.new(color.white, 100), display=display.data_window)
+plot(exDir, "MM EX • Direção", color=color.new(color.white, 100), display=display.data_window)
+plot(exStrength, "MM EX • Força", color=color.new(color.white, 100), display=display.data_window)
+plot(exConfirmEvent ? 1 : 0, "MM EX • Confirma evt", color=color.new(color.white, 100), display=display.data_window)
+
 // Historical diagnostics are intentionally hidden from the chart/status line.
 plot(diagTheses, "MM Hist • Teses", color=color.new(color.white, 100), display=display.data_window)
 plot(diagZoneTouches, "MM Hist • Toques correção", color=color.new(color.white, 100), display=display.data_window)
