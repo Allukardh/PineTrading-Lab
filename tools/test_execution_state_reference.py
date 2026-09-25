@@ -280,6 +280,23 @@ class ExecutionStateReferenceTests(unittest.TestCase):
         )
         self.assertEqual(classify_strength(1, contrary_only), Strength.FADING)
 
+    def test_weak_participation_contributes_only_to_destination_reaction_risk(self):
+        near = self.ev(
+            location=Location.DESTINATION_NEAR,
+            momentum=Momentum.UP_DECEL,
+            rsi=RsiState.BULL,
+            participation=Participation.WEAK,
+        )
+        self.assertEqual(classify_strength(1, near), Strength.REACTION_RISK)
+
+        same_evidence_outside = self.ev(
+            location=Location.OUTSIDE,
+            momentum=Momentum.UP_DECEL,
+            rsi=RsiState.BULL,
+            participation=Participation.WEAK,
+        )
+        self.assertEqual(classify_strength(1, same_evidence_outside), Strength.FADING)
+
     def test_aligned_cancels_on_two_opposing_directional_families(self):
         prev = State(Readiness.ALIGNED, 1, Strength.NORMAL)
         r = step(
