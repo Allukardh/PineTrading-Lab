@@ -1,0 +1,252 @@
+//@version=6
+indicator("Execution v0.1.0", shorttitle="Execution", overlay=false, max_bars_back=5000)
+
+// ============================================================================
+// PineTrading-Lab — Execution 0.1.0
+// Production implementation of the accepted Execution research contract.
+//
+// Milestone A:
+//   - MTE-A momentum kernel
+//   - RSE-A local RSI + confirmed HTF context
+//   - PSE-A reload-safe participation measurements
+//   - minimal lower-pane renderer
+//
+// Readiness / Strength are intentionally NOT emitted until the self-contained
+// Market Map direction/location bridge is wired in the next production gate.
+// ============================================================================
+
+// ---------------------------------------------------------------------------
+// Accepted defaults v2 — engine-owned, not operator tuning inputs
+// ---------------------------------------------------------------------------
+int EXECUTION_CONTRACT = 1
+int EXECUTION_DEFAULTS_VERSION = 2
+
+int MTE_FAST_EMA = 8
+int MTE_SLOW_EMA = 21
+int MTE_ATR_LEN = 14
+int MTE_ACTIVITY_LEN = 20
+float MTE_NEUTRAL_FACTOR = 0.15
+float MTE_TURN_FACTOR = 0.50
+float MTE_TURN_FLOOR = 0.02
+float MTE_ACCEL_EPS = 1e-9
+
+int RSI_LEN = 14
+float RSI_CENTER_LOW = 48.0
+float RSI_CENTER_HIGH = 52.0
+float RSI_OVERBOUGHT = 70.0
+float RSI_OVERSOLD = 30.0
+float RSI_EXTREME_OVERBOUGHT = 80.0
+float RSI_EXTREME_OVERSOLD = 20.0
+float RSI_MIN_STEP = 0.25
+int RSI_ZONE_MEMORY_BARS = 2
+
+int PSE_VOLUME_EMA_LEN = 20
+float PSE_CONTRACTED_BELOW = 0.80
+float PSE_EXPANDED_AT_OR_ABOVE = 1.20
+float PSE_STRONG_AT_OR_ABOVE = 1.50
+float PSE_PRESSURE_MIN = 0.20
+
+// Canonical semantic codes from manifests/suite-semantics-v1.json.
+int MTE_NEUTRAL = 0
+int MTE_TURN_UP = 1
+int MTE_UP_ACCEL = 2
+int MTE_UP_DECEL = 3
+int MTE_TURN_DOWN = -1
+int MTE_DOWN_ACCEL = -2
+int MTE_DOWN_DECEL = -3
+
+int RSI_NEUTRAL = 0
+int RSI_BULL = 1
+int RSI_RECOVERING_OVERSOLD = 2
+int RSI_RECOVERING_OVERBOUGHT = 3
+int RSI_EXTREME_OVERBOUGHT = 4
+int RSI_EXTREME_OVERSOLD = -4
+int RSI_FADING_OVERSOLD = -3
+int RSI_FADING_OVERBOUGHT = -2
+int RSI_BEAR = -1
+
+// ---------------------------------------------------------------------------
+// Deterministic research-parity helpers
+// ---------------------------------------------------------------------------
+// Reference models use SMA-seeded EMA/RMA rather than Pine's implicit first
+// sample seed. Keep the same warmup so offline and Pine evidence align.
+f_seeded_ema(_src, _length) =>
+    float alpha = 2.0 / (_length + 1.0)
+    float seed = ta.sma(_src, _length)
+    float value = na
+    value := na(value[1]) ? seed : alpha * _src + (1.0 - alpha) * value[1]
+    value
+
+f_seeded_rma(_src, _length) =>
+    float alpha = 1.0 / _length
+    float seed = ta.sma(_src, _length)
+    float value = na
+    value := na(value[1]) ? seed : alpha * _src + (1.0 - alpha) * value[1]
+    value
+
+f_rsi(_src) =>
+    float change = _src - _src[1]
+    float gain = na(change) ? na : math.max(change, 0.0)
+    float loss = na(change) ? na : math.max(-change, 0.0)
+    float avgGain = f_seeded_rma(gain, RSI_LEN)
+    float avgLoss = f_seeded_rma(loss, RSI_LEN)
+    float result = na
+    if not na(avgGain) and not na(avgLoss)
+        result := avgGain == 0.0 and avgLoss == 0.0 ? 50.0 :
+             avgLoss == 0.0 ? 100.0 :
+             avgGain == 0.0 ? 0.0 :
+             100.0 - 100.0 / (1.0 + avgGain / avgLoss)
+    result
+
+f_confirmed_sec(_tf, _expr) =>
+    float reqSec = timeframe.in_seconds(_tf)
+    float chartSecLocal = timeframe.in_seconds()
+    reqSec > chartSecLocal ?
+         request.security(syminfo.tickerid, _tf, _expr[1], barmerge.gaps_off, barmerge.lookahead_on) :
+         _expr
+
+// ---------------------------------------------------------------------------
+// Timeframe policy — identical suite mapping, confirmed HTF only
+// ---------------------------------------------------------------------------
+float chartSec = timeframe.in_seconds()
+float tf15Sec = timeframe.in_seconds("15")
+float tf60Sec = timeframe.in_seconds("60")
+float tf240Sec = timeframe.in_seconds("240")
+float tfDSec = timeframe.in_seconds("D")
+
+if na(chartSec)
+    runtime.error("Execution requires a time-based chart timeframe.")
+
+string contextTf = chartSec <= tf15Sec ? "60" :
+     chartSec <= tf60Sec ? "240" :
+     chartSec <= tf240Sec ? "D" :
+     chartSec <= tfDSec ? "W" :
+     timeframe.period
+
+// ---------------------------------------------------------------------------
+// MTE-A — volatility-normalized EMA spread
+// ---------------------------------------------------------------------------
+float mteSource = hlc3
+float mteFast = f_seeded_ema(mteSource, MTE_FAST_EMA)
+float mteSlow = f_seeded_ema(mteSource, MTE_SLOW_EMA)
+
+float prevClose = nz(close[1], close)
+float trueRange = math.max(high - low, math.max(math.abs(high - prevClose), math.abs(low - prevClose)))
+float mteAtr = f_seeded_rma(trueRange, MTE_ATR_LEN)
+
+float mteCore = not na(mteFast) and not na(mteSlow) and not na(mteAtr) and mteAtr > 0.0 ?
+     (mteFast - mteSlow) / mteAtr : na
+float mteActivity = f_seeded_rma(math.abs(mteCore), MTE_ACTIVITY_LEN)
+float mteAccel = not na(mteCore) and not na(mteCore[1]) ? mteCore - mteCore[1] : na
+float mteAccelActivity = f_seeded_rma(math.abs(mteAccel), MTE_ACTIVITY_LEN)
+
+bool mteReady = not na(mteCore) and not na(mteActivity) and not na(mteAccel) and not na(mteAccelActivity) and mteActivity > 0.0
+float mteNeutralBand = mteReady ? MTE_NEUTRAL_FACTOR * mteActivity : na
+float mteTurnBand = mteReady ? math.max(MTE_TURN_FLOOR, MTE_TURN_FACTOR * mteAccelActivity) : na
+float mteAccelSemantic = mteReady and math.abs(mteAccel) <= MTE_ACCEL_EPS ? 0.0 : mteAccel
+
+int mteState = MTE_NEUTRAL
+if mteReady
+    if math.abs(mteCore) <= mteNeutralBand
+        mteState := MTE_NEUTRAL
+    else if mteCore > 0.0
+        mteState := mteAccelSemantic < -mteTurnBand ? MTE_TURN_DOWN :
+             mteAccelSemantic < 0.0 ? MTE_UP_DECEL : MTE_UP_ACCEL
+    else
+        mteState := mteAccelSemantic > mteTurnBand ? MTE_TURN_UP :
+             mteAccelSemantic > 0.0 ? MTE_DOWN_DECEL : MTE_DOWN_ACCEL
+
+// ---------------------------------------------------------------------------
+// RSE-A — local RSI semantic state + confirmed HTF context
+// ---------------------------------------------------------------------------
+float rsiLocal = f_rsi(close)
+float rsiStep = not na(rsiLocal) and not na(rsiLocal[1]) ? rsiLocal - rsiLocal[1] : na
+bool rsiReady = not na(rsiLocal) and not na(rsiStep)
+
+float recentRsiMin = ta.lowest(rsiLocal, RSI_ZONE_MEMORY_BARS + 1)
+float recentRsiMax = ta.highest(rsiLocal, RSI_ZONE_MEMORY_BARS + 1)
+bool recentOversold = rsiReady and not na(recentRsiMin) and recentRsiMin <= RSI_OVERSOLD
+bool recentOverbought = rsiReady and not na(recentRsiMax) and recentRsiMax >= RSI_OVERBOUGHT
+
+int rsiState = RSI_NEUTRAL
+if rsiReady
+    if rsiLocal >= RSI_EXTREME_OVERBOUGHT
+        rsiState := RSI_EXTREME_OVERBOUGHT
+    else if rsiLocal <= RSI_EXTREME_OVERSOLD
+        rsiState := RSI_EXTREME_OVERSOLD
+    else if recentOversold and rsiLocal < RSI_CENTER_HIGH and rsiStep >= RSI_MIN_STEP
+        rsiState := RSI_RECOVERING_OVERSOLD
+    else if recentOverbought and rsiLocal > RSI_CENTER_LOW and rsiStep <= -RSI_MIN_STEP
+        rsiState := RSI_FADING_OVERBOUGHT
+    else if rsiLocal >= RSI_OVERBOUGHT and rsiStep >= RSI_MIN_STEP
+        rsiState := RSI_RECOVERING_OVERBOUGHT
+    else if rsiLocal <= RSI_OVERSOLD and rsiStep <= -RSI_MIN_STEP
+        rsiState := RSI_FADING_OVERSOLD
+    else if rsiLocal >= RSI_CENTER_HIGH
+        rsiState := RSI_BULL
+    else if rsiLocal <= RSI_CENTER_LOW
+        rsiState := RSI_BEAR
+    else
+        rsiState := RSI_NEUTRAL
+
+float rsiContextValue = f_confirmed_sec(contextTf, f_rsi(close))
+int rsiContextDir = na(rsiContextValue) ? 0 :
+     rsiContextValue >= RSI_CENTER_HIGH ? 1 :
+     rsiContextValue <= RSI_CENTER_LOW ? -1 : 0
+
+// ---------------------------------------------------------------------------
+// PSE-A — reload-safe relative volume + honest candle-location pressure proxy
+// ---------------------------------------------------------------------------
+float volumeBase = f_seeded_ema(volume, PSE_VOLUME_EMA_LEN)
+float priorVolumeBase = volumeBase[1]
+bool pseReady = not na(volume) and volume >= 0.0 and not na(priorVolumeBase) and priorVolumeBase > 0.0
+float relativeVolume = pseReady ? volume / priorVolumeBase : na
+
+float candleSpan = high - low
+float pressureProxy = candleSpan == 0.0 ? 0.0 :
+     math.max(-1.0, math.min(1.0, (2.0 * close - high - low) / candleSpan))
+bool strongExpansion = pseReady and relativeVolume >= PSE_STRONG_AT_OR_ABOVE
+
+// Directional participation state is intentionally deferred until canonical
+// Market Map direction is present. Raw reload-safe evidence is ready here.
+
+// ---------------------------------------------------------------------------
+// Lower-pane renderer — one numeric scale, no RSI/volume dashboard
+// ---------------------------------------------------------------------------
+color mteColor = not mteReady ? color.new(color.gray, 65) :
+     mteState == MTE_UP_ACCEL ? color.new(color.teal, 0) :
+     mteState == MTE_UP_DECEL ? color.new(color.teal, 45) :
+     mteState == MTE_TURN_DOWN ? color.new(color.orange, 5) :
+     mteState == MTE_DOWN_ACCEL ? color.new(color.red, 0) :
+     mteState == MTE_DOWN_DECEL ? color.new(color.red, 45) :
+     mteState == MTE_TURN_UP ? color.new(color.aqua, 5) :
+     color.new(color.gray, 60)
+
+plot(mteReady ? mteCore : na, "Momentum", style=plot.style_histogram, color=mteColor, linewidth=2)
+hline(0.0, "Zero", color=color.new(color.gray, 70))
+
+// ---------------------------------------------------------------------------
+// Data Window diagnostics — hidden from normal pane
+// ---------------------------------------------------------------------------
+plot(EXECUTION_CONTRACT, "EX Audit • Contract", color=color.new(color.white, 100), display=display.data_window)
+plot(EXECUTION_DEFAULTS_VERSION, "EX Audit • Defaults", color=color.new(color.white, 100), display=display.data_window)
+plot(barstate.isconfirmed ? 1 : 0, "EX Audit • Confirmado", color=color.new(color.white, 100), display=display.data_window)
+
+plot(mteReady ? 1 : 0, "EX MTE • Ready", color=color.new(color.white, 100), display=display.data_window)
+plot(mteCore, "EX MTE • Core", color=color.new(color.white, 100), display=display.data_window)
+plot(mteAccel, "EX MTE • Aceleração", color=color.new(color.white, 100), display=display.data_window)
+plot(mteNeutralBand, "EX MTE • Banda neutra", color=color.new(color.white, 100), display=display.data_window)
+plot(mteTurnBand, "EX MTE • Banda turn", color=color.new(color.white, 100), display=display.data_window)
+plot(mteState, "EX MTE • Estado", color=color.new(color.white, 100), display=display.data_window)
+
+plot(rsiReady ? 1 : 0, "EX RSE • Ready", color=color.new(color.white, 100), display=display.data_window)
+plot(rsiLocal, "EX RSE • RSI local", color=color.new(color.white, 100), display=display.data_window)
+plot(rsiStep, "EX RSE • Passo", color=color.new(color.white, 100), display=display.data_window)
+plot(rsiState, "EX RSE • Estado", color=color.new(color.white, 100), display=display.data_window)
+plot(rsiContextValue, "EX RSE • RSI contexto confirmado", color=color.new(color.white, 100), display=display.data_window)
+plot(rsiContextDir, "EX RSE • Direção contexto", color=color.new(color.white, 100), display=display.data_window)
+
+plot(pseReady ? 1 : 0, "EX PSE • Ready", color=color.new(color.white, 100), display=display.data_window)
+plot(relativeVolume, "EX PSE • Volume relativo", color=color.new(color.white, 100), display=display.data_window)
+plot(pressureProxy, "EX PSE • Pressão proxy", color=color.new(color.white, 100), display=display.data_window)
+plot(strongExpansion ? 1 : 0, "EX PSE • Expansão forte", color=color.new(color.white, 100), display=display.data_window)
