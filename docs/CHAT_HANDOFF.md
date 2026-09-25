@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — monthly horizon-aware regime basis  
+**Checkpoint state:** STABLE  
+**Active product front:** Suite 0.2 — monthly regime comparison closed  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,63 +131,42 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — monthly horizon-aware regime basis
+### STABLE result — monthly regime basis comparison
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `9c47c227ceed6de0ba83e3d0e4c30c1ed7f74470`
+- stable research head: `eda3f81ac03ec6351add373c83d7814b0af0d8d8`
 
-Closed monthly gate:
-- deterministic 1M run `36170246108` — PASS;
-- derived monthly datasets are reproducible;
-- 0/15 symbols have the full nominal 200-month observation span; zero monthly trend confirmations are real, but code audit showed the offline EMA is recursively seeded, so the absence of 200 rows is **not by itself** proof that the fixed regime cannot produce values.
+Evidence:
+- monthly regime comparison `36171266299` — PASS;
+- Static integrity `36171265814`, `36171270322` — PASS;
+- artifact `10881120141`;
+- worklog: `docs/worklog/2026-09-25-suite-0.2-native-horizons.md`.
 
-Preregistered variants:
+Audit correction:
+- offline EMA is recursively seeded;
+- lack of 200 observed monthly bars does not imply EMA200 numeric unavailability;
+- fixed 50/200 monthly regime is directional on ~75.52% of bars.
 
-**FIXED_21_50_200**
-- control;
-- accepted lower-horizon bar-count baseline;
-- direct regime occupancy/churn must be measured; fewer than 200 observed months means incomplete nominal span, not automatic EMA unavailability.
+Comparison:
+- fixed 50/200 regime changes: 8.51 / 100 bars;
+- 12/46 regime changes: 14.86 / 100 bars;
+- 12/46 reduced structural-conflict bars but increased churn;
+- both variants produced 0 HELD/FAKEOUT breakout confirmations;
+- both produced 0 HELD/FAKEOUT reacceleration confirmations;
+- 12/46 produced only two sparse REGIME_REVERSAL LONG confirmations (ETH/AVAX).
 
-**WEEK_EQUIV_5_12_46**
-- monthly-only research candidate;
-- 21 weeks / 4.345 ≈ 5 months;
-- 50 weeks / 4.345 ≈ 12 months;
-- 200 weeks / 4.345 ≈ 46 months;
-- preserves elapsed-time intent from the accepted 1W basis rather than optimizing monthly signal count.
+Decisions:
+- FIXED 50/200 = KEEP as control only;
+- WEEK_EQUIV 12/46 = DO NOT PROMOTE;
+- standalone 1M execution role = NOT PROVEN;
+- deterministic 1M derivation remains KEEP;
+- no lower-horizon / production / profile changes.
 
-Locks:
-- all 15m/1H/4H/1D/3D/1W semantics unchanged;
-- MTE/RSE/PSE definitions unchanged;
-- Opportunity v2 / RANGE_ROTATION / OPERATOR_READINESS_V1 unchanged;
-- no per-symbol fallback;
-- no profile;
-- no production Pine/default change.
-
-Exact intended work:
-1. first audit direct fixed-21/50/200 1M regime occupancy/churn rather than inferring the zero-confirm cause from history length;
-2. parameterize **research-only** Market Map EMA basis for 1M without changing defaults elsewhere;
-3. preserve control 21/50/200 exactly;
-4. test WEEK_EQUIV_5_12_46 on the same deterministic 15-symbol 1M datasets;
-5. report:
-   - bars/symbols with regime readiness;
-   - regime occupancy and LONG/SHORT balance;
-   - regime churn/transitions;
-   - breakout/reacceleration/reversal candidate + confirmation breadth;
-   - HELD vs FAKEOUT confirmation discrimination;
-   - confirmation latency in monthly bars;
-   - RANGE_ROTATION / OPERATOR parity/conflicts;
-   - short-history behavior, especially SUI;
-6. do not select a candidate merely because it creates more signals;
-7. require semantic improvement: mature regime availability + non-pathological churn + preserved structural discrimination;
-8. no production implementation until this research gate closes.
-
-Recovery:
-- compare active branch with `9c47c227...`;
-- inspect only newer monthly-regime commits/runs/artifacts;
-- do not reopen deterministic aggregation or lower-horizon decisions.
+Next:
+- test prior-completed 1M state as macro/cycle context for accepted 3D/1W opportunities.
 
 
 ## 7. Continuity protocol
