@@ -16,13 +16,48 @@ on:
       - "tools/momentum_turn_reference.py"
       - "tools/rsi_state_reference.py"
       - "tools/participation_reference.py"
+      - "manifests/binance-spot-btcusdt.production-2026-09-24.json"
+      - "manifests/binance-spot-ethusdt.production-2026-09-24.json"
+      - "manifests/binance-spot-avaxusdt.production-2026-09-24.json"
 
 permissions:
   contents: read
   actions: read
 
 jobs:
-  btc-swing-breakout-acceptance:
+  breakout-acceptance:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - symbol: BTCUSDT
+            slug: btc
+            manifest: manifests/binance-spot-btcusdt.production-2026-09-24.json
+            id4h: 10811281699
+            sha4h: 93226923a88861cc56d11d82900801db7f64fbe89920c710843dc26673265e06
+            id1d: 10810907465
+            sha1d: 1788d075ad21091e279cb68ccfac79935149ca9c444a74dbc971bba00e15fdae
+            id1w: 10811406601
+            sha1w: 960de3600ea7ab8651ec2dbaa51d204e05fce19127eb53bb24fcd59dd010ac46
+          - symbol: ETHUSDT
+            slug: eth
+            manifest: manifests/binance-spot-ethusdt.production-2026-09-24.json
+            id4h: 10813219375
+            sha4h: b540dce0575ebd3e44560cb14d6ca5c3e01643d1f3f9d0e28b20b542e476c853
+            id1d: 10813576769
+            sha1d: 6d6eca8ac9be5ea451bb848a78a0dbd33f0eb755fdab448ef8862b9e45ba3871
+            id1w: 10813522300
+            sha1w: 885484db14e9c9355cf35fba150dfbbbcd783b811854b32ce80e012b07fe9b66
+          - symbol: AVAXUSDT
+            slug: avax
+            manifest: manifests/binance-spot-avaxusdt.production-2026-09-24.json
+            id4h: 10812979850
+            sha4h: 89bdb9efae51718166587c7c819bce23635e31aa4db96a37d2a8a42617ced360
+            id1d: 10813144664
+            sha1d: 39945d0806fdf89182121f1ab9cf2cf1b05171d032887c575e094dca302ff5d4
+            id1w: 10813776971
+            sha1w: 24b7f47ad6681edb39eb33d9ba06f7c9d230680f254657bad3640f3d10d21582
+
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -45,11 +80,13 @@ jobs:
       - name: Run breakout acceptance unit tests
         run: python -m unittest tools.test_breakout_acceptance_reference -v
 
-      - name: Acquire exact canonical BTC 4H 1D 1W snapshot
+      - name: Acquire exact canonical 4H 1D 1W snapshot
         shell: bash
+        env:
+          SYMBOL: ${{ matrix.symbol }}
         run: |
           set -euo pipefail
-          DEST="$DATA_ROOT/spot/BTCUSDT/consolidated"
+          DEST="$DATA_ROOT/spot/$SYMBOL/consolidated"
           mkdir -p "$DEST" "$OUT_DIR"
 
           fetch_artifact() {
@@ -63,28 +100,28 @@ jobs:
             echo "$expected  $DEST/$name" | sha256sum -c -
           }
 
-          fetch_artifact 10811281699 BTCUSDT_4h.parquet 93226923a88861cc56d11d82900801db7f64fbe89920c710843dc26673265e06
-          fetch_artifact 10810907465 BTCUSDT_1d.parquet 1788d075ad21091e279cb68ccfac79935149ca9c444a74dbc971bba00e15fdae
-          fetch_artifact 10811406601 BTCUSDT_1w.parquet 960de3600ea7ab8651ec2dbaa51d204e05fce19127eb53bb24fcd59dd010ac46
+          fetch_artifact ${{ matrix.id4h }} "$SYMBOL"_4h.parquet ${{ matrix.sha4h }}
+          fetch_artifact ${{ matrix.id1d }} "$SYMBOL"_1d.parquet ${{ matrix.sha1d }}
+          fetch_artifact ${{ matrix.id1w }} "$SYMBOL"_1w.parquet ${{ matrix.sha1w }}
 
       - name: Run breakout acceptance/follow-through evidence
         run: |
           python -m tools.suite_0_2_breakout_acceptance_evidence \
             --data-root "$DATA_ROOT" \
-            --symbol BTCUSDT \
-            --canonical-manifest manifests/binance-spot-btcusdt.production-2026-09-24.json \
-            --output-json "$OUT_DIR/suite-0.2-btc-breakout-acceptance.json" \
-            --output-md "$OUT_DIR/suite-0.2-btc-breakout-acceptance.md" \
+            --symbol "${{ matrix.symbol }}" \
+            --canonical-manifest "${{ matrix.manifest }}" \
+            --output-json "$OUT_DIR/suite-0.2-${{ matrix.slug }}-breakout-acceptance.json" \
+            --output-md "$OUT_DIR/suite-0.2-${{ matrix.slug }}-breakout-acceptance.md" \
             --code-sha "$GITHUB_SHA"
 
       - name: Show summary
-        run: cat "$OUT_DIR/suite-0.2-btc-breakout-acceptance.md"
+        run: cat "$OUT_DIR/suite-0.2-${{ matrix.slug }}-breakout-acceptance.md"
 
       - name: Upload evidence
         uses: actions/upload-artifact@v7
         with:
-          name: suite-0.2-btc-breakout-acceptance
+          name: suite-0.2-${{ matrix.slug }}-breakout-acceptance
           path: |
-            /tmp/suite-0.2-breakout/suite-0.2-btc-breakout-acceptance.json
-            /tmp/suite-0.2-breakout/suite-0.2-btc-breakout-acceptance.md
+            /tmp/suite-0.2-breakout/suite-0.2-${{ matrix.slug }}-breakout-acceptance.json
+            /tmp/suite-0.2-breakout/suite-0.2-${{ matrix.slug }}-breakout-acceptance.md
           retention-days: 30
