@@ -434,9 +434,12 @@ f_mm_sec(_tf, _expr) =>
 // Kept here so MM_* defaults and the confirmed security helper are already declared.
 bool monthlyMacroOnly = timeframe.ismonthly
 bool monthlyMacroContextEnabled = timeframe.period == "3D" or timeframe.period == "W"
-float monthlyMacroRaw = monthlyMacroContextEnabled ? f_mm_sec("M",
-     ta.ema(close, MM_MID_LEN) > ta.ema(close, MM_SLOW_LEN) and ta.ema(close, MM_SLOW_LEN) >= ta.ema(close, MM_SLOW_LEN)[3] and close > ta.ema(close, MM_SLOW_LEN) ? 1.0 :
-     ta.ema(close, MM_MID_LEN) < ta.ema(close, MM_SLOW_LEN) and ta.ema(close, MM_SLOW_LEN) <= ta.ema(close, MM_SLOW_LEN)[3] and close < ta.ema(close, MM_SLOW_LEN) ? -1.0 : 0.0) : na
+float monthlyMacroMidExpr = ta.ema(close, MM_MID_LEN)
+float monthlyMacroSlowExpr = ta.ema(close, MM_SLOW_LEN)
+float monthlyMacroSignalExpr = monthlyMacroMidExpr > monthlyMacroSlowExpr and monthlyMacroSlowExpr >= monthlyMacroSlowExpr[3] and close > monthlyMacroSlowExpr ? 1.0 :
+     monthlyMacroMidExpr < monthlyMacroSlowExpr and monthlyMacroSlowExpr <= monthlyMacroSlowExpr[3] and close < monthlyMacroSlowExpr ? -1.0 : 0.0
+float monthlyMacroRequested = f_mm_sec("M", monthlyMacroSignalExpr)
+float monthlyMacroRaw = monthlyMacroContextEnabled ? monthlyMacroRequested : na
 bool monthlyMacroAvailable = monthlyMacroContextEnabled and not na(monthlyMacroRaw)
 int monthlyMacroDir = monthlyMacroAvailable ? int(monthlyMacroRaw) : 0
 
