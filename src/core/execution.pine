@@ -1434,8 +1434,67 @@ if barstate.isconfirmed
     executionDir := nextDir
     executionStrength := nextStrength
 
-bool confirmLong = confirmEvent and executionDir == 1
-bool confirmShort = confirmEvent and executionDir == -1
+// ---------------------------------------------------------------------------
+// OPERATOR_READINESS_V1 — pure projection across independent paths
+// ---------------------------------------------------------------------------
+bool frozenActive = executionReadiness != READY_WAIT and executionDir != 0
+bool trendActive = trendReadiness != READY_WAIT and trendReadinessDir != 0
+bool rangeActive = rangeReadiness != READY_WAIT and rangeReadinessDir != 0
+
+int operatorDirCandidate = 0
+bool operatorConflict = false
+if frozenActive
+    operatorDirCandidate := executionDir
+if trendActive
+    if operatorDirCandidate != 0 and trendReadinessDir != operatorDirCandidate
+        operatorConflict := true
+    else if operatorDirCandidate == 0
+        operatorDirCandidate := trendReadinessDir
+if rangeActive
+    if operatorDirCandidate != 0 and rangeReadinessDir != operatorDirCandidate
+        operatorConflict := true
+    else if operatorDirCandidate == 0
+        operatorDirCandidate := rangeReadinessDir
+
+int frozenUrgency = frozenActive ? f_ready_urgency(executionReadiness) : 0
+int trendUrgency = trendActive ? f_ready_urgency(trendReadiness) : 0
+int rangeUrgency = rangeActive ? f_ready_urgency(rangeReadiness) : 0
+int operatorMaxUrgency = math.max(frozenUrgency, math.max(trendUrgency, rangeUrgency))
+
+bool selectFrozen = frozenActive and frozenUrgency == operatorMaxUrgency
+bool selectTrend = trendActive and trendUrgency == operatorMaxUrgency
+bool selectRange = rangeActive and rangeUrgency == operatorMaxUrgency
+int selectedPathCount = (selectFrozen ? 1 : 0) + (selectTrend ? 1 : 0) + (selectRange ? 1 : 0)
+
+int operatorReadiness = OP_READY_WAIT
+int operatorDir = 0
+int operatorSourcePath = PATH_NONE
+int operatorOppKind = OPP_NONE
+
+if operatorConflict
+    operatorReadiness := OP_READY_CONFLICT
+else if operatorDirCandidate != 0 and operatorMaxUrgency > 0
+    operatorDir := operatorDirCandidate
+    operatorReadiness := selectFrozen ? executionReadiness : selectTrend ? trendReadiness : rangeReadiness
+    operatorSourcePath := selectedPathCount > 1 ? PATH_MULTI : selectFrozen ? PATH_FROZEN_0_1 : selectTrend ? PATH_TREND_V2 : PATH_RANGE_ANY1
+    operatorOppKind := selectTrend and not selectRange ? trendOppKind :
+         selectRange and not selectTrend ? OPP_RANGE_ROTATION : OPP_NONE
+
+bool operatorConfirmEvent = barstate.isconfirmed and not operatorConflict and operatorDir != 0 and
+     ((confirmEvent and executionDir == operatorDir) or
+      (trendConfirmEvent and trendReadinessDir == operatorDir) or
+      (rangeConfirmEvent and rangeReadinessDir == operatorDir))
+
+bool operatorArmedEntered = barstate.isconfirmed and operatorReadiness == OP_READY_ARMED and
+     (nz(operatorReadiness[1], OP_READY_WAIT) != OP_READY_ARMED or nz(operatorDir[1], 0) != operatorDir)
+
+bool anticipatedTfSupported = timeframe.period == "15" or timeframe.period == "60" or timeframe.period == "240" or timeframe.period == "D" or timeframe.period == "3D"
+bool anticipatedKindSupported = trendOppKind == OPP_BREAKOUT_EXPANSION or trendOppKind == OPP_REACCELERATION
+bool anticipatedPosture = responseProfile == "ANTECIPADO" and anticipatedTfSupported and operatorSourcePath == PATH_TREND_V2 and anticipatedKindSupported and operatorReadiness == OP_READY_ARMED and not operatorConflict
+bool anticipatedEvent = anticipatedPosture and operatorArmedEntered
+
+bool confirmLong = operatorConfirmEvent and operatorDir == 1
+bool confirmShort = operatorConfirmEvent and operatorDir == -1
 
 // ---------------------------------------------------------------------------
 // Lower-pane renderer — one numeric scale, no RSI/volume dashboard
@@ -1457,7 +1516,7 @@ bgcolor(strengthBg, title="Força")
 plot(mteReady ? mteCore : na, "Momentum", style=plot.style_histogram, color=mteColor, linewidth=2)
 hline(0.0, "Zero", color=color.new(color.gray, 70))
 
-plot(armedEntered ? mteCore : na, "ARMADO", style=plot.style_circles, color=color.new(color.yellow, 0), linewidth=3)
+plot(operatorArmedEntered ? mteCore : na, "ARMADO", style=plot.style_circles, color=color.new(color.yellow, 0), linewidth=3)
 plotshape(confirmLong ? mteCore : na, title="CONFIRMA LONG", style=shape.triangleup, location=location.absolute, color=color.new(color.lime, 0), size=size.small)
 plotshape(confirmShort ? mteCore : na, title="CONFIRMA SHORT", style=shape.triangledown, location=location.absolute, color=color.new(color.red, 0), size=size.small)
 
@@ -1466,11 +1525,14 @@ plotshape(confirmShort ? mteCore : na, title="CONFIRMA SHORT", style=shape.trian
 // second full semantic panel.
 var table statusCue = table.new(position.top_right, 1, 1, bgcolor=color.new(color.black, 86), frame_color=color.new(color.gray, 75), frame_width=1)
 if barstate.islast
-    string statusText = f_execution_txt(executionReadiness, executionDir) + " • " + f_strength_txt(executionStrength)
-    color statusColor = executionReadiness == READY_CONFIRMED ? (executionDir == 1 ? color.lime : color.red) :
-         executionReadiness == READY_ARMED ? color.yellow :
-         executionReadiness == READY_PREP ? color.aqua :
-         executionReadiness == READY_ALIGNED ? (executionDir == 1 ? color.lime : color.red) :
+    string opportunityCue = operatorOppKind != OPP_NONE ? " • " + f_opp_txt(operatorOppKind) : ""
+    string profileCue = anticipatedPosture ? " • ANTECIPADO" : ""
+    string statusText = f_operator_txt(operatorReadiness, operatorDir) + opportunityCue + profileCue
+    color statusColor = operatorReadiness == OP_READY_CONFLICT ? color.orange :
+         operatorReadiness == OP_READY_CONFIRMED ? (operatorDir == 1 ? color.lime : color.red) :
+         operatorReadiness == OP_READY_ARMED ? color.yellow :
+         operatorReadiness == OP_READY_PREP ? color.aqua :
+         operatorReadiness == OP_READY_ALIGNED ? (operatorDir == 1 ? color.lime : color.red) :
          color.silver
     table.cell(statusCue, 0, 0, statusText, text_color=statusColor, text_size=size.small)
 
@@ -1515,3 +1577,32 @@ plot(armedEntered ? 1 : 0, "EX EVT • Armado", color=color.new(color.white, 100
 plot(confirmEvent ? 1 : 0, "EX EVT • Confirma", color=color.new(color.white, 100), display=display.data_window)
 plot(canceledEvent ? 1 : 0, "EX EVT • Cancela", color=color.new(color.white, 100), display=display.data_window)
 plot(reactionRiskEntered ? 1 : 0, "EX EVT • Risco reação", color=color.new(color.white, 100), display=display.data_window)
+
+// Suite 0.2 independent-path / operator audit.
+plot(trendOppKind, "EX 0.2 • Trend oportunidade", color=color.new(color.white, 100), display=display.data_window)
+plot(trendOppStage, "EX 0.2 • Trend estágio", color=color.new(color.white, 100), display=display.data_window)
+plot(trendOppDir, "EX 0.2 • Trend direção", color=color.new(color.white, 100), display=display.data_window)
+plot(trendOppSourceBar, "EX 0.2 • Trend source bar", color=color.new(color.white, 100), display=display.data_window)
+plot(trendOppSourceStrong ? 1 : 0, "EX 0.2 • Trend source strong", color=color.new(color.white, 100), display=display.data_window)
+plot(trendReadiness, "EX 0.2 • Trend readiness", color=color.new(color.white, 100), display=display.data_window)
+plot(trendConfirmEvent ? 1 : 0, "EX 0.2 • Trend confirma", color=color.new(color.white, 100), display=display.data_window)
+
+plot(rangeBoxValid ? 1 : 0, "EX 0.2 • Range válido", color=color.new(color.white, 100), display=display.data_window)
+plot(rangeBoxHigh, "EX 0.2 • Range high", color=color.new(color.white, 100), display=display.data_window)
+plot(rangeBoxLow, "EX 0.2 • Range low", color=color.new(color.white, 100), display=display.data_window)
+plot(rangeBoxMid, "EX 0.2 • Range mid", color=color.new(color.white, 100), display=display.data_window)
+plot(rangeOppStage, "EX 0.2 • Range estágio", color=color.new(color.white, 100), display=display.data_window)
+plot(rangeOppDir, "EX 0.2 • Range direção", color=color.new(color.white, 100), display=display.data_window)
+plot(rangeOppSourceBar, "EX 0.2 • Range source bar", color=color.new(color.white, 100), display=display.data_window)
+plot(rangeReadiness, "EX 0.2 • Range readiness", color=color.new(color.white, 100), display=display.data_window)
+plot(rangeIgnitionCount, "EX 0.2 • Range ignição", color=color.new(color.white, 100), display=display.data_window)
+plot(rangeConfirmEvent ? 1 : 0, "EX 0.2 • Range confirma", color=color.new(color.white, 100), display=display.data_window)
+
+plot(operatorReadiness, "EX 0.2 • Operator readiness", color=color.new(color.white, 100), display=display.data_window)
+plot(operatorDir, "EX 0.2 • Operator direção", color=color.new(color.white, 100), display=display.data_window)
+plot(operatorConflict ? 1 : 0, "EX 0.2 • Operator conflito", color=color.new(color.white, 100), display=display.data_window)
+plot(operatorSourcePath, "EX 0.2 • Operator fonte", color=color.new(color.white, 100), display=display.data_window)
+plot(operatorOppKind, "EX 0.2 • Operator oportunidade", color=color.new(color.white, 100), display=display.data_window)
+plot(operatorConfirmEvent ? 1 : 0, "EX 0.2 • Operator confirma", color=color.new(color.white, 100), display=display.data_window)
+plot(anticipatedPosture ? 1 : 0, "EX 0.2 • Perfil antecipado ativo", color=color.new(color.white, 100), display=display.data_window)
+plot(anticipatedEvent ? 1 : 0, "EX 0.2 • Evento antecipado", color=color.new(color.white, 100), display=display.data_window)
