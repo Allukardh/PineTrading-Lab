@@ -226,7 +226,11 @@ def classify_strength(direction: int, evidence: Evidence) -> Strength:
         [
             _momentum_deteriorates(direction, evidence.momentum),
             _rsi_deteriorates(direction, evidence.rsi),
-            evidence.participation in {Participation.WEAK, Participation.CONTRARY},
+            # Low participation is not the same as directional participation
+            # against the thesis. WEAK still blocks confirmation by failing to
+            # become CONFIRM, but only CONTRARY is an independent strength
+            # deterioration family.
+            evidence.participation == Participation.CONTRARY,
         ]
     )
 
