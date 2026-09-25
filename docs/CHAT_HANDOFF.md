@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** PREPARED  
-**Active product front:** Execution 0.1.0 production implementation  
+**Checkpoint state:** STABLE  
+**Active product front:** Execution 0.1.0 final TradingView parity gate  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -76,7 +76,7 @@ Production block PREPARED.
 
 Current production branch: `feat/execution-0.1.0`  
 Draft PR: #21  
-Current verified head: `429a3a1cd21ded4474aafd3985f94dca454f1da8`
+Current verified head: `5fdea1e7be173ea9cec500eba70f00e35c153b67`
 
 Durable milestone already complete:
 - `src/core/execution.pine` exists;
@@ -86,10 +86,18 @@ Durable milestone already complete:
 - Pine compile PASS: run `36082085355`;
 - Execution contract/default/context checker PASS inside Static integrity: run `36082085365`.
 
+Durable production result:
+- `src/core/execution.pine` implements the accepted lower-pane kernel;
+- Market Map embeds the same semantic Execution kernel as `EXECUÇÃO` + `FORÇA`;
+- cross-script Data Window parity fields are present;
+- accepted Market Map structural semantics were not retuned;
+- Static integrity `36083522996` — PASS;
+- Pine compile `36083523054` — PASS.
+
 Exact next discriminant:
-- add the same Execution semantic kernel to Market Map's embedded Decision Panel as `EXECUÇÃO` + `FORÇA` rows;
-- do not change accepted Market Map structural semantics;
-- enforce parity with repository checks before any TradingView operator test.
+- perform one **batched TradingView visual/reload parity gate** with both scripts loaded together;
+- compare Market Map `EXECUÇÃO/FORÇA` against the standalone Execution status cue;
+- if stable before/after reload and no material UX/parity defect appears, promote Execution 0.1.0 without inventing another manual test cycle.
 
 The accepted defaults are frozen by:
 
@@ -101,19 +109,44 @@ The semantic contract is frozen by:
 
 ## 4. Exact next atomic work
 
-### PREPARED production block
+### Final operator gate — batched
 
-Intended sequence:
+Use the latest PR #21 branch `feat/execution-0.1.0` and replace/update **both** scripts in TradingView:
 
-1. create a dedicated production branch from current `main`;
-2. create `src/core/execution.pine`;
-3. implement MTE-A / RSE-A / PSE-A / readiness / strength semantics without retuning;
-4. preserve one lower pane and the renderer contract;
-5. add repository tooling/tests that prove semantic parity with the accepted Python reference models;
-6. only after the lower-pane kernel is stable, add the same slim Execution semantic kernel to Market Map's embedded Decision Panel;
-7. run Static integrity + TradingView Pine compile before any operator testing.
+- `src/core/market-map.pine`
+- `src/core/execution.pine`
 
-No TradingView screenshots are needed until the production Pine compiles and static/kernel parity are green.
+Use defaults only.
+
+Provide exactly three screenshots:
+
+1. **BTCUSDT 4H — before reload**
+   - full chart with Market Map panel visible;
+   - Execution lower pane visible, including its top-right status cue.
+
+2. **BTCUSDT 4H — after one F5/page reload**
+   - same symbol/timeframe/defaults/layout;
+   - both Market Map panel and Execution status cue visible.
+
+3. **BTCUSDT 1D — after reload**
+   - same defaults;
+   - both scripts visible.
+
+Primary checks:
+- Market Map `EXECUÇÃO` text == standalone Execution status cue readiness text;
+- Market Map `FORÇA` text == standalone Execution status cue strength text;
+- reload does not change confirmed semantic state;
+- lower pane is readable without duplicating the full Market Map panel;
+- no material Market Map structural/UX regression from the embedded Execution rows.
+
+Do not hunt for CONFIRMA/ARMADO or force a rare market state. Current live state is acceptable.
+
+If this passes:
+1. record visual/reload parity;
+2. mark PR #21 ready;
+3. promote Execution 0.1.0;
+4. return handoff to accepted two-indicator suite state.
+
 
 ## 5. Continuity protocol
 
