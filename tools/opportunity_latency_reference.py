@@ -49,6 +49,7 @@ class EpisodeResponse:
     missed_reason: str | None
     window_end_bar: int
     terminated_by: str
+    same_direction_thesis_replacements: int
 
 
 def _momentum_strongly_opposes(direction: int, state: Momentum) -> bool:
@@ -218,10 +219,54 @@ def measure_episode(
 
     deepest = state0.readiness if same_dir0 else Readiness.WAIT
     barrier_counts: Counter[str] = Counter()
+    same_direction_thesis_replacements = 0
 
     end_limit = min(n - 1, start + response_window_bars)
     end = start
     terminated_by = "WINDOW_END"
+
+    # ALINHADO at the independent episode confirmation means 0.1 got there
+    # first. Treat it as covered/anticipated, not as a missed new CONFIRMA.
+    if already_aligned:
+        return EpisodeResponse(
+            episode_id=episode.episode_id,
+            opportunity_type=episode.opportunity_type.value,
+            direction=episode.direction,
+            onset_bar=episode.onset_bar,
+            confirmation_bar=start,
+            state_at_confirmation=state0.readiness.name,
+            state_direction_at_confirmation=state0.direction,
+            already_preparing_or_better=True,
+            already_armed_or_better=True,
+            already_aligned=True,
+            prep_bar=start,
+            armed_bar=start,
+            confirm_bar=None,
+            prep_latency_bars=0,
+            armed_latency_bars=0,
+            confirm_latency_bars=None,
+            prep_displacement_atr=0.0,
+            armed_displacement_atr=0.0,
+            confirm_displacement_atr=None,
+            prep_room_to_destination_atr=_room_atr(
+                episode.direction,
+                float(closes[start]),
+                episode.destination,
+                snapshots[start].atr,
+            ),
+            armed_room_to_destination_atr=_room_atr(
+                episode.direction,
+                float(closes[start]),
+                episode.destination,
+                snapshots[start].atr,
+            ),
+            confirm_room_to_destination_atr=None,
+            deepest_state=Readiness.ALIGNED.name,
+            missed_reason=None,
+            window_end_bar=start,
+            terminated_by="ALREADY_ALIGNED",
+            same_direction_thesis_replacements=0,
+        )
 
     for i in range(start, end_limit + 1):
         snap = snapshots[i]
@@ -244,10 +289,12 @@ def measure_episode(
                 and snap.new_thesis_event
                 and snap.thesis_key is not None
                 and snap.thesis_key != episode.thesis_key
+                and snap.map_dir == episode.direction
             ):
-                end = i
-                terminated_by = "THESIS_REPLACED"
-                break
+                # The accepted Execution engine does not use Market Map thesis
+                # identity as a reset boundary. Same-direction thesis churn is
+                # therefore diagnostic only, not an episode terminator.
+                same_direction_thesis_replacements += 1
 
         sample = samples[i]
         state = sample.result.state
@@ -292,8 +339,6 @@ def measure_episode(
 
     if confirm_bar is not None:
         missed_reason = None
-    elif terminated_by == "THESIS_REPLACED":
-        missed_reason = "THESIS_REPLACED"
     elif barrier_counts:
         # Deterministic tie-break: count first, then stable taxonomy order.
         order = [
@@ -363,6 +408,7 @@ def measure_episode(
         missed_reason=missed_reason,
         window_end_bar=end,
         terminated_by=terminated_by,
+        same_direction_thesis_replacements=same_direction_thesis_replacements,
     )
 
 
