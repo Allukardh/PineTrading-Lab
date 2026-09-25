@@ -40,35 +40,32 @@ jobs:
       - name: Acquire canonical BTC snapshot
         env:
           GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
-          set -u
+          set -euo pipefail
           DEST="$RUNNER_TEMP/Binance/spot/BTCUSDT/consolidated"
           mkdir -p "$DEST"
-          OK=1
-          for ARTIFACT in \
-            BTCUSDT_15m.parquet \
-            BTCUSDT_1h.parquet \
-            BTCUSDT_4h.parquet \
-            BTCUSDT_1d.parquet \
-            BTCUSDT_3d.parquet \
-            BTCUSDT_1w.parquet
-          do
-            if ! gh run download 36006762328 --repo "$GITHUB_REPOSITORY" --name "$ARTIFACT" --dir "$DEST"; then
-              OK=0
-              break
-            fi
-          done
 
-          if [ "$OK" -ne 1 ]; then
-            echo "Canonical run artifacts unavailable; falling back to official rematerialization."
-            rm -rf "$RUNNER_TEMP/Binance"
-            python -m tools.binance_market_data run \
-              --config configs/binance-spot-btcusdt.json \
-              --symbol BTCUSDT \
-              --data-root "$RUNNER_TEMP/Binance"
-          else
-            echo "Using exact canonical run #36006762328 Parquet artifacts."
-          fi
+          fetch_artifact() {
+            local id="$1"
+            local name="$2"
+            local expected="$3"
+            gh api \
+              -H "Accept: application/vnd.github+json" \
+              "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip" \
+              > "$DEST/$name"
+            echo "$expected  $DEST/$name" | sha256sum -c -
+          }
+
+          # Exact archive:false artifacts from canonical production run 36006762328.
+          fetch_artifact 10811401520 BTCUSDT_15m.parquet cac347638b577b2bcfcd671f66a68af96edb49c614c4dc203d7dc8ea3fb48411
+          fetch_artifact 10810563678 BTCUSDT_1h.parquet 86f2f12b66979d2e0659b44b95b584ec5140050770acce58e6c4643c9b409776
+          fetch_artifact 10811281699 BTCUSDT_4h.parquet 93226923a88861cc56d11d82900801db7f64fbe89920c710843dc26673265e06
+          fetch_artifact 10810907465 BTCUSDT_1d.parquet 1788d075ad21091e279cb68ccfac79935149ca9c444a74dbc971bba00e15fdae
+          fetch_artifact 10811056999 BTCUSDT_3d.parquet e4228da434e9131ae2353147181069d119bc0ef373ec4b93effc5c1dcf9a39d9
+          fetch_artifact 10811406601 BTCUSDT_1w.parquet 960de3600ea7ab8651ec2dbaa51d204e05fce19127eb53bb24fcd59dd010ac46
+
+          echo "Using exact SHA-256-verified canonical Parquets from run #36006762328."
 
       - name: Run pre-registered Execution evidence plan
         run: |
