@@ -1112,6 +1112,477 @@ if exCoherentMap
 
 bool exRelevantLocation = exLocation == EX_LOC_APPROACHING or exLocation == EX_LOC_IN_CORRECTION or exLocation == EX_LOC_RETEST or exLocation == EX_LOC_RECLAIM
 
+// ---------------------------------------------------------------------------
+// Suite 0.2 Opportunity Engine — embedded parity consumer
+// ---------------------------------------------------------------------------
+bool exOppZoneTouchNow = correctionActive and not na(primaryTop) and not na(primaryBottom) and high >= primaryBottom and low <= primaryTop
+bool exOppReactionOnBar = exRetestEvent or exReclaimEvent or exOppZoneTouchNow
+int exOppStructuralBreakDir = breakUp ? 1 : breakDown ? -1 : 0
+
+var int exOppCurrentRegimeDir = 0
+var int exOppCurrentRegimeLen = 0
+var int exOppPreviousRegimeDir = 0
+var int exOppPreviousRegimeLen = 0
+var int exOppPreviousRegimeEndBar = na
+var int exOppLastBreakLongBar = na
+var int exOppLastBreakShortBar = na
+var int exOppLastReactionLongBar = na
+var int exOppLastReactionShortBar = na
+var int exOppSeenReactionThesisKey = na
+var int exOppPendingReversalDir = 0
+var int exOppPendingReversalOnsetBar = na
+
+bool exOppBreakoutEvent = false
+bool exOppReaccelerationEvent = false
+bool exOppRegimeReversalEvent = false
+int exOppBreakContext = EX_BREAK_OTHER
+int exOppBreakRegimeAge = 0
+
+if barstate.isconfirmed
+    if exOppStructuralBreakDir != 0
+        int previousSameBreak = exOppStructuralBreakDir == 1 ? exOppLastBreakLongBar : exOppLastBreakShortBar
+        int lastReaction = exOppStructuralBreakDir == 1 ? exOppLastReactionLongBar : exOppLastReactionShortBar
+
+        int matureDir = 0
+        if exOppCurrentRegimeDir != 0 and exOppCurrentRegimeLen >= EX_REVERSAL_PRIOR_REGIME_MIN_BARS
+            matureDir := exOppCurrentRegimeDir
+        else if exOppCurrentRegimeDir == 0 and exOppPreviousRegimeDir != 0 and exOppPreviousRegimeLen >= EX_REVERSAL_PRIOR_REGIME_MIN_BARS
+            matureDir := exOppPreviousRegimeDir
+
+        bool pullbackSincePreviousBreak = not na(previousSameBreak) and not na(lastReaction) and previousSameBreak < lastReaction and lastReaction < bar_index
+        bool oppositeMatureRegime = matureDir == -exOppStructuralBreakDir
+        bool coherentBreak = mapDir == exOppStructuralBreakDir and regimeDir == exOppStructuralBreakDir and not regimeStructureConflict and not thesisInvalidated
+
+        exOppBreakRegimeAge := exOppCurrentRegimeDir == exOppStructuralBreakDir ? exOppCurrentRegimeLen : 0
+        exOppBreakContext := oppositeMatureRegime ? EX_BREAK_EARLY_TRANSITION :
+             not coherentBreak ? EX_BREAK_OTHER :
+             pullbackSincePreviousBreak or exOppReactionOnBar ? EX_BREAK_PULLBACK_RESOLUTION :
+             exOppBreakRegimeAge >= EX_REACCELERATION_REGIME_MIN_BARS and not na(previousSameBreak) ? EX_BREAK_REACCELERATION :
+             EX_BREAK_FRESH_EXPANSION
+
+        exOppReaccelerationEvent := exOppBreakContext == EX_BREAK_REACCELERATION
+        exOppBreakoutEvent := coherentBreak and (exOppBreakContext == EX_BREAK_FRESH_EXPANSION or exOppBreakContext == EX_BREAK_OTHER)
+
+        if exOppBreakContext == EX_BREAK_EARLY_TRANSITION
+            exOppPendingReversalDir := exOppStructuralBreakDir
+            exOppPendingReversalOnsetBar := bar_index
+
+        if exOppStructuralBreakDir == 1
+            exOppLastBreakLongBar := bar_index
+        else
+            exOppLastBreakShortBar := bar_index
+
+    bool exOppNewThesis = not na(impulseKey) and (na(impulseKey[1]) or impulseKey != impulseKey[1])
+    bool exOppFirstReaction = not na(impulseKey) and impulseKey != exOppSeenReactionThesisKey and mapDir != 0 and not regimeStructureConflict and not thesisInvalidated and
+         (exRetestEvent or exReclaimEvent or (not exOppNewThesis and exOppZoneTouchNow))
+    if exOppFirstReaction
+        exOppSeenReactionThesisKey := impulseKey
+        if mapDir == 1
+            exOppLastReactionLongBar := bar_index
+        else
+            exOppLastReactionShortBar := bar_index
+
+    if exOppPendingReversalDir != 0
+        if regimeDir == exOppPendingReversalDir and mapDir == exOppPendingReversalDir and not regimeStructureConflict and not thesisInvalidated
+            exOppRegimeReversalEvent := true
+            exOppPendingReversalDir := 0
+            exOppPendingReversalOnsetBar := na
+        else if regimeDir != 0 and regimeDir != exOppPendingReversalDir
+            exOppPendingReversalDir := 0
+            exOppPendingReversalOnsetBar := na
+
+    if regimeDir == exOppCurrentRegimeDir and regimeDir != 0
+        exOppCurrentRegimeLen += 1
+    else if regimeDir == 0
+        if exOppCurrentRegimeDir != 0
+            exOppPreviousRegimeDir := exOppCurrentRegimeDir
+            exOppPreviousRegimeLen := exOppCurrentRegimeLen
+            exOppPreviousRegimeEndBar := bar_index - 1
+        exOppCurrentRegimeDir := 0
+        exOppCurrentRegimeLen := 0
+    else
+        if exOppCurrentRegimeDir != 0
+            exOppPreviousRegimeDir := exOppCurrentRegimeDir
+            exOppPreviousRegimeLen := exOppCurrentRegimeLen
+            exOppPreviousRegimeEndBar := bar_index - 1
+
+        if exOppPreviousRegimeDir == -regimeDir and exOppPreviousRegimeLen >= EX_REVERSAL_PRIOR_REGIME_MIN_BARS and not exOppRegimeReversalEvent
+            int candidateBreak = regimeDir == 1 ? exOppLastBreakLongBar : exOppLastBreakShortBar
+            exOppPendingReversalDir := regimeDir
+            exOppPendingReversalOnsetBar := not na(candidateBreak) and (na(exOppPreviousRegimeEndBar) or candidateBreak > exOppPreviousRegimeEndBar) ? candidateBreak : bar_index
+            if mapDir == regimeDir and not regimeStructureConflict and not thesisInvalidated
+                exOppRegimeReversalEvent := true
+                exOppPendingReversalDir := 0
+                exOppPendingReversalOnsetBar := na
+
+        exOppCurrentRegimeDir := regimeDir
+        exOppCurrentRegimeLen := 1
+
+// TREND_OPPORTUNITY_V2 frame.
+var int exTrendOppKind = EX_OPP_NONE
+var int exTrendOppStage = EX_OPP_STAGE_NONE
+var int exTrendOppDir = 0
+var int exTrendOppSourceBar = na
+var float exTrendOppBreakLevel = na
+var bool exTrendOppSourceStrong = false
+
+if barstate.isconfirmed
+    if exTrendOppStage != EX_OPP_STAGE_NONE
+        bool trendInvalid = mapDir != exTrendOppDir or thesisInvalidated or regimeStructureConflict or fakeoutUpEvt or fakeoutDownEvt or destinationNear or exRelevantLocation
+        if trendInvalid
+            exTrendOppKind := EX_OPP_NONE
+            exTrendOppStage := EX_OPP_STAGE_NONE
+            exTrendOppDir := 0
+            exTrendOppSourceBar := na
+            exTrendOppBreakLevel := na
+            exTrendOppSourceStrong := false
+        else if exTrendOppKind == EX_OPP_BREAKOUT_EXPANSION or exTrendOppKind == EX_OPP_REACCELERATION
+            int trendAge = bar_index - exTrendOppSourceBar
+            if trendAge == 1
+                bool held1 = exTrendOppDir == 1 ? close > exTrendOppBreakLevel : close < exTrendOppBreakLevel
+                if not held1
+                    exTrendOppKind := EX_OPP_NONE
+                    exTrendOppStage := EX_OPP_STAGE_NONE
+                    exTrendOppDir := 0
+                    exTrendOppSourceBar := na
+                    exTrendOppBreakLevel := na
+                    exTrendOppSourceStrong := false
+                else
+                    exTrendOppStage := exTrendOppSourceStrong ? EX_OPP_STAGE_STRONG : EX_OPP_STAGE_CANDIDATE
+            else if trendAge == 2
+                bool heldPrev = exTrendOppDir == 1 ? close[1] > exTrendOppBreakLevel : close[1] < exTrendOppBreakLevel
+                bool heldNow = exTrendOppDir == 1 ? close > exTrendOppBreakLevel : close < exTrendOppBreakLevel
+                if heldPrev and heldNow
+                    exTrendOppStage := EX_OPP_STAGE_ACCEPTED
+                else
+                    exTrendOppKind := EX_OPP_NONE
+                    exTrendOppStage := EX_OPP_STAGE_NONE
+                    exTrendOppDir := 0
+                    exTrendOppSourceBar := na
+                    exTrendOppBreakLevel := na
+                    exTrendOppSourceStrong := false
+            else if trendAge > 2 and exTrendOppStage != EX_OPP_STAGE_ACCEPTED
+                exTrendOppKind := EX_OPP_NONE
+                exTrendOppStage := EX_OPP_STAGE_NONE
+                exTrendOppDir := 0
+                exTrendOppSourceBar := na
+                exTrendOppBreakLevel := na
+                exTrendOppSourceStrong := false
+
+    int newTrendKind = exOppRegimeReversalEvent ? EX_OPP_REGIME_REVERSAL :
+         exOppReaccelerationEvent ? EX_OPP_REACCELERATION :
+         exOppBreakoutEvent ? EX_OPP_BREAKOUT_EXPANSION : EX_OPP_NONE
+    if newTrendKind != EX_OPP_NONE
+        int newTrendDir = exOppRegimeReversalEvent ? regimeDir : exOppStructuralBreakDir
+        exTrendOppKind := newTrendKind
+        exTrendOppDir := newTrendDir
+        exTrendOppSourceBar := bar_index
+        if newTrendKind == EX_OPP_REGIME_REVERSAL
+            exTrendOppStage := EX_OPP_STAGE_ACCEPTED
+            exTrendOppBreakLevel := na
+            exTrendOppSourceStrong := false
+        else
+            exTrendOppStage := EX_OPP_STAGE_CANDIDATE
+            exTrendOppBreakLevel := lastBreakLevel
+            int sourcePseState = f_ex_pse_state_dir(newTrendDir, exPseReady, exRelativeVolume, exPressureProxy)
+            float penetrationAtr = not na(exTrendOppBreakLevel) and not na(atr) and atr > 0 ? newTrendDir * (close - exTrendOppBreakLevel) / atr : na
+            exTrendOppSourceStrong := not na(penetrationAtr) and penetrationAtr >= EX_BREAK_DECISIVE_ATR and sourcePseState == EX_PSE_CONFIRM
+
+int exTrendParticipationState = f_ex_pse_state_dir(exTrendOppDir, exPseReady, exRelativeVolume, exPressureProxy)
+bool exTrendMomentumAligned = f_ex_momentum_aligned_dir(exTrendOppDir, exMteState)
+bool exTrendMomentumOpposes = f_ex_momentum_opposes_dir(exTrendOppDir, exMteState)
+bool exTrendRsiSupportive = f_ex_rsi_supports_dir(exTrendOppDir, exRsiState, exRsiContextDir)
+bool exTrendRsiOpposes = f_ex_rsi_opposes_dir(exTrendOppDir, exRsiState, exRsiContextDir)
+
+var int exTrendReadiness = EX_READY_WAIT
+var int exTrendReadinessDir = 0
+bool exTrendPreparingEntered = false
+bool exTrendArmedEntered = false
+bool exTrendConfirmEvent = false
+
+if barstate.isconfirmed
+    int trPrev = exTrendReadiness
+    int trPrevDir = exTrendReadinessDir
+    int trNext = trPrev
+    int trNextDir = trPrevDir
+    bool validTrendFrame = exTrendOppStage != EX_OPP_STAGE_NONE and exTrendOppDir != 0
+
+    if not validTrendFrame
+        trNext := EX_READY_WAIT
+        trNextDir := 0
+    else if trPrevDir != 0 and trPrevDir != exTrendOppDir
+        trNext := EX_READY_WAIT
+        trNextDir := 0
+    else
+        if exTrendOppStage == EX_OPP_STAGE_CANDIDATE
+            if trPrev == EX_READY_PREP or trPrev == EX_READY_ARMED
+                trNext := EX_READY_WAIT
+                trNextDir := 0
+            else if trPrev == EX_READY_CONFIRMED
+                trNext := EX_READY_ALIGNED
+                trNextDir := exTrendOppDir
+            else if trPrev == EX_READY_ALIGNED
+                if exTrendMomentumOpposes and exTrendRsiOpposes
+                    trNext := EX_READY_WAIT
+                    trNextDir := 0
+                else
+                    trNext := EX_READY_ALIGNED
+                    trNextDir := exTrendOppDir
+            else
+                trNext := EX_READY_WAIT
+                trNextDir := 0
+        else if trPrev == EX_READY_WAIT
+            if exTrendMomentumOpposes or exTrendParticipationState == EX_PSE_CONTRARY
+                trNext := EX_READY_WAIT
+                trNextDir := 0
+            else if exTrendOppStage == EX_OPP_STAGE_STRONG
+                trNext := EX_READY_PREP
+                trNextDir := exTrendOppDir
+                exTrendPreparingEntered := true
+            else if exTrendOppStage >= EX_OPP_STAGE_ACCEPTED
+                if exTrendRsiSupportive and not exTrendMomentumOpposes
+                    trNext := EX_READY_ARMED
+                    trNextDir := exTrendOppDir
+                    exTrendArmedEntered := true
+                else
+                    trNext := EX_READY_PREP
+                    trNextDir := exTrendOppDir
+                    exTrendPreparingEntered := true
+        else if trPrev == EX_READY_PREP
+            if exTrendMomentumOpposes or exTrendParticipationState == EX_PSE_CONTRARY
+                trNext := EX_READY_WAIT
+                trNextDir := 0
+            else if exTrendOppStage == EX_OPP_STAGE_STRONG
+                if exTrendMomentumAligned and exTrendRsiSupportive
+                    trNext := EX_READY_ARMED
+                    trNextDir := exTrendOppDir
+                    exTrendArmedEntered := true
+                else
+                    trNext := EX_READY_PREP
+                    trNextDir := exTrendOppDir
+            else if exTrendOppStage >= EX_OPP_STAGE_ACCEPTED
+                if exTrendRsiSupportive and not exTrendMomentumOpposes
+                    trNext := EX_READY_ARMED
+                    trNextDir := exTrendOppDir
+                    exTrendArmedEntered := true
+                else
+                    trNext := EX_READY_PREP
+                    trNextDir := exTrendOppDir
+            else
+                trNext := EX_READY_WAIT
+                trNextDir := 0
+        else if trPrev == EX_READY_ARMED
+            if exTrendMomentumOpposes or exTrendRsiOpposes or exTrendParticipationState == EX_PSE_CONTRARY
+                trNext := EX_READY_WAIT
+                trNextDir := 0
+            else if exTrendOppStage >= EX_OPP_STAGE_ACCEPTED and not exTrendMomentumOpposes and exTrendRsiSupportive and (exTrendParticipationState == EX_PSE_CONFIRM or exTrendOppSourceStrong)
+                trNext := EX_READY_CONFIRMED
+                trNextDir := exTrendOppDir
+                exTrendConfirmEvent := true
+            else
+                trNext := EX_READY_ARMED
+                trNextDir := exTrendOppDir
+        else if trPrev == EX_READY_CONFIRMED
+            trNext := EX_READY_ALIGNED
+            trNextDir := exTrendOppDir
+        else if trPrev == EX_READY_ALIGNED
+            if exTrendMomentumOpposes and exTrendRsiOpposes
+                trNext := EX_READY_WAIT
+                trNextDir := 0
+            else
+                trNext := EX_READY_ALIGNED
+                trNextDir := exTrendOppDir
+
+    exTrendReadiness := trNext
+    exTrendReadinessDir := trNextDir
+
+// RANGE_ROTATION box and EDGE_REJECTION detector.
+bool exRangeBoxValuesReady = not na(prevSwingHigh) and not na(lastSwingHigh) and not na(prevSwingLow) and not na(lastSwingLow) and
+     not na(prevSwingHighBar) and not na(lastSwingHighBar) and not na(prevSwingLowBar) and not na(lastSwingLowBar) and not na(atr) and atr > 0
+bool exRangeCycleOrder = exRangeBoxValuesReady and prevSwingHighBar < lastSwingHighBar and prevSwingLowBar < lastSwingLowBar and
+     math.max(prevSwingHighBar, prevSwingLowBar) < math.min(lastSwingHighBar, lastSwingLowBar)
+bool exRangeVerticalOrder = exRangeBoxValuesReady and math.min(prevSwingHigh, lastSwingHigh) > math.max(prevSwingLow, lastSwingLow)
+float exRangeBoxHigh = exRangeBoxValuesReady ? (prevSwingHigh + lastSwingHigh) * 0.5 : na
+float exRangeBoxLow = exRangeBoxValuesReady ? (prevSwingLow + lastSwingLow) * 0.5 : na
+float exRangeBoxHeight = exRangeBoxValuesReady ? exRangeBoxHigh - exRangeBoxLow : na
+float exRangeBoundaryDrift = exRangeBoxValuesReady and not na(exRangeBoxHeight) and exRangeBoxHeight > 0 ? math.max(math.abs(prevSwingHigh - lastSwingHigh), math.abs(prevSwingLow - lastSwingLow)) / exRangeBoxHeight : na
+bool exRangeBoxValid = exRangeCycleOrder and exRangeVerticalOrder and not na(exRangeBoxHeight) and exRangeBoxHeight > 0 and exRangeBoxHeight / atr >= EX_RANGE_MIN_HEIGHT_ATR and exRangeBoundaryDrift <= EX_RANGE_BOUNDARY_DRIFT_MAX
+float exRangeBoxMid = exRangeBoxValid ? (exRangeBoxHigh + exRangeBoxLow) * 0.5 : na
+float exRangeBoxEdge = exRangeBoxValid ? exRangeBoxHeight * EX_RANGE_EDGE_FRACTION : na
+
+var float exRangeDetectorHigh = na
+var float exRangeDetectorLow = na
+var float exRangeDetectorEdge = na
+var bool exRangeLowerReady = true
+var bool exRangeUpperReady = true
+
+var int exRangeOppStage = EX_OPP_STAGE_NONE
+var int exRangeOppDir = 0
+var int exRangeOppSourceBar = na
+var float exRangeOppHigh = na
+var float exRangeOppLow = na
+var float exRangeOppMid = na
+var float exRangeOppEdge = na
+var float exRangeOppSourceClose = na
+
+bool exRangeSourceLong = false
+bool exRangeSourceShort = false
+bool exRangeSourceAmbiguous = false
+
+if barstate.isconfirmed
+    if exRangeOppStage != EX_OPP_STAGE_NONE
+        bool sourceCompatible = exRangeBoxValid and not na(exRangeOppHigh) and not na(exRangeOppLow) and not na(exRangeOppEdge) and
+             math.abs(exRangeBoxHigh - exRangeOppHigh) <= math.max(exRangeBoxEdge, exRangeOppEdge) and
+             math.abs(exRangeBoxLow - exRangeOppLow) <= math.max(exRangeBoxEdge, exRangeOppEdge) and
+             math.min(exRangeBoxHigh, exRangeOppHigh) > math.max(exRangeBoxLow, exRangeOppLow)
+        bool sourceInvalidated = exRangeOppDir == 1 ? close < exRangeOppLow : close > exRangeOppHigh
+        bool sourceOppositeReached = exRangeOppDir == 1 ? high >= exRangeOppHigh - exRangeOppEdge : low <= exRangeOppLow + exRangeOppEdge
+        if not sourceCompatible or sourceInvalidated or sourceOppositeReached
+            exRangeOppStage := EX_OPP_STAGE_NONE
+            exRangeOppDir := 0
+            exRangeOppSourceBar := na
+            exRangeOppHigh := na
+            exRangeOppLow := na
+            exRangeOppMid := na
+            exRangeOppEdge := na
+            exRangeOppSourceClose := na
+        else if exRangeOppStage == EX_OPP_STAGE_STRONG
+            int rangeAge = bar_index - exRangeOppSourceBar
+            bool insideSource = close >= exRangeOppLow and close <= exRangeOppHigh
+            bool progress = exRangeOppDir == 1 ? close > exRangeOppSourceClose : close < exRangeOppSourceClose
+            if rangeAge == 1 and insideSource and progress
+                exRangeOppStage := EX_OPP_STAGE_ACCEPTED
+            else if rangeAge >= 1
+                exRangeOppStage := EX_OPP_STAGE_NONE
+                exRangeOppDir := 0
+                exRangeOppSourceBar := na
+                exRangeOppHigh := na
+                exRangeOppLow := na
+                exRangeOppMid := na
+                exRangeOppEdge := na
+                exRangeOppSourceClose := na
+
+    if not exRangeBoxValid
+        exRangeDetectorHigh := na
+        exRangeDetectorLow := na
+        exRangeDetectorEdge := na
+        exRangeLowerReady := true
+        exRangeUpperReady := true
+    else
+        bool detectorCompatible = not na(exRangeDetectorHigh) and not na(exRangeDetectorLow) and not na(exRangeDetectorEdge) and
+             math.abs(exRangeBoxHigh - exRangeDetectorHigh) <= math.max(exRangeBoxEdge, exRangeDetectorEdge) and
+             math.abs(exRangeBoxLow - exRangeDetectorLow) <= math.max(exRangeBoxEdge, exRangeDetectorEdge) and
+             math.min(exRangeBoxHigh, exRangeDetectorHigh) > math.max(exRangeBoxLow, exRangeDetectorLow)
+        if not detectorCompatible
+            exRangeLowerReady := true
+            exRangeUpperReady := true
+        exRangeDetectorHigh := exRangeBoxHigh
+        exRangeDetectorLow := exRangeBoxLow
+        exRangeDetectorEdge := exRangeBoxEdge
+
+        if close >= exRangeBoxLow and close <= exRangeBoxHigh
+            if close >= exRangeBoxMid
+                exRangeLowerReady := true
+            if close <= exRangeBoxMid
+                exRangeUpperReady := true
+
+            bool lowerTouch = low <= exRangeBoxLow + exRangeBoxEdge
+            bool upperTouch = high >= exRangeBoxHigh - exRangeBoxEdge
+            bool longRawReclaim = not na(reclaimBelowLevel) and lowerTouch and close > exRangeBoxLow
+            bool shortRawReclaim = not na(reclaimAboveLevel) and upperTouch and close < exRangeBoxHigh
+            bool longEdgeReject = lowerTouch and close >= exRangeBoxLow + exRangeBoxEdge and exPressureProxy > 0
+            bool shortEdgeReject = upperTouch and close <= exRangeBoxHigh - exRangeBoxEdge and exPressureProxy < 0
+
+            bool lowerEvent = exRangeLowerReady and (longRawReclaim or longEdgeReject)
+            bool upperEvent = exRangeUpperReady and (shortRawReclaim or shortEdgeReject)
+            exRangeSourceLong := lowerEvent and longEdgeReject and not longRawReclaim
+            exRangeSourceShort := upperEvent and shortEdgeReject and not shortRawReclaim
+            exRangeSourceAmbiguous := exRangeSourceLong and exRangeSourceShort
+
+            if lowerEvent
+                exRangeLowerReady := false
+            if upperEvent
+                exRangeUpperReady := false
+
+            if not exRangeSourceAmbiguous and (exRangeSourceLong or exRangeSourceShort)
+                exRangeOppStage := EX_OPP_STAGE_STRONG
+                exRangeOppDir := exRangeSourceLong ? 1 : -1
+                exRangeOppSourceBar := bar_index
+                exRangeOppHigh := exRangeBoxHigh
+                exRangeOppLow := exRangeBoxLow
+                exRangeOppMid := exRangeBoxMid
+                exRangeOppEdge := exRangeBoxEdge
+                exRangeOppSourceClose := close
+            else if exRangeSourceAmbiguous
+                exRangeOppStage := EX_OPP_STAGE_NONE
+                exRangeOppDir := 0
+                exRangeOppSourceBar := na
+                exRangeOppHigh := na
+                exRangeOppLow := na
+                exRangeOppMid := na
+                exRangeOppEdge := na
+                exRangeOppSourceClose := na
+
+int exRangeParticipationState = f_ex_pse_state_dir(exRangeOppDir, exPseReady, exRelativeVolume, exPressureProxy)
+bool exRangeMomentumAligned = f_ex_momentum_aligned_dir(exRangeOppDir, exMteState)
+bool exRangeMomentumOpposes = f_ex_momentum_opposes_dir(exRangeOppDir, exMteState)
+bool exRangeRsiLocalSupportive = f_ex_rsi_local_supports_dir(exRangeOppDir, exRsiState)
+bool exRangeRsiLocalOpposes = f_ex_rsi_local_opposes_dir(exRangeOppDir, exRsiState)
+int exRangeIgnitionCount = (exRangeMomentumAligned ? 1 : 0) + (exRangeRsiLocalSupportive ? 1 : 0) + (exRangeParticipationState == EX_PSE_CONFIRM ? 1 : 0)
+bool exRangeHardOpposition = exRangeMomentumOpposes and exRangeRsiLocalOpposes
+
+var int exRangeReadiness = EX_READY_WAIT
+var int exRangeReadinessDir = 0
+var int exRangeReadinessSourceBar = na
+bool exRangeArmedEntered = false
+bool exRangeConfirmEvent = false
+
+if barstate.isconfirmed
+    int rrPrev = exRangeReadiness
+    int rrPrevDir = exRangeReadinessDir
+    bool sourceReset = exRangeOppStage != EX_OPP_STAGE_NONE and not na(exRangeOppSourceBar) and not na(exRangeReadinessSourceBar) and exRangeOppSourceBar != exRangeReadinessSourceBar
+    if sourceReset
+        rrPrev := EX_READY_WAIT
+        rrPrevDir := 0
+
+    int rrNext = rrPrev
+    int rrNextDir = rrPrevDir
+
+    if exRangeOppStage == EX_OPP_STAGE_NONE or exRangeOppDir == 0
+        rrNext := EX_READY_WAIT
+        rrNextDir := 0
+        exRangeReadinessSourceBar := na
+    else
+        exRangeReadinessSourceBar := exRangeOppSourceBar
+        if exRangeOppStage == EX_OPP_STAGE_STRONG
+            if exRangeHardOpposition
+                rrNext := EX_READY_WAIT
+                rrNextDir := 0
+            else if exRangeIgnitionCount >= 1
+                rrNext := EX_READY_ARMED
+                rrNextDir := exRangeOppDir
+                exRangeArmedEntered := rrPrev != EX_READY_ARMED or rrPrevDir != exRangeOppDir
+            else
+                rrNext := EX_READY_WAIT
+                rrNextDir := 0
+        else if exRangeOppStage == EX_OPP_STAGE_ACCEPTED
+            if rrPrev == EX_READY_ARMED and rrPrevDir == exRangeOppDir
+                rrNext := EX_READY_CONFIRMED
+                rrNextDir := exRangeOppDir
+                exRangeConfirmEvent := true
+            else if rrPrev == EX_READY_CONFIRMED and rrPrevDir == exRangeOppDir
+                rrNext := EX_READY_ALIGNED
+                rrNextDir := exRangeOppDir
+            else if rrPrev == EX_READY_ALIGNED and rrPrevDir == exRangeOppDir
+                rrNext := EX_READY_ALIGNED
+                rrNextDir := exRangeOppDir
+            else
+                rrNext := EX_READY_WAIT
+                rrNextDir := 0
+
+    exRangeReadiness := rrNext
+    exRangeReadinessDir := rrNextDir
+
 bool exMomentumAligned = mapDir == 1 ? (exMteState == EX_MTE_TURN_UP or exMteState == EX_MTE_UP_ACCEL) :
      mapDir == -1 ? (exMteState == EX_MTE_TURN_DOWN or exMteState == EX_MTE_DOWN_ACCEL) : false
 bool exMomentumStronglyOpposes = mapDir == 1 ? (exMteState == EX_MTE_TURN_DOWN or exMteState == EX_MTE_DOWN_ACCEL) :
