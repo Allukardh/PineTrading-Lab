@@ -46,6 +46,7 @@ class OpportunityEpisode:
     atr: float | None
     destination: float | None
     invalidation: float | None
+    prior_regime_bars: int | None = None
 
 
 def _valid_direction(value: int) -> bool:
@@ -106,6 +107,8 @@ def detect_episodes(
         onset: int,
         confirmation: int,
         snap: IntegrationSnapshot,
+        *,
+        prior_regime_bars: int | None = None,
     ) -> None:
         episodes.append(
             OpportunityEpisode(
@@ -119,6 +122,7 @@ def detect_episodes(
                 atr=snap.atr,
                 destination=snap.destination,
                 invalidation=snap.invalidation,
+                prior_regime_bars=prior_regime_bars,
             )
         )
 
@@ -150,6 +154,11 @@ def detect_episodes(
                     i,
                     i,
                     snap,
+                    prior_regime_bars=(
+                        current_regime_len
+                        if current_regime_dir == mature_dir
+                        else previous_regime_len
+                    ),
                 )
 
         # A structural break itself is a valid expansion episode only if MM-0
