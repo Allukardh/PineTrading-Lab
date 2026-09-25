@@ -24,9 +24,9 @@ TARGET_NEAR_ATR = 0.30
 PULLBACK_MIN_DEPTH = 0.12
 PULLBACK_MAX_DEPTH = 0.9
 AUDIT_HEADER = ['Time', 'Open', 'High', 'Low', 'Close', 'MM Audit • Schema', 'MM Audit • Confirmado', 'MM Audit • MapDir', 'MM Audit • ATR', 'MM Audit • Modelo', 'MM Audit • Amostras adaptativas', 'MM Audit • Correção topo', 'MM Audit • Correção fundo', 'MM Audit • Destino 1', 'MM Audit • Invalidação', 'MM Audit • Confluências', 'MM Audit • Nova tese evt', 'MM Audit • Toque zona evt', 'MM Audit • Zona→Destino evt', 'MM Audit • Zona→Invalidação evt', 'MM Audit • Ambíguo evt', 'MM Audit • Sweep reclaim evt']
-CONTEXT_TF = {'15m': '1h', '1h': '4h', '4h': '1d', '1d': '1w', '3d': '3d', '1w': '1w'}
+CONTEXT_TF = {'15m': '1h', '1h': '4h', '4h': '1d', '1d': '1w', '3d': '3d', '1w': '1w', '1M': '1M'}
 DAY_LEVEL_TFS = {'15m', '1h', '4h', '1d'}
-WEEK_LEVEL_TFS = set(CONTEXT_TF)
+WEEK_LEVEL_TFS = set(CONTEXT_TF) - {'1M'}
 
 @dataclass(frozen=True)
 class Candle:
@@ -60,6 +60,32 @@ class IntegrationSnapshot:
     retest_event: bool
     reclaim_event: bool
     destination_near: bool
+
+    # 0.2 research telemetry only. These fields expose state already calculated
+    # by the accepted MM-0 kernel; they do not alter Market Map semantics.
+    regime_dir: int = 0
+    structure_dir: int = 0
+    structural_break_dir: int = 0
+    fakeout_event: bool = False
+    new_thesis_event: bool = False
+    thesis_key: int | None = None
+    destination: float | None = None
+    invalidation: float | None = None
+    structural_break_level: float | None = None
+
+    # Range-rotation research telemetry. Values are confirmed swing/reclaim
+    # state already known by MM-0 on this bar; exposing them does not change
+    # any production Market Map decision.
+    last_swing_high: float | None = None
+    last_swing_high_bar: int | None = None
+    prev_swing_high: float | None = None
+    prev_swing_high_bar: int | None = None
+    last_swing_low: float | None = None
+    last_swing_low_bar: int | None = None
+    prev_swing_low: float | None = None
+    prev_swing_low_bar: int | None = None
+    raw_upper_reclaim_level: float | None = None
+    raw_lower_reclaim_level: float | None = None
 
 
 @dataclass
@@ -239,29 +265,46 @@ def acceptance(cs: Sequence[Candle], cur: int, start: int | None, end: int | Non
 
 class Kernel:
 
-    def __init__(self, chart, context, daily, weekly, timeframe, tick=0.01):
+    def __init__(
+        self,
+        chart,
+        context,
+        daily,
+        weekly,
+        timeframe,
+        tick=0.01,
+        *,
+        mid_len=MID_LEN,
+        slow_len=SLOW_LEN,
+    ):
         if timeframe not in CONTEXT_TF:
             raise ValueError(timeframe)
+        if mid_len <= 0 or slow_len <= 0:
+            raise ValueError("EMA lengths must be positive")
+        if mid_len >= slow_len:
+            raise ValueError("mid_len must be smaller than slow_len")
         self.x = list(chart)
         self.ctx = list(context)
         self.d = list(daily)
         self.w = list(weekly)
         self.tf = timeframe
         self.tick = tick
+        self.mid_len = int(mid_len)
+        self.slow_len = int(slow_len)
         self.self_context = CONTEXT_TF[timeframe] == timeframe
         self.day_levels_allowed = timeframe in DAY_LEVEL_TFS
         self.week_levels_allowed = timeframe in WEEK_LEVEL_TFS
         closes = [x.c for x in self.x]
         highs = [x.h for x in self.x]
         lows = [x.l for x in self.x]
-        self.mid = ema(closes, MID_LEN)
-        self.slow = ema(closes, SLOW_LEN)
+        self.mid = ema(closes, self.mid_len)
+        self.slow = ema(closes, self.slow_len)
         self.a = atr(self.x)
         self.ph = [phigh(highs, i) for i in range(len(self.x))]
         self.pl = [plow(lows, i) for i in range(len(self.x))]
         cc = [x.c for x in self.ctx]
-        self.cm = ema(cc, MID_LEN)
-        self.cs = ema(cc, SLOW_LEN)
+        self.cm = ema(cc, self.mid_len)
+        self.cs = ema(cc, self.slow_len)
         self.ct = [x.t for x in self.ctx]
         self.dt = [x.t for x in self.d]
         self.wt = [x.t for x in self.w]
@@ -525,6 +568,25 @@ class Kernel:
                     retest_event=retest_evt,
                     reclaim_event=reclaim_aligned_evt,
                     destination_near=destination_near,
+                    regime_dir=regime,
+                    structure_dir=sdir,
+                    structural_break_dir=1 if bu else -1 if bd else 0,
+                    fakeout_event=bool(fu or fd),
+                    new_thesis_event=bool(new),
+                    thesis_key=key,
+                    destination=None if thesis_inv else dest,
+                    invalidation=inval if ready else None,
+                    structural_break_level=break_level if (bu or bd) else None,
+                    last_swing_high=lsh,
+                    last_swing_high_bar=lshb,
+                    prev_swing_high=psh,
+                    prev_swing_high_bar=pshb,
+                    last_swing_low=lsl,
+                    last_swing_low_bar=lslb,
+                    prev_swing_low=psl,
+                    prev_swing_low_bar=pslb,
+                    raw_upper_reclaim_level=rec_a,
+                    raw_lower_reclaim_level=rec_b,
                 ))
             ts = datetime.fromtimestamp(x.t / 1000000.0, tz=timezone.utc).isoformat().replace('+00:00', 'Z')
             if emit_audit:

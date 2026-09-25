@@ -1,0 +1,93 @@
+name: Suite 0.2 RANGE_ROTATION evidence
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["research/suite-0.2-opportunity-evidence"]
+    paths:
+      - ".github/workflows/suite-0.2-range-rotation.yml"
+      - "tools/range_rotation_reference.py"
+      - "tools/test_range_rotation_reference.py"
+      - "tools/suite_0_2_range_rotation_evidence.py"
+      - "tools/opportunity_episode_reference.py"
+      - "tools/opportunity_latency_reference.py"
+      - "tools/execution_candidate_reference.py"
+      - "tools/execution_state_reference.py"
+      - "tools/execution_integrated_evidence.py"
+      - "tools/market_map_offline_core.py"
+      - "tools/market_execution_bridge_reference.py"
+      - "tools/rsi_state_reference.py"
+      - "tools/momentum_turn_reference.py"
+      - "tools/participation_reference.py"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  btc-range-rotation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      DATA_ROOT: /tmp/Binance
+      OUT_DIR: /tmp/suite-0.2-range
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install market-data dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements-market-data.txt
+
+      - name: Run RANGE_ROTATION unit tests
+        run: python -m unittest tools.test_range_rotation_reference -v
+
+      - name: Acquire exact canonical BTC 4H 1D 1W snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEST="$DATA_ROOT/spot/BTCUSDT/consolidated"
+          mkdir -p "$DEST" "$OUT_DIR"
+
+          fetch_artifact() {
+            local id="$1"
+            local name="$2"
+            local expected="$3"
+            gh api \
+              -H "Accept: application/vnd.github+json" \
+              "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip" \
+              > "$DEST/$name"
+            echo "$expected  $DEST/$name" | sha256sum -c -
+          }
+
+          fetch_artifact 10811281699 BTCUSDT_4h.parquet 93226923a88861cc56d11d82900801db7f64fbe89920c710843dc26673265e06
+          fetch_artifact 10810907465 BTCUSDT_1d.parquet 1788d075ad21091e279cb68ccfac79935149ca9c444a74dbc971bba00e15fdae
+          fetch_artifact 10811406601 BTCUSDT_1w.parquet 960de3600ea7ab8651ec2dbaa51d204e05fce19127eb53bb24fcd59dd010ac46
+
+      - name: Run RANGE_ROTATION evidence
+        run: |
+          python -m tools.suite_0_2_range_rotation_evidence \
+            --data-root "$DATA_ROOT" \
+            --symbol BTCUSDT \
+            --canonical-manifest manifests/binance-spot-btcusdt.production-2026-09-24.json \
+            --output-json "$OUT_DIR/suite-0.2-btc-range-rotation.json" \
+            --output-md "$OUT_DIR/suite-0.2-btc-range-rotation.md" \
+            --code-sha "$GITHUB_SHA"
+
+      - name: Show summary
+        run: cat "$OUT_DIR/suite-0.2-btc-range-rotation.md"
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: suite-0.2-btc-range-rotation
+          path: |
+            /tmp/suite-0.2-range/suite-0.2-btc-range-rotation.json
+            /tmp/suite-0.2-range/suite-0.2-btc-range-rotation.md
+          retention-days: 30

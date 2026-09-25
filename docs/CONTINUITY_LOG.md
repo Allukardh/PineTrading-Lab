@@ -707,6 +707,95 @@ Causal consequence:
 
 ---
 
+### 2026-09-25 — Suite 0.2 breakout acceptance contract narrowed by cross-asset evidence
+
+BTC / ETH / AVAX 4H/1D evidence established a useful distinction between:
+- a structural breakout **candidate**;
+- an early **strong/sustained** breakout;
+- a later **accepted** breakout.
+
+Cross-asset findings:
+- structural penetration normalized by ATR is the most stable contemporaneous held-vs-fakeout discriminator;
+- PSE participation confirmation adds useful candidate quality;
+- making MTE a mandatory breakout-acceptance gate adds little incremental discrimination and unnecessarily duplicates downstream Execution timing;
+- a strong breakout candle should not be treated as final confirmation;
+- two subsequent confirmed closes holding beyond the broken structural level (`HOLD_2`) are the strongest minimal acceptance anchor tested so far;
+- allowing decisive penetration + PSE + first held close to advance one bar earlier has a measurable fakeout cost and therefore belongs to provisional/arming semantics rather than final acceptance.
+
+Research decision:
+- BREAKOUT candidate lifecycle becomes conceptually:
+  `CANDIDATE -> STRONG/SUSTAINED -> ACCEPTED`;
+- this may later map naturally to `PREPARANDO -> ARMADO -> CONFIRMA` without adding visible panel complexity;
+- no production mapping is authorized yet.
+
+Regime-transition evidence across BTC/ETH/AVAX also confirmed:
+- the first opposite structural break against a mature regime is too broad to become an actionable trade signal;
+- strict coherent `REGIME_REVERSAL` remains valid;
+- earlier actionable reversal remains **INSUFFICIENT EVIDENCE**;
+- future work should research base/acceptance/follow-through rather than weakening canonical `map_dir`.
+
+Runs:
+- breakout acceptance matrix `36143637064` — PASS;
+- feature matrix `36143819846` — PASS.
+
+Detailed worklog:
+`docs/worklog/2026-09-25-suite-0.2-breakout-acceptance.md`
+
+Causal consequence:
+- responsiveness should come from opportunity lifecycle semantics, not global threshold relaxation;
+- next discriminant is structural context partition + deterministic `REACCELERATION` episodes;
+- profiles remain unapproved.
+
+---
+
+### 2026-09-25 — REACCELERATION accepted as a Suite 0.2 opportunity class
+
+The first REACCELERATION draft used a fixed 24-bar pullback veto and produced too few episodes, especially on 1D.
+
+Instrumentation showed that the problem was methodological: a fixed bar window was mixing elapsed time with structural sequence.
+
+The contract was changed to:
+- mature coherent regime;
+- prior same-direction structural break;
+- if a pullback/reaction occurred after that break and before the current break, classify the current break as `PULLBACK_RESOLUTION`;
+- otherwise the current break may be `REACCELERATION`;
+- reactions belonging to older legs do not contaminate the current leg.
+
+This structural-sequence definition:
+- increased BTC 4H sample from 29 to 59;
+- increased BTC 1D from 2 to 15;
+- remained distinct from the larger PULLBACK_RESOLUTION and generic breakout populations.
+
+Cross-asset 4H evidence on BTC/ETH/AVAX showed REACCELERATION follow-through behavior consistent enough to continue.
+
+A dedicated 15-symbol 1D robustness run then produced:
+- 238 REACCELERATION episodes;
+- 122 held / 113 fakeout / 3 unresolved under the retrospective structural diagnostic;
+- frozen 0.1 PREP+ only 1.26%;
+- frozen 0.1 CONFIRMA/aligned only 0.84%;
+- dominant miss `LOCATION_NOT_RELEVANT`;
+- HOLD_2 held recall 95.90%;
+- HOLD_2 fakeout acceptance 31.86%;
+- held share among accepted resolved 76.47%.
+
+Decision:
+- `REACCELERATION` — **KEEP** for Opportunity Engine research;
+- opportunity label is known at the structural break close;
+- HOLD_2 is later acceptance evidence and never backdates the opportunity;
+- the major 0.1 gap is opportunity-location coverage, not a generic MTE/RSI-speed defect.
+
+Causal consequence:
+- enough independent evidence now exists to build the first Opportunity Engine counterfactual;
+- that counterfactual must preserve 0.1 pullback/retest while adding breakout and reacceleration lifecycle semantics;
+- raw regime-transition remains non-actionable;
+- profiles remain unapproved;
+- RANGE_ROTATION remains deferred until the new counterfactual is understood.
+
+Detailed worklog:
+`docs/worklog/2026-09-25-suite-0.2-reacceleration.md`
+
+---
+
 ## 9. Current continuation checkpoint
 
 The exact volatile checkpoint belongs in:

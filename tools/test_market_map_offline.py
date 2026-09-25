@@ -132,6 +132,17 @@ class T(unittest.TestCase):
         self.assertGreaterEqual(active.t1_top, active.t1_bottom)
         self.assertGreaterEqual(active.t3_top, active.t3_bottom)
 
+        # Research telemetry must only expose state already implied by the
+        # accepted audit/kernel path and must remain internally coherent.
+        for snap in integration:
+            self.assertIn(snap.regime_dir, (-1, 0, 1))
+            self.assertIn(snap.structure_dir, (-1, 0, 1))
+            self.assertIn(snap.structural_break_dir, (-1, 0, 1))
+            if snap.new_thesis_event:
+                self.assertIsNotNone(snap.thesis_key)
+            if snap.thesis_invalidated:
+                self.assertIsNone(snap.destination)
+
     def test_execution_integration_constants_match_promoted_pine(self):
         self.assertEqual(mm.RETEST_MAX_BARS, 24)
         self.assertAlmostEqual(mm.RETEST_TOL_ATR, 0.18)

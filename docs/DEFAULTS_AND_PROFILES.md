@@ -65,30 +65,65 @@ These are engineering parameters and should travel together through profile pres
 
 Profiles are **optional**, not mandatory.
 
-A product should expose a profile selector only when materially different operating styles cannot be handled well by one robust automatic/default engine.
+Suite 0.2 Phase E is now closed with a deliberately small evidence-backed set.
 
-Suite 0.2 introduces an evidence-gated candidate contract:
+### PADRÃO — accepted default
 
-### ANTECIPADO
-- earlier opportunity recognition;
-- lower confirmation burden where evidence supports it;
-- especially relevant to regime reversals, breakouts and reacceleration;
-- no lookahead or historical repaint;
-- persistent actionable states remain timing-safe.
+- remains the recommended global default;
+- preserves accepted confirmed OPERATOR_READINESS semantics;
+- applies on every supported horizon;
+- remains the effective behavior whenever no earlier-action contract has evidence.
 
-### PADRÃO
-- the accepted 0.1 behavior is the anchor/reference;
-- do not mutate this comparator while researching alternatives;
-- remains the recommended default unless evidence proves another single default is better.
+### ANTECIPADO — scoped TREND posture
 
-### CONFIRMADO
-- later/more selective;
-- stronger structural/HTF/participation burden;
-- useful only if it materially improves false-start behavior without consuming too much of the move.
+ANTECIPADO is **not** a global lowering of confirmation thresholds.
 
-These names describe **timing/confirmation posture**, not risk appetite or leverage.
+Evidence-backed actionable scope:
+- horizons: **15m / 1H / 4H / 1D / 3D**;
+- opportunity classes:
+  - **BREAKOUT_EXPANSION**;
+  - **REACCELERATION**.
 
-A profile must change coherent behavior bundles. It must not be a random collection of unrelated numbers.
+It surfaces the already-accepted TREND path earlier, at an evidence-backed readiness point.
+
+The following remain PADRÃO even when ANTECIPADO is selected:
+- pullback / retest / reclaim;
+- RANGE_ROTATION;
+- strict REGIME_REVERSAL;
+- **1W** execution;
+- **1M** macro/cycle context.
+
+ANTECIPADO means **earlier TREND opportunity/action posture**, not higher leverage, higher account risk, weaker timing safety or permission to repaint.
+
+### CONFIRMADO — not shipped
+
+The tested +1 persistence contract is **REMOVE / DO NOT SHIP**.
+
+Evidence showed:
+- added delay;
+- weak/no useful quality discrimination;
+- some rejected PADRÃO theses subsequently completed.
+
+Do not invent +2/+3 variants merely to manufacture a third profile.
+
+### Horizon result
+
+- 15m — ANTECIPADO TREND supported
+- 1H — ANTECIPADO TREND supported
+- 4H — ANTECIPADO TREND supported
+- 1D — ANTECIPADO TREND supported
+- 3D — ANTECIPADO TREND supported
+- 1W — PADRÃO only; early profile evidence too sparse
+- 1M — macro/cycle awareness; not an execution-profile horizon
+
+### Product rule
+
+If a user selects ANTECIPADO on an unsupported opportunity class or horizon, the engine keeps PADRÃO semantics for that path.
+
+The UI/guide must make this scoped behavior explicit enough that the operator does not interpret ANTECIPADO as a universal "faster everything" mode.
+
+Profiles control coherent behavior. They must never expose a bag of ATR/pivot/RSI magic numbers.
+
 
 ## Auto-first policy
 

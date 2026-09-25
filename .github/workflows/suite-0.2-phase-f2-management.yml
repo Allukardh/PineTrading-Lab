@@ -1,0 +1,95 @@
+name: Suite 0.2 Phase F2 Management horizons
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["research/suite-0.2-opportunity-evidence"]
+    paths:
+      - ".github/workflows/suite-0.2-phase-f2-management.yml"
+      - "tools/suite_0_2_phase_f2_management_horizons.py"
+      - "tools/suite_0_2_thesis_management_v1_1_evidence.py"
+      - "tools/suite_0_2_thesis_management_v1_evidence.py"
+      - "tools/suite_0_2_thesis_management_evidence.py"
+      - "tools/thesis_management_reference.py"
+      - "tools/thesis_management_anchor_reference.py"
+      - "tools/operator_readiness_reference.py"
+      - "tools/opportunity_execution_counterfactual.py"
+      - "tools/opportunity_readiness_reference.py"
+      - "tools/range_rotation_opportunity_reference.py"
+      - "tools/range_rotation_readiness_reference.py"
+      - "tools/range_rotation_reference.py"
+      - "tools/execution_candidate_reference.py"
+      - "tools/execution_state_reference.py"
+      - "tools/execution_integrated_evidence.py"
+      - "tools/execution_historical_evidence.py"
+      - "tools/market_map_offline_core.py"
+      - "tools/momentum_turn_reference.py"
+      - "tools/rsi_state_reference.py"
+      - "tools/participation_reference.py"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  btc-f2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      DATA_ROOT: /tmp/Binance
+      OUT_DIR: /tmp/suite-0.2-f2
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements-market-data.txt
+
+      - name: Run management unit tests
+        run: |
+          python -m unittest             tools.test_thesis_management_reference             tools.test_thesis_management_anchor_reference             tools.test_operator_readiness_reference -v
+
+      - name: Acquire exact canonical BTC six-timeframe snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEST="$DATA_ROOT/spot/BTCUSDT/consolidated"
+          mkdir -p "$DEST" "$OUT_DIR"
+
+          fetch_artifact() {
+            local id="$1"
+            local name="$2"
+            local expected="$3"
+            gh api               -H "Accept: application/vnd.github+json"               "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip"               > "$DEST/$name"
+            echo "$expected  $DEST/$name" | sha256sum -c -
+          }
+
+          fetch_artifact 10811401520 BTCUSDT_15m.parquet cac347638b577b2bcfcd671f66a68af96edb49c614c4dc203d7dc8ea3fb48411
+          fetch_artifact 10810563678 BTCUSDT_1h.parquet 86f2f12b66979d2e0659b44b95b584ec5140050770acce58e6c4643c9b409776
+          fetch_artifact 10811281699 BTCUSDT_4h.parquet 93226923a88861cc56d11d82900801db7f64fbe89920c710843dc26673265e06
+          fetch_artifact 10810907465 BTCUSDT_1d.parquet 1788d075ad21091e279cb68ccfac79935149ca9c444a74dbc971bba00e15fdae
+          fetch_artifact 10811056999 BTCUSDT_3d.parquet e4228da434e9131ae2353147181069d119bc0ef373ec4b93effc5c1dcf9a39d9
+          fetch_artifact 10811406601 BTCUSDT_1w.parquet 960de3600ea7ab8651ec2dbaa51d204e05fce19127eb53bb24fcd59dd010ac46
+
+      - name: Run Phase F2 management horizon gate
+        run: |
+          python -m tools.suite_0_2_phase_f2_management_horizons             --data-root "$DATA_ROOT"             --symbol BTCUSDT             --canonical-manifest manifests/binance-spot-btcusdt.production-2026-09-24.json             --output-json "$OUT_DIR/suite-0.2-btc-phase-f2-management.json"             --output-md "$OUT_DIR/suite-0.2-btc-phase-f2-management.md"             --code-sha "$GITHUB_SHA"
+
+      - name: Show summary
+        run: cat "$OUT_DIR/suite-0.2-btc-phase-f2-management.md"
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: suite-0.2-btc-phase-f2-management
+          path: |
+            /tmp/suite-0.2-f2/suite-0.2-btc-phase-f2-management.json
+            /tmp/suite-0.2-f2/suite-0.2-btc-phase-f2-management.md
+          retention-days: 30
