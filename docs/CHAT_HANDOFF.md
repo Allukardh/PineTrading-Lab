@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** STABLE  
-**Active product front:** Suite 0.2 — Phase F research promoted / Phase G not yet started  
+**Checkpoint state:** PREPARED  
+**Active product front:** Suite 0.2 — Phase G production Pine integration  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,38 +131,62 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### STABLE result — Suite 0.2 research through Phase F promoted
+### PREPARED block — Suite 0.2 Phase G production Pine integration
 
-Promotion:
-- research/evidence PR #25 — merged;
-- merge commit `74d58a4376f004ec0548e2f9a3640f0d82119c35`.
+Canonical research promotion:
+- PR #25 merge `74d58a4376f004ec0548e2f9a3640f0d82119c35`;
+- Phase F — CLOSED / KEEP.
 
-Canonical research decisions:
-- Opportunity Engine v2 — KEEP;
-- RANGE_ROTATION / EARLY_ANY1 — KEEP;
-- OPERATOR_READINESS_V1 — KEEP;
-- PADRÃO — global default / KEEP;
-- ANTECIPADO — TREND-only on 15m / 1H / 4H / 1D / 3D;
-- CONFIRMADO +1 — REMOVE;
-- Thesis Management V1.1 — KEEP;
-- 15m / 1H / 4H / 1D / 3D management — KEEP;
-- 1W management — KEEP but sparse;
-- 1M — macro/cycle awareness only.
+Accepted production baseline lineage:
+- Market Map 0.1.0 promotion `0eeb0d37b256a950cfb38f627fa3521bb213d380`;
+- Execution 0.1.0 promotion `a7557df2d0142441ea782dba4b8c3f95ebc38371`.
 
-Final Phase F2 high-horizon evidence:
-- workflow `36194845938` — PASS;
-- 3D: 39 confirms across 15/15 symbols, FULL parity 100%;
-- 1W: 11 confirms across 9/15 symbols, FULL parity 100%;
-- no horizon-specific retuning justified.
+Phase G objective:
+- implement the accepted Suite 0.2 research contract in the existing **two-script topology**;
+- preserve close-confirmed/reload-safe semantics;
+- increase internal intelligence without increasing operator-facing clutter;
+- make the visible panel more direct;
+- keep research telemetry/audit available without forcing it into the normal chart.
 
-Production state:
-- Market Map 0.1.0 and Execution 0.1.0 remain the accepted production Pine baselines;
-- Suite 0.2 production Pine has **not** been implemented/promoted yet.
+Implementation locks:
+- do not retune accepted opportunity/profile/management semantics during translation;
+- frozen 0.1 behavior remains historical lineage and regression comparator;
+- Opportunity Engine v2 paths remain internally independent until OPERATOR_READINESS_V1 projection;
+- PADRÃO is default;
+- ANTECIPADO is TREND-only on 15m / 1H / 4H / 1D / 3D;
+- no CONFIRMADO profile;
+- RANGE_ROTATION uses accepted EARLY_ANY1 semantics;
+- capability-aware Thesis Management V1.1 starts only from PADRÃO CONFIRMA;
+- 1W remains PADRÃO;
+- 1M remains macro/cycle awareness only;
+- no synthetic target/invalidation anchors;
+- no third runtime indicator.
 
-Next product block:
-- Phase G production Pine integration + targeted TradingView gate;
-- use a new issue/branch/PR;
-- do not reopen accepted research semantics merely because implementation work begins.
+Expected Phase G sequence:
+1. create a dedicated implementation issue + branch from current `main`;
+2. audit accepted research reference files and current Pine 0.1 implementation;
+3. write a Pine implementation contract/mapping before editing logic;
+4. implement Market Map 0.2 candidate;
+5. implement Execution 0.2 candidate with cross-script parity;
+6. add/update offline/static parity tests;
+7. pass Static integrity + Pine compile;
+8. only then request a compact TradingView validation matrix;
+9. finish `docs/GUIA_DO_OPERADOR.md` in Portuguese before promotion.
+
+Operator-facing target remains direct:
+- CENÁRIO
+- OPORTUNIDADE
+- LADO
+- AÇÃO
+- ALVO
+- GESTÃO
+- INVALIDA
+- CORREÇÃO only when relevant
+
+Recovery:
+- if interrupted, compare current Phase G branch/PR with this checkpoint;
+- inspect only commits/runs newer than the Phase G branch point;
+- do not reopen Phase A–F research without a concrete parity defect.
 
 
 ## 7. Continuity protocol
