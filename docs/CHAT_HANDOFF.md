@@ -3,7 +3,7 @@
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
 **Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — thesis management / exit-risk semantics  
+**Active product front:** Suite 0.2 — thesis-management warning-channel discrimination  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,65 +131,73 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — thesis management / exit-risk semantics
+### PREPARED block — thesis-management warning-channel discrimination
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- stable research head: `93a5b6e9f4200c70d34c17fa1ed02d826a7e8751`
+- durable pre-block research head: `0f0f49879bab0e212697f88a2a10be9c2a859c0d`
 
-Closed research before this block:
-- Opportunity Engine baseline — KEEP;
-- RANGE_ROTATION — KEEP with EDGE_REJECTION + EARLY_ANY1;
-- OPERATOR_READINESS_V1 — KEEP;
-- horizon roles closed:
-  - 15m/1H short + precision;
-  - 4H/1D primary swing;
-  - 3D medium/long active opportunity;
-  - 1W high-horizon opportunity/context with sparse confidence;
-  - 1M macro/cycle awareness;
-- no production Pine/default/profile changes.
+Closed V0 evidence:
+- initial workflow `36178916973` — PASS;
+- diagnostic workflow `36179166386` — PASS;
+- Static integrity — PASS;
+- contract: `docs/design/THESIS_MANAGEMENT.md`;
+- worklog: `docs/worklog/2026-09-25-suite-0.2-thesis-management.md`.
 
-Product objective for this block:
-- define market/thesis-management semantics after an opportunity is confirmed/aligned;
-- support spot sell/protect/avoid-chasing decisions and optional bidirectional long/short use;
-- never pretend the script knows the operator's actual position;
-- keep operator language direct and compact;
-- preserve final operator discretion.
+V0 decisions:
+- CONTINUATION — KEEP baseline;
+- COMPLETED — KEEP;
+- INVALIDATED — KEEP;
+- AMBIGUOUS — KEEP;
+- PROTECT V0 — REFINE;
+- REALIZATION_RISK V0 — REFINE;
+- FADING — diagnostic only.
+
+Observed V0 problem:
+- PROTECT catches 82.61% of BTC 4H invalidations, median 15-bar lead;
+- but occupies 22.99% of live 4H bars and 39.60% of 1D bars;
+- bare structural warning dominates PROTECT load;
+- REALIZATION_RISK = 0 because close-near <=0.30 ATR rarely occurs before intrabar target hit.
+
+Pre-registered candidate channels:
+
+**PROTECT_STRICT**
+- invalidation <= accepted 0.20 ATR; OR
+- Strength EXHAUSTED; OR
+- structural warning + at least one deterioration family.
+
+**FAVORABLE_FADING**
+- positive close progress from confirmation toward frozen target; AND
+- Strength FADING or worse;
+- non-terminal.
+
+**FAVORABLE_EXHAUSTED**
+- positive close progress; AND
+- Strength EXHAUSTED / REACTION_RISK;
+- non-terminal.
 
 Exact intended work:
-1. audit current accepted strength/destination/invalidation semantics and existing opportunity lifecycle;
-2. define deterministic thesis-management candidate states before tuning:
-   - CONTINUATION;
-   - PROTECT;
-   - REALIZATION_RISK;
-   - INVALIDATED / COMPLETED where structurally knowable;
-3. define which evidence belongs to management:
-   - destination proximity/achievement;
-   - MTE/RSE/PSE deterioration;
-   - adverse structural events/reclaim;
-   - thesis invalidation;
-   - opportunity maturity;
-4. keep entry readiness and thesis management separate;
-5. build a frozen-0.1 / accepted-Opportunity-v2 historical management baseline before adding new Pine;
-6. measure timing:
-   - how early PROTECT/REALIZATION_RISK appears relative to destination/invalidation/adverse movement;
-   - churn/flip-flop;
-   - whether warning semantics saturate;
-7. start on BTC 4H/1D, then cross-asset only if semantics are coherent;
-8. no production Pine/default/profile change in this first management block.
-
-Expected durable outputs:
-- thesis-management research contract;
-- deterministic reference model + tests;
-- BTC 4H/1D management evidence;
-- KEEP/REFINE/REMOVE decisions for each management state.
+1. add diagnostic-only counterfactual telemetry for those three channels;
+2. do not mutate V0 states yet;
+3. run BTC 4H/1D unchanged data;
+4. compare:
+   - live-bar saturation;
+   - completed vs invalidated episode reach;
+   - warning lead time;
+   - warning progress;
+   - flip-flop/churn;
+   - source-path distribution;
+5. choose/refine semantics based on separation, not maximum signal count;
+6. preregister management V1 before implementing any state change;
+7. only after BTC semantic evidence, validate unchanged on ETH/AVAX;
+8. no production Pine/default/profile/panel change.
 
 Recovery:
-- compare active branch with `93a5b6e9...`;
-- inspect only newer thesis-management commits/runs/artifacts;
-- do not reopen closed Opportunity/horizon research unless a concrete management defect points back to it.
+- compare active branch with `0f0f498...`;
+- inspect only newer thesis-management diagnostic commits/runs/artifacts;
+- do not reopen accepted Opportunity/horizon research.
 
 
 ## 7. Continuity protocol
