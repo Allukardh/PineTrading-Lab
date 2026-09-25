@@ -256,7 +256,14 @@ def _operator_metrics(paths,rows):
     }
 
 
-def analyze(tf,datasets,tick):
+def analyze(
+    tf,
+    datasets,
+    tick,
+    *,
+    regime_mid_len=50,
+    regime_slow_len=200,
+):
     data=datasets[tf]
     snaps=[]
     Kernel(
@@ -264,7 +271,10 @@ def analyze(tf,datasets,tick):
         to_mm_candles(datasets[CONTEXT_TF[tf]]),
         to_mm_candles(datasets["1d"]),
         to_mm_candles(datasets["1w"]),
-        tf,tick=tick
+        tf,
+        tick=tick,
+        mid_len=regime_mid_len,
+        slow_len=regime_slow_len,
     ).run(integration_rows=snaps,emit_audit=False)
     locs=build_market_locations(snaps)
     rsi_cache={k:calculate_rsi(v["close"]) for k,v in datasets.items()}
