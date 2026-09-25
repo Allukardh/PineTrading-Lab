@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — responsiveness/profile counterfactuals  
+**Checkpoint state:** STABLE  
+**Active product front:** Suite 0.2 — Phase E profile research closed  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,62 +131,46 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — final ANTECIPADO_TREND 3D/1W universe gate
+### STABLE result — Phase E responsiveness/profile research CLOSED
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `46a5790f93f17d402b6f02ade21bd46391d48e6b`
+- final Phase E research head: `9aa85020e9b062e72724e5a6cda76ec532735380`
 
-Closed profile evidence:
-- BTC first-pass — PASS;
-- BTC refined quality — PASS;
-- ETH/AVAX 4H/1D — PASS;
-- 15-symbol 1D — PASS;
-- BTC/ETH/AVAX 15m/1H/3D/1W native horizons `36187004128` — PASS;
-- Static integrity — PASS;
-- worklog: `docs/worklog/2026-09-25-suite-0.2-responsiveness-profiles.md`.
+Final high-horizon evidence:
+- 15-symbol 3D/1W workflow `36192491182` — PASS;
+- Static integrity `36192491180` — PASS;
+- high-horizon aggregation regression test — PASS;
+- all 30 canonical 3D/1W Parquets reverified by SHA-256.
 
-Current profile status:
-- PADRÃO — KEEP;
-- naive all-path ANTECIPADO — REMOVE;
-- CONFIRMADO +1 — REMOVE;
-- ANTECIPADO_TREND:
-  - 15m — KEEP candidate;
-  - 1H — KEEP candidate;
-  - 4H — KEEP candidate;
-  - 1D — KEEP candidate;
-  - 3D — promising, sample sparse;
-  - 1W — insufficient sample.
+Final profile policy:
+- PADRÃO — KEEP, global recommended default;
+- ANTECIPADO — KEEP as scoped TREND posture;
+  - horizons: 15m / 1H / 4H / 1D / 3D;
+  - early opportunity classes: BREAKOUT_EXPANSION + REACCELERATION;
+- pullback/retest/reclaim — PADRÃO;
+- RANGE_ROTATION — PADRÃO;
+- strict REGIME_REVERSAL — PADRÃO;
+- 1W execution — PADRÃO;
+- 1M — macro/cycle awareness, not execution profile;
+- CONFIRMADO +1 — REMOVE / DO NOT SHIP.
 
-Native-horizon highlights:
-- 15m BREAKOUT nonconverted HELD: BTC 87.09%, ETH 90.26%, AVAX 85.95%;
-- 1H BREAKOUT nonconverted HELD: BTC 94.07%, ETH 93.88%, AVAX 95.70%;
-- 3D: 10 three-asset breakout early events, all HELD;
-- 1W: only one three-asset breakout early event.
+3D final universe:
+- 65 early TREND events on 15/15 symbols;
+- BREAKOUT converted 9 HELD / 0 FAKEOUT; nonconverted 10 HELD / 3 FAKEOUT;
+- REACCELERATION converted 6/0; nonconverted 9/0;
+- median converted lead 1 bar.
 
-Exact intended work:
-1. run unchanged ANTECIPADO_TREND on the accepted 15-symbol 3D/1W universe;
-2. preserve accepted high-horizon semantics:
-   - daily reference levels disabled;
-   - no synthetic daily inputs;
-3. no per-symbol/horizon tuning;
-4. aggregate:
-   - event breadth;
-   - BREAKOUT converted/nonconverted HELD vs FAKEOUT;
-   - REACCELERATION quality;
-   - conversion;
-   - quick nonconverted churn;
-   - LONG/SHORT balance;
-5. close Phase E after this gate;
-6. final profile set must be documented without forcing unsupported horizons/features;
-7. no production Pine/default/profile/panel change.
+1W:
+- only 4 breakout/reacceleration early events;
+- none converted;
+- evidence insufficient for weekly ANTECIPADO;
+- no weekly-specific retuning authorized.
 
-Recovery:
-- compare branch with `46a5790f...`;
-- inspect only newer high-horizon profile universe commits/runs/artifacts;
-- after result, close Phase E rather than opening another profile variant.
+Phase E is closed.
+Next roadmap phase: Phase F integrated evidence.
 
 
 ## 7. Continuity protocol
