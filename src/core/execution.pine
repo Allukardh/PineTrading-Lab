@@ -126,6 +126,22 @@ float RANGE_BOUNDARY_DRIFT_MAX = 0.20
 float RANGE_MIN_HEIGHT_ATR = 2.0
 float RANGE_EDGE_FRACTION = 0.20
 
+int MGMT_NONE = 0
+int MGMT_CONTINUATION = 1
+int MGMT_PROTECT = 2
+int MGMT_REALIZATION_RISK = 3
+int MGMT_COMPLETED = 4
+int MGMT_INVALIDATED = 5
+int MGMT_AMBIGUOUS = 6
+
+int CAP_NONE = 0
+int CAP_TARGET_ONLY = 1
+int CAP_INVALIDATION_ONLY = 2
+int CAP_FULL = 3
+
+float MGMT_TARGET_NEAR_ATR = 0.30
+float MGMT_INVALID_WARN_ATR = 0.20
+
 // ---------------------------------------------------------------------------
 // Deterministic research-parity helpers
 // ---------------------------------------------------------------------------
@@ -230,6 +246,40 @@ f_opp_txt(_kind) =>
      _kind == OPP_REACCELERATION ? "REACELERAÇÃO" :
      _kind == OPP_REGIME_REVERSAL ? "REVERSÃO" :
      _kind == OPP_RANGE_ROTATION ? "ROTAÇÃO DE RANGE" :
+     "—"
+
+f_momentum_deteriorates(_dir, _state) =>
+    _dir == 1 ? (_state == MTE_UP_DECEL or _state == MTE_TURN_DOWN or _state == MTE_DOWN_ACCEL or _state == MTE_DOWN_DECEL) :
+     _dir == -1 ? (_state == MTE_DOWN_DECEL or _state == MTE_TURN_UP or _state == MTE_UP_ACCEL or _state == MTE_UP_DECEL) : false
+
+f_rsi_deteriorates(_dir, _state) =>
+    _dir == 1 ? (_state == RSI_FADING_OVERBOUGHT or _state == RSI_EXTREME_OVERBOUGHT) :
+     _dir == -1 ? (_state == RSI_RECOVERING_OVERSOLD or _state == RSI_EXTREME_OVERSOLD) : false
+
+f_strength_for_dir(_dir, _destinationNear, _mte, _rsi, _pse) =>
+    int generic = (f_momentum_deteriorates(_dir, _mte) ? 1 : 0) + (f_rsi_deteriorates(_dir, _rsi) ? 1 : 0) + (_pse == PSE_CONTRARY ? 1 : 0)
+    int destination = (f_momentum_deteriorates(_dir, _mte) ? 1 : 0) + (f_rsi_deteriorates(_dir, _rsi) ? 1 : 0) + ((_pse == PSE_WEAK or _pse == PSE_CONTRARY) ? 1 : 0)
+    _destinationNear and destination >= 2 ? STRENGTH_REACTION_RISK :
+     generic >= 2 ? STRENGTH_EXHAUSTED :
+     generic == 1 ? STRENGTH_FADING : STRENGTH_NORMAL
+
+f_same_level(_a, _b) =>
+    float tol = 1e-9 * math.max(1.0, math.max(math.abs(_a), math.abs(_b)))
+    math.abs(_a - _b) <= tol
+
+f_target_usable(_dir, _confirmClose, _target) =>
+    not na(_target) and _dir != 0 and _dir * (_target - _confirmClose) > 0
+
+f_invalidation_usable(_dir, _confirmClose, _invalidation) =>
+    not na(_invalidation) and _dir != 0 and _dir * (_confirmClose - _invalidation) > 0
+
+f_management_txt(_state) =>
+    _state == MGMT_CONTINUATION ? "CONTINUIDADE" :
+     _state == MGMT_PROTECT ? "PROTEGER" :
+     _state == MGMT_REALIZATION_RISK ? "REALIZAÇÃO" :
+     _state == MGMT_COMPLETED ? "CONCLUÍDA" :
+     _state == MGMT_INVALIDATED ? "INVALIDADA" :
+     _state == MGMT_AMBIGUOUS ? "AMBÍGUA" :
      "—"
 
 // ---------------------------------------------------------------------------
@@ -1497,6 +1547,147 @@ bool confirmLong = operatorConfirmEvent and operatorDir == 1
 bool confirmShort = operatorConfirmEvent and operatorDir == -1
 
 // ---------------------------------------------------------------------------
+// Thesis Management V1.1 — starts only from unified PADRÃO CONFIRMA
+// ---------------------------------------------------------------------------
+bool confirmingFrozen = operatorConfirmEvent and confirmEvent and executionDir == operatorDir
+bool confirmingTrend = operatorConfirmEvent and trendConfirmEvent and trendReadinessDir == operatorDir
+bool confirmingRange = operatorConfirmEvent and rangeConfirmEvent and rangeReadinessDir == operatorDir
+int confirmingSourceCount = (confirmingFrozen ? 1 : 0) + (confirmingTrend ? 1 : 0) + (confirmingRange ? 1 : 0)
+
+var bool managementActive = false
+var int managementState = MGMT_NONE
+var int managementDir = 0
+var int managementSourcePath = PATH_NONE
+var int managementOppKind = OPP_NONE
+var int managementConfirmBar = na
+var float managementConfirmClose = na
+var float managementTarget = na
+var float managementInvalidation = na
+var int managementCapability = CAP_NONE
+
+bool managementNewThesis = false
+bool managementCompletedEvent = false
+bool managementInvalidatedEvent = false
+bool managementAmbiguousEvent = false
+float managementPathProgress = na
+float managementTargetRoomAtr = na
+float managementInvalidationBufferAtr = na
+int managementStrength = STRENGTH_NORMAL
+
+if barstate.isconfirmed
+    // A new standard confirmation supersedes an older management thesis.
+    if operatorConfirmEvent and operatorDir != 0 and confirmingSourceCount > 0
+        float mergedTarget = na
+        float mergedInvalidation = na
+        bool targetConflict = false
+        bool invalidationConflict = false
+
+        float frozenTarget = confirmingFrozen ? mmDestination1 : na
+        float frozenInvalidation = confirmingFrozen ? mmInvalidation : na
+        float trendTarget = confirmingTrend ? mmDestination1 : na
+        float trendInvalidation = confirmingTrend ? mmInvalidation : na
+        float rangeTarget = confirmingRange ? (operatorDir == 1 ? rangeOppHigh - rangeOppEdge : rangeOppLow + rangeOppEdge) : na
+        float rangeInvalidation = confirmingRange ? (operatorDir == 1 ? rangeOppLow : rangeOppHigh) : na
+
+        if f_target_usable(operatorDir, close, frozenTarget)
+            mergedTarget := frozenTarget
+        if f_target_usable(operatorDir, close, trendTarget)
+            if na(mergedTarget)
+                mergedTarget := trendTarget
+            else if not f_same_level(mergedTarget, trendTarget)
+                targetConflict := true
+        if f_target_usable(operatorDir, close, rangeTarget)
+            if na(mergedTarget)
+                mergedTarget := rangeTarget
+            else if not f_same_level(mergedTarget, rangeTarget)
+                targetConflict := true
+
+        if f_invalidation_usable(operatorDir, close, frozenInvalidation)
+            mergedInvalidation := frozenInvalidation
+        if f_invalidation_usable(operatorDir, close, trendInvalidation)
+            if na(mergedInvalidation)
+                mergedInvalidation := trendInvalidation
+            else if not f_same_level(mergedInvalidation, trendInvalidation)
+                invalidationConflict := true
+        if f_invalidation_usable(operatorDir, close, rangeInvalidation)
+            if na(mergedInvalidation)
+                mergedInvalidation := rangeInvalidation
+            else if not f_same_level(mergedInvalidation, rangeInvalidation)
+                invalidationConflict := true
+
+        if targetConflict
+            mergedTarget := na
+        if invalidationConflict
+            mergedInvalidation := na
+
+        managementActive := true
+        managementState := MGMT_CONTINUATION
+        managementDir := operatorDir
+        managementSourcePath := confirmingSourceCount > 1 ? PATH_MULTI : confirmingFrozen ? PATH_FROZEN_0_1 : confirmingTrend ? PATH_TREND_V2 : PATH_RANGE_ANY1
+        managementOppKind := confirmingSourceCount > 1 ? OPP_NONE : confirmingTrend ? trendOppKind : confirmingRange ? OPP_RANGE_ROTATION : OPP_NONE
+        managementConfirmBar := bar_index
+        managementConfirmClose := close
+        managementTarget := mergedTarget
+        managementInvalidation := mergedInvalidation
+        managementCapability := not na(mergedTarget) and not na(mergedInvalidation) ? CAP_FULL :
+             not na(mergedInvalidation) ? CAP_INVALIDATION_ONLY :
+             not na(mergedTarget) ? CAP_TARGET_ONLY : CAP_NONE
+        managementNewThesis := true
+
+    if managementActive and managementDir != 0
+        bool targetHit = not na(managementTarget) and (managementDir == 1 ? high >= managementTarget : low <= managementTarget)
+        bool invalidated = not na(managementInvalidation) and (managementDir == 1 ? close < managementInvalidation : close > managementInvalidation)
+
+        managementTargetRoomAtr := not na(managementTarget) and not na(mmAtr) and mmAtr > 0 ? managementDir * (managementTarget - close) / mmAtr : na
+        managementInvalidationBufferAtr := not na(managementInvalidation) and not na(mmAtr) and mmAtr > 0 ? managementDir * (close - managementInvalidation) / mmAtr : na
+        bool targetNear = not targetHit and not na(managementTargetRoomAtr) and managementTargetRoomAtr >= 0 and managementTargetRoomAtr <= MGMT_TARGET_NEAR_ATR
+        bool invalidationNear = not invalidated and not na(managementInvalidationBufferAtr) and managementInvalidationBufferAtr >= 0 and managementInvalidationBufferAtr <= MGMT_INVALID_WARN_ATR
+
+        float initialTargetDistance = not na(managementTarget) ? managementDir * (managementTarget - managementConfirmClose) : na
+        managementPathProgress := not na(initialTargetDistance) and initialTargetDistance > 0 ? managementDir * (close - managementConfirmClose) / initialTargetDistance : na
+
+        int managementPse = f_pse_state(managementDir, pseReady, relativeVolume, pressureProxy)
+        managementStrength := f_strength_for_dir(managementDir, targetNear, mteState, rsiState, managementPse)
+
+        if targetHit and invalidated
+            managementState := MGMT_AMBIGUOUS
+            managementAmbiguousEvent := true
+            managementActive := false
+        else if targetHit
+            managementState := MGMT_COMPLETED
+            managementCompletedEvent := true
+            managementActive := false
+        else if invalidated
+            managementState := MGMT_INVALIDATED
+            managementInvalidatedEvent := true
+            managementActive := false
+        else if invalidationNear
+            managementState := MGMT_PROTECT
+        else if (targetNear and managementStrength == STRENGTH_REACTION_RISK) or
+             (not na(managementPathProgress) and managementPathProgress >= 0.50 and
+              (managementStrength == STRENGTH_FADING or managementStrength == STRENGTH_EXHAUSTED or managementStrength == STRENGTH_REACTION_RISK))
+            managementState := MGMT_REALIZATION_RISK
+        else if managementStrength == STRENGTH_EXHAUSTED
+            managementState := MGMT_PROTECT
+        else
+            managementState := MGMT_CONTINUATION
+    else if not managementNewThesis and managementState != MGMT_NONE
+        // Terminal states remain visible on their event bar only.
+        managementState := MGMT_NONE
+        managementDir := 0
+        managementSourcePath := PATH_NONE
+        managementOppKind := OPP_NONE
+        managementConfirmBar := na
+        managementConfirmClose := na
+        managementTarget := na
+        managementInvalidation := na
+        managementCapability := CAP_NONE
+        managementPathProgress := na
+        managementTargetRoomAtr := na
+        managementInvalidationBufferAtr := na
+        managementStrength := STRENGTH_NORMAL
+
+// ---------------------------------------------------------------------------
 // Lower-pane renderer — one numeric scale, no RSI/volume dashboard
 // ---------------------------------------------------------------------------
 color mteColor = not mteReady ? color.new(color.gray, 65) :
@@ -1527,7 +1718,8 @@ var table statusCue = table.new(position.top_right, 1, 1, bgcolor=color.new(colo
 if barstate.islast
     string opportunityCue = operatorOppKind != OPP_NONE ? " • " + f_opp_txt(operatorOppKind) : ""
     string profileCue = anticipatedPosture ? " • ANTECIPADO" : ""
-    string statusText = f_operator_txt(operatorReadiness, operatorDir) + opportunityCue + profileCue
+    string managementCue = managementState != MGMT_NONE ? " • " + f_management_txt(managementState) : ""
+    string statusText = f_operator_txt(operatorReadiness, operatorDir) + opportunityCue + profileCue + managementCue
     color statusColor = operatorReadiness == OP_READY_CONFLICT ? color.orange :
          operatorReadiness == OP_READY_CONFIRMED ? (operatorDir == 1 ? color.lime : color.red) :
          operatorReadiness == OP_READY_ARMED ? color.yellow :
@@ -1606,3 +1798,18 @@ plot(operatorOppKind, "EX 0.2 • Operator oportunidade", color=color.new(color.
 plot(operatorConfirmEvent ? 1 : 0, "EX 0.2 • Operator confirma", color=color.new(color.white, 100), display=display.data_window)
 plot(anticipatedPosture ? 1 : 0, "EX 0.2 • Perfil antecipado ativo", color=color.new(color.white, 100), display=display.data_window)
 plot(anticipatedEvent ? 1 : 0, "EX 0.2 • Evento antecipado", color=color.new(color.white, 100), display=display.data_window)
+
+plot(managementActive ? 1 : 0, "EX 0.2 • Gestão ativa", color=color.new(color.white, 100), display=display.data_window)
+plot(managementState, "EX 0.2 • Gestão estado", color=color.new(color.white, 100), display=display.data_window)
+plot(managementDir, "EX 0.2 • Gestão direção", color=color.new(color.white, 100), display=display.data_window)
+plot(managementSourcePath, "EX 0.2 • Gestão fonte", color=color.new(color.white, 100), display=display.data_window)
+plot(managementOppKind, "EX 0.2 • Gestão oportunidade", color=color.new(color.white, 100), display=display.data_window)
+plot(managementCapability, "EX 0.2 • Gestão capacidade", color=color.new(color.white, 100), display=display.data_window)
+plot(managementTarget, "EX 0.2 • Gestão alvo congelado", color=color.new(color.white, 100), display=display.data_window)
+plot(managementInvalidation, "EX 0.2 • Gestão invalidação congelada", color=color.new(color.white, 100), display=display.data_window)
+plot(managementPathProgress, "EX 0.2 • Gestão progresso", color=color.new(color.white, 100), display=display.data_window)
+plot(managementTargetRoomAtr, "EX 0.2 • Gestão room ATR", color=color.new(color.white, 100), display=display.data_window)
+plot(managementInvalidationBufferAtr, "EX 0.2 • Gestão buffer ATR", color=color.new(color.white, 100), display=display.data_window)
+plot(managementCompletedEvent ? 1 : 0, "EX 0.2 • Gestão concluída evt", color=color.new(color.white, 100), display=display.data_window)
+plot(managementInvalidatedEvent ? 1 : 0, "EX 0.2 • Gestão invalidada evt", color=color.new(color.white, 100), display=display.data_window)
+plot(managementAmbiguousEvent ? 1 : 0, "EX 0.2 • Gestão ambígua evt", color=color.new(color.white, 100), display=display.data_window)
