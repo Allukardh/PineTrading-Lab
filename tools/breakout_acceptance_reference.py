@@ -65,6 +65,13 @@ def _pse_confirm(features: CandidateFeatures) -> bool:
     return Participation[features.participation_state] == Participation.CONFIRM
 
 
+def _structural_break_opportunity(kind: OpportunityType) -> bool:
+    return kind in {
+        OpportunityType.BREAKOUT_CANDIDATE,
+        OpportunityType.REACCELERATION,
+    }
+
+
 def immediate_accepts(
     rule: BreakoutAcceptance,
     features: CandidateFeatures,
@@ -107,7 +114,7 @@ def follow_through_bar(
     bars: int,
 ) -> int | None:
     """Return the first bar where 1/2 confirmed closes have held the break."""
-    if episode.opportunity_type != OpportunityType.BREAKOUT_CANDIDATE:
+    if not _structural_break_opportunity(episode.opportunity_type):
         return None
     if bars not in (1, 2):
         raise ValueError("bars must be 1 or 2")
@@ -143,7 +150,7 @@ def decide(
     snapshots: Sequence[IntegrationSnapshot],
     closes: Sequence[float],
 ) -> AcceptanceDecision:
-    if episode.opportunity_type != OpportunityType.BREAKOUT_CANDIDATE:
+    if not _structural_break_opportunity(episode.opportunity_type):
         return AcceptanceDecision(rule, False, None, None)
 
     start = episode.confirmation_bar
