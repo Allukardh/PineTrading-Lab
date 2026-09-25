@@ -3,7 +3,7 @@
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
 **Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — Opportunity path overlap and arbitration  
+**Active product front:** Suite 0.2 — OPERATOR_READINESS_V1 validation  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,48 +131,63 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — Opportunity path overlap / arbitration evidence
+### PREPARED block — OPERATOR_READINESS_V1 validation
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- accepted Opportunity-v2 trend baseline: `329cdcac039f11cd1a81bf9138cfe67ab83a142f`
-- accepted RANGE_ROTATION readiness head: `bac1d0374a141dfe80fb1307540e7ef84682ddc8`
+- durable pre-block research head: `e1a44d5e7d31c6b5c9c027eebc94c040206c95c6`
 
-Accepted independent paths:
-1. frozen Execution 0.1 — correction/retest/reclaim;
-2. Opportunity v2 trend path — breakout/reacceleration/strict regime reversal;
-3. RANGE_ROTATION EARLY_ANY1.
+Closed overlap diagnosis:
+- BTC overlap workflow `36164331998` — PASS;
+- Static integrity `36164331819` — PASS;
+- worklog: `docs/worklog/2026-09-25-suite-0.2-opportunity-arbitration.md`.
 
-Locks:
-- no accepted path is retuned in this block;
-- no production Pine/default/profile change;
-- operator must eventually see one semantic readiness, not three competing machines;
-- do not invent a priority order before measuring real overlap/conflict.
+BTC overlap conclusions:
+- trend Opportunity v2 and RANGE_ROTATION readiness are naturally disjoint;
+- no active opposite-direction conflicts;
+- no same/opposite CONFIRMA within +/-3 bars;
+- frozen 0.1 overlaps new paths only in the same direction;
+- state combinations prove numeric enum order is not a valid operator projection.
+
+Preregistered OPERATOR_READINESS_V1:
+1. internal paths remain independent;
+2. no active path -> WAIT / NONE;
+3. same-direction active paths -> operational urgency:
+   - CONFIRMED / current CONFIRMA
+   - ARMED
+   - PREP
+   - ALIGNED
+   - WAIT
+4. opposite active directions -> CONFLICT / NONE / no actionable unified CONFIRMA;
+5. same-bar same-direction multi-confirm -> one operator CONFIRMA with all sources;
+6. confirmations on different bars are not deduplicated merely by proximity;
+7. frame-only disagreement while readiness is WAIT remains telemetry only;
+8. raw path/source states remain auditable;
+9. strength arbitration is deferred.
 
 Exact intended work:
-1. run all three accepted paths independently on the same BTC 4H/1D histories;
-2. measure per-bar and event overlap:
-   - simultaneous non-WAIT readiness;
-   - same-direction vs opposite-direction conflicts;
-   - simultaneous CONFIRMA;
-   - same-direction CONFIRMA within +/-3 bars;
-   - source/frame overlap between trend Opportunity and RANGE_ROTATION;
-   - overlap with frozen 0.1 relevant/readiness states;
-3. identify representative conflict/duplicate cases when overlap exists;
-4. determine whether arbitration is:
-   - mostly unnecessary because contexts are naturally disjoint;
-   - needed only for duplicate same-direction events;
-   - needed for true opposite-direction conflicts;
-5. only after diagnosis preregister a deterministic arbitration policy;
-6. then validate unchanged arbitration on ETH/AVAX;
-7. preserve source opportunity kind/context in research telemetry even if UI collapses to one semantic state.
+1. implement research-only operator projection + unit tests;
+2. run all three accepted paths independently;
+3. project OPERATOR_READINESS_V1 on BTC/ETH/AVAX 4H/1D without retuning;
+4. measure:
+   - single-active parity;
+   - same-direction multi-active bars;
+   - fresh PREP/ARMED/CONFIRMA surfaced over background ALIGNED;
+   - opposite-direction conflict bars;
+   - raw confirms vs operator confirms;
+   - same-bar confirm collapse;
+   - confirms suppressed only by true opposite-direction conflict;
+   - source contribution;
+5. inspect representative cross-asset conflicts if they exist;
+6. accept/refine/remove projection;
+7. no production Pine/default/profile change.
 
 Recovery:
-- compare active branch with `bac1d037...`;
-- inspect only newer overlap/arbitration evidence commits/runs/artifacts;
-- do not reopen RANGE_ROTATION thresholds/readiness or accepted trend Opportunity composition.
+- compare active branch with `e1a44d5...`;
+- inspect only newer operator-readiness commits/runs/artifacts;
+- do not reopen accepted path semantics or range/trend thresholds.
 
 
 ## 7. Continuity protocol
