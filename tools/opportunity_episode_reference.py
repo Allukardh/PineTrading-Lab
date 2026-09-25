@@ -7,6 +7,7 @@ measured against.
 
 This first contract intentionally starts with the three strongest event
 families already observable from accepted MM-0 semantics:
+- REGIME_TRANSITION_CANDIDATE
 - REGIME_REVERSAL
 - BREAKOUT_CANDIDATE
 - PULLBACK_RETEST
@@ -27,6 +28,7 @@ REVERSAL_PRIOR_REGIME_MIN_BARS = 8
 
 
 class OpportunityType(str, Enum):
+    REGIME_TRANSITION_CANDIDATE = "REGIME_TRANSITION_CANDIDATE"
     REGIME_REVERSAL = "REGIME_REVERSAL"
     BREAKOUT_CANDIDATE = "BREAKOUT_CANDIDATE"
     PULLBACK_RETEST = "PULLBACK_RETEST"
@@ -72,6 +74,8 @@ def detect_episodes(
     """Return deterministic market-opportunity episodes.
 
     Timing contract:
+    - REGIME_TRANSITION_CANDIDATE is known at the first opposite structural
+      break against a mature prior regime.
     - BREAKOUT_CANDIDATE is known at the structural-break close.
     - PULLBACK_RETEST is known on the first accepted reaction/touch bar for a
       thesis.
@@ -121,6 +125,32 @@ def detect_episodes(
     for i, snap in enumerate(snapshots):
         if snap.structural_break_dir in (-1, 1):
             last_break_bar[snap.structural_break_dir] = i
+
+            # Early regime-transition candidate: opposite structural break
+            # against a sufficiently mature confirmed regime. This is known at
+            # the break close and is intentionally distinct from a later,
+            # fully coherent REGIME_REVERSAL.
+            mature_dir = 0
+            if (
+                _valid_direction(current_regime_dir)
+                and current_regime_len >= REVERSAL_PRIOR_REGIME_MIN_BARS
+            ):
+                mature_dir = current_regime_dir
+            elif (
+                current_regime_dir == 0
+                and _valid_direction(previous_regime_dir)
+                and previous_regime_len >= REVERSAL_PRIOR_REGIME_MIN_BARS
+            ):
+                mature_dir = previous_regime_dir
+
+            if mature_dir == -snap.structural_break_dir:
+                add(
+                    OpportunityType.REGIME_TRANSITION_CANDIDATE,
+                    snap.structural_break_dir,
+                    i,
+                    i,
+                    snap,
+                )
 
         # A structural break itself is a valid expansion episode only if MM-0
         # already regards the resulting direction as coherent on that bar.
