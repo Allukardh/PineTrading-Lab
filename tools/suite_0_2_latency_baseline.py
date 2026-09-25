@@ -33,6 +33,7 @@ from tools.execution_integrated_evidence import (
 from tools.market_map_offline_core import CONTEXT_TF, IntegrationSnapshot, Kernel
 from tools.opportunity_episode_reference import detect_episodes
 from tools.opportunity_latency_reference import measure_all
+from tools.opportunity_outcome_reference import classify_all
 from tools.rsi_state_reference import calculate as calculate_rsi
 
 
@@ -236,9 +237,17 @@ def analyze_timeframe(
         response_window_bars=response_window_bars,
     )
 
+    outcomes = classify_all(episodes, snapshots)
     by_type = defaultdict(list)
+    by_outcome = defaultdict(list)
+    outcome_counts = Counter()
+
     for response in responses:
         by_type[response.opportunity_type].append(response)
+        outcome = outcomes[response.episode_id].outcome.value
+        outcome_counts[outcome] += 1
+        if outcome != "NOT_APPLICABLE":
+            by_outcome[outcome].append(response)
 
     return {
         "rows": len(chart),
@@ -247,6 +256,13 @@ def analyze_timeframe(
         "by_opportunity": {
             kind: _response_summary(items)
             for kind, items in sorted(by_type.items())
+        },
+        "candidate_outcomes": {
+            "counts": dict(sorted(outcome_counts.items())),
+            "response_by_outcome": {
+                outcome: _response_summary(items)
+                for outcome, items in sorted(by_outcome.items())
+            },
         },
         "examples": _examples(responses, data["open_time"]),
     }
@@ -289,9 +305,31 @@ def markdown_report(report: dict) -> str:
 
     lines += [
         "",
+        "## Candidate outcome diagnostics",
+        "",
+        "| TF | retrospective outcome | episodes | already PREP+ % | reached ARMED % | confirm or already aligned % |",
+        "| --- | --- | ---: | ---: | ---: | ---: |",
+    ]
+
+    for tf, item in report["timeframes"].items():
+        for outcome, summary in item["candidate_outcomes"]["response_by_outcome"].items():
+            lines.append(
+                "| {tf} | {outcome} | {episodes} | {prep} | {armed} | {covered} |".format(
+                    tf=tf,
+                    outcome=outcome,
+                    episodes=summary["episodes"],
+                    prep=_fmt(summary["already_preparing_or_better_pct"]),
+                    armed=_fmt(summary["reached_armed_pct"]),
+                    covered=_fmt(summary["confirmed_or_already_aligned_pct"]),
+                )
+            )
+
+    lines += [
+        "",
         "## Interpretation guardrails",
         "",
         "- Opportunity labels are independent of Execution readiness/result.",
+        "- Candidate outcomes are retrospective diagnostics only and never backdate live knowledge.",
         "- REGIME_REVERSAL onset may precede confirmation; actionable comparisons use the confirmation bar.",
         "- A missing CONFIRMA is not automatically a defect; miss reasons identify the blocking semantic.",
         "- No metric here is a trade win rate or profitability claim.",
