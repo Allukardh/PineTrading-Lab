@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — Phase F1 integrated readiness/profile evidence  
+**Checkpoint state:** STABLE  
+**Active product front:** Suite 0.2 — Phase F1 integrated readiness/profile accepted  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,50 +131,36 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — Phase F1 integrated readiness/profile evidence
+### STABLE result — Phase F1 integrated readiness/profile
 
-Active research:
+Research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `9aa85020e9b062e72724e5a6cda76ec532735380`
+- F1 research head: `9da5d02b979292bba752d97a2ca2b6d39176a2fc`
 
-Accepted components:
-- frozen Execution 0.1 path;
-- TREND_OPPORTUNITY_V2;
-- RANGE_EARLY_ANY1;
-- OPERATOR_READINESS_V1;
-- final Phase E profile policy:
-  - PADRÃO global default;
-  - ANTECIPADO only for BREAKOUT_EXPANSION + REACCELERATION on 15m/1H/4H/1D/3D;
-  - all other paths/classes/horizons remain PADRÃO;
-- 1M remains macro/cycle awareness.
+Evidence:
+- BTC `36193324106` — PASS;
+- ETH/AVAX `36193585495` — PASS;
+- Static integrity — PASS;
+- worklog: `docs/worklog/2026-09-25-suite-0.2-integrated-evidence.md`.
 
-F1 exact intended work:
-1. build one composition gate over accepted independent paths;
-2. BTC primary across 15m / 1H / 4H / 1D / 3D / 1W;
-3. validate:
-   - internal paths remain unmutated;
-   - OPERATOR_READINESS parity/urgency remains exact;
-   - PADRÃO confirms remain preserved;
-   - ANTECIPADO events come only from supported TREND path/classes/horizons;
-   - unsupported classes/horizons produce zero profile override;
-   - opposite-direction conflicts remain non-actionable;
-   - early profile posture never starts thesis management by itself;
-4. if BTC passes, run unchanged F1 on ETH/AVAX;
-5. no per-asset/horizon tuning;
-6. no production Pine/default/panel changes.
+Accepted F1 invariants across BTC / ETH / AVAX and 15m / 1H / 4H / 1D / 3D / 1W:
+- internal paths remain independent/unmutated;
+- single-active operator projection parity exact;
+- PADRÃO = literal unified CONFIRMA;
+- all non-conflicting raw confirm bars preserved;
+- every PADRÃO confirm creates one capability-aware management thesis;
+- ANTECIPADO scope clean;
+- ANTECIPADO conflict-free;
+- ANTECIPADO never starts management;
+- 1W ANTECIPADO override = zero.
 
-F2 after F1:
-- capability-aware Thesis Management V1.1 horizon expansion;
-- preserve accepted 4H/1D management behavior;
-- test 15m/1H/3D/1W unchanged;
-- 1M excluded from execution management.
+Phase F1 decision:
+- **KEEP / ACCEPT as research composition**.
 
-Recovery:
-- compare active branch with `9aa85020...`;
-- inspect only newer Phase F1 commits/runs/artifacts;
-- do not reopen closed Phase E profile variants.
+Next:
+- Phase F2 — capability-aware Thesis Management V1.1 horizon expansion.
 
 
 ## 7. Continuity protocol
