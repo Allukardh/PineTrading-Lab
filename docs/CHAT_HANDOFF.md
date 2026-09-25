@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — Phase F2 15-symbol 3D/1W management robustness  
+**Checkpoint state:** STABLE  
+**Active product front:** Suite 0.2 — Phase F research promoted / Phase G not yet started  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,58 +131,38 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — Phase F2 15-symbol 3D / 1W management robustness
+### STABLE result — Suite 0.2 research through Phase F promoted
 
-Active research:
-- Issue #23
-- draft PR #25
-- branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `85edd0d5d9dce7dcd260fcfb31229ed682266716`
+Promotion:
+- research/evidence PR #25 — merged;
+- merge commit `74d58a4376f004ec0548e2f9a3640f0d82119c35`.
 
-Closed F2 evidence:
-- BTC `36193988587` — PASS;
-- ETH/AVAX `36194315632` — PASS;
-- Static integrity — PASS;
-- worklog: `docs/worklog/2026-09-25-suite-0.2-integrated-evidence.md`.
+Canonical research decisions:
+- Opportunity Engine v2 — KEEP;
+- RANGE_ROTATION / EARLY_ANY1 — KEEP;
+- OPERATOR_READINESS_V1 — KEEP;
+- PADRÃO — global default / KEEP;
+- ANTECIPADO — TREND-only on 15m / 1H / 4H / 1D / 3D;
+- CONFIRMADO +1 — REMOVE;
+- Thesis Management V1.1 — KEEP;
+- 15m / 1H / 4H / 1D / 3D management — KEEP;
+- 1W management — KEEP but sparse;
+- 1M — macro/cycle awareness only.
 
-Accepted from F2 so far:
-- 15m Management V1.1 — KEEP;
-- 1H Management V1.1 — KEEP;
-- same thresholds/semantics across BTC/ETH/AVAX;
-- every PADRÃO confirm creates management;
-- FULL V1 parity 100%;
-- no synthetic anchors.
+Final Phase F2 high-horizon evidence:
+- workflow `36194845938` — PASS;
+- 3D: 39 confirms across 15/15 symbols, FULL parity 100%;
+- 1W: 11 confirms across 9/15 symbols, FULL parity 100%;
+- no horizon-specific retuning justified.
 
-Remaining uncertainty:
-- 3D has only 13 theses across BTC/ETH/AVAX;
-- 1W has only 3 theses across BTC/ETH/AVAX.
+Production state:
+- Market Map 0.1.0 and Execution 0.1.0 remain the accepted production Pine baselines;
+- Suite 0.2 production Pine has **not** been implemented/promoted yet.
 
-Exact intended work:
-1. run unchanged capability-aware V1.1 over the accepted 15-symbol universe on 3D + 1W;
-2. acquire exact canonical 1D / 3D / 1W datasets for each symbol;
-3. no per-symbol or per-timeframe retuning;
-4. aggregate:
-   - confirm/thesis counts;
-   - capability distribution;
-   - FULL V1 parity;
-   - CONTINUATION / PROTECT / REALIZATION_RISK saturation;
-   - transition/churn rates;
-   - completed / invalidated / superseded outcomes;
-   - invalidated with prior PROTECT;
-   - completed with REALIZATION_RISK;
-   - direction/source breadth;
-5. decide 3D and 1W independently:
-   - KEEP;
-   - KEEP but sparse;
-   - insufficient evidence;
-   - REFINE;
-6. 1M remains excluded from execution management;
-7. then close Phase F2 / Phase F if no further integration defect remains.
-
-Recovery:
-- compare active branch with `85edd0d5d...`;
-- inspect only newer high-horizon management universe commits/runs/artifacts;
-- do not reopen 15m/1H or profile research without a concrete defect.
+Next product block:
+- Phase G production Pine integration + targeted TradingView gate;
+- use a new issue/branch/PR;
+- do not reopen accepted research semantics merely because implementation work begins.
 
 
 ## 7. Continuity protocol
