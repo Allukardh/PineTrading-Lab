@@ -100,17 +100,23 @@ If Execution required momentum confirmation on the exact event candle, it would 
 Therefore:
 
 ```text
-EVENT_HOLD_BARS = 3 confirmed chart bars
+EVENT_HOLD_BARS      = 3 confirmed chart bars
+EVENT_HOLD_MAX_HOURS = 12 elapsed hours
 ```
 
-A confirmed aligned retest or sweep/reclaim remains the active location semantic for up to 3 bars, unless:
+A confirmed aligned retest or sweep/reclaim remains active while **both** limits are satisfied.
 
-- thesis invalidates
-- structural conflict suppresses the map
-- map direction changes
-- a newer event replaces it
+This preserves the original 3-bar memory exactly on the primary 15m / 1H / 4H matrix, while preventing "3 bars" from silently becoming 3 days or 3 weeks on robustness timeframes.
 
-This is event memory, not repainting.
+The memory clears or becomes stale when:
+- more than 3 chart bars have elapsed;
+- more than 12 real hours have elapsed;
+- thesis invalidates;
+- structural conflict suppresses the map;
+- map direction changes;
+- a newer event replaces it.
+
+This is event memory, not repainting. The elapsed-time cap was introduced only after Market Map-conditioned evidence showed stale RECLAIM saturation on high timeframes; no 15m/1H/4H behavior changed.
 
 ## 7. Priority
 
