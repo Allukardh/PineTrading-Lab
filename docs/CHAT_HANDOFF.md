@@ -3,8 +3,8 @@
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
 **Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — Phase G runtime plot-count repair before TradingView cross-script/reload gate  
-**Operator evidence required now:** blocked until runtime repair passes
+**Active product front:** Suite 0.2 — Phase G TradingView re-entry after runtime plot-count repair  
+**Operator evidence required now:** yes — BTCUSDT 4H PADRÃO smoke screenshot
 
 ## 1. Resume order
 
@@ -161,6 +161,21 @@ Manual gate blocker discovered on BTCUSDT 4H PADRÃO:
 - classify as production instrumentation/translation defect first, not a research-semantic defect;
 - do not retune thresholds/profiles/opportunity/management logic;
 - repair plot-count footprint, preferably diagnostics/audit instrumentation, preserve required parity telemetry, then rerun Static integrity + Pine compile before asking the operator to resume the same six-screenshot matrix.
+
+Runtime repair completed on Phase G branch:
+- repair head `42b8ebb3812395cf17520626368456e003930ab2`;
+- Market Map source-level plot-producing calls: 53;
+- Execution source-level plot-producing calls: 43;
+- conservative static budget: <=55 calls per script;
+- Pine compile `36202404753` — **PASS**;
+- Static integrity `36202404767` — **PASS**;
+- no trading semantic/default retuning.
+
+Immediate next discriminant:
+1. operator loads both repaired scripts on BTCUSDT 4H / PADRÃO;
+2. capture one smoke screenshot;
+3. if both scripts render without RE10140, resume the remaining original matrix: 1D, 3D, 1W, 4H reload, 4H ANTECIPADO;
+4. if either script still hits a plot-count runtime error, stop and treat it as a plot-budget implementation defect.
 
 Current runtime contract:
 - frozen 0.1 correction/retest/reclaim path independent;
