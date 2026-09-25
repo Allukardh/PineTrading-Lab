@@ -1,11 +1,11 @@
 # Canonical State
 
 **Date:** 2026-09-24  
-**Phase:** Suite 0.2 opportunity-expansion research — 0.1 baseline frozen  
+**Phase:** Suite 0.2 Phase G — production Pine integration / TradingView gate  
 **Accepted product baseline:** Market Map 0.1.0 + Execution 0.1.0 on `main`  
 **Preserved engineering baseline:** SignalGate Dashboard 0.1.0  
 **Active architecture:** two runtime indicators — Market Map (with embedded Decision Panel) + Execution  
-**Active roadmap:** Issue #23 — Suite 0.2 Opportunity Engine, responsiveness and direct operator UX
+**Active roadmap:** Suite 0.2 research through Phase F promoted; Phase G production integration is next
 
 ## Continuity navigation
 
@@ -257,14 +257,41 @@ Primary objectives:
 - Execution 0.1.0 promotion merge `a7557df2d0142441ea782dba4b8c3f95ebc38371`;
 - no 0.1 engine/default change merely to chase more signals.
 
+### Suite 0.2 research baseline promoted
+
+PR #25 promoted the accepted Suite 0.2 research/evidence baseline to `main`.
+
+Promotion merge:
+
+`74d58a4376f004ec0548e2f9a3640f0d82119c35`
+
+Accepted research composition:
+- Opportunity Engine v2 parallel architecture;
+- BREAKOUT_EXPANSION;
+- REACCELERATION;
+- RANGE_ROTATION with EDGE_REJECTION + EARLY_ANY1 readiness;
+- strict REGIME_REVERSAL semantic class, with conservative actionable scope;
+- OPERATOR_READINESS_V1 arbitration;
+- PADRÃO global default;
+- ANTECIPADO scoped to TREND opportunities on 15m / 1H / 4H / 1D / 3D;
+- CONFIRMADO +1 — removed / do not ship;
+- capability-aware Thesis Management V1.1;
+- 15m / 1H / 4H / 1D / 3D management — KEEP;
+- 1W management — KEEP but sparse;
+- 1M — macro/cycle awareness only, not standalone execution management.
+
+Phase F integrated evidence is **CLOSED / KEEP**.
+
+No Suite 0.2 production Pine behavior has been promoted yet.
+
 ### Current product sequence
-1. keep the accepted 0.1 suite as the immutable comparator;
-2. establish deterministic 0.2 opportunity-event labels;
-3. measure 0.1 latency and missed-opportunity causes;
-4. challenge Opportunity Engine + horizon mappings;
-5. test profiles only if latency evidence shows a real timing/confirmation tradeoff;
-6. validate integrated 0.2 behavior before production Pine changes;
-7. finish the Portuguese operator guide before promotion;
+1. preserve Market Map 0.1.0 + Execution 0.1.0 as historical accepted baselines;
+2. implement the promoted Suite 0.2 research contract in the existing two-script topology;
+3. keep operator-facing language direct and compact while preserving audit telemetry;
+4. pass Static integrity + Pine compile before manual TradingView evidence;
+5. run a small targeted TradingView live/reload parity matrix;
+6. complete `docs/GUIA_DO_OPERADOR.md` in Portuguese;
+7. promote Suite 0.2 only after the Phase G product/UX gates close;
 8. reserve 1.0.0 for a later integrated maturity milestone.
 
 ## Version lineage
