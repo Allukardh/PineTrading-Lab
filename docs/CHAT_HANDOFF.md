@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — native horizon robustness  
+**Checkpoint state:** STABLE  
+**Active product front:** Suite 0.2 — representative native horizon gate complete  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,60 +131,44 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — native horizon robustness
+### STABLE result — representative native horizon gate
 
-Active research:
+Research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- accepted operator projection head: `32262d55687813c2036cf5359b31b1c30590cc80`
-- current research branch includes validated OPERATOR_READINESS_V1 tooling.
+- evidence head: `4ac89d6172101b52b4dea070c3a112e83eb4a616`
+- documentation head: `d1c1841cf85dfee1823eae5e6f26c68dea54d307`
 
-Accepted paths to hold fixed:
-1. frozen Execution 0.1 — pullback/retest/reclaim;
-2. Opportunity v2 trend — breakout/reacceleration/strict reversal;
-3. RANGE_ROTATION EARLY_ANY1;
-4. OPERATOR_READINESS_V1 projection.
+Evidence:
+- BTC/ETH/AVAX 15m/1H/3D/1W workflow `36165729809` — PASS;
+- Static integrity `36165729743` — PASS;
+- worklog: `docs/worklog/2026-09-25-suite-0.2-native-horizons.md`.
 
-Native horizons not yet gated:
-- 15m
-- 1H
-- 3D
-- 1W
+Decisions:
+- 15m trend Opportunity v2 — KEEP;
+- 1H trend Opportunity v2 — KEEP;
+- 1H RANGE_ROTATION EARLY_ANY1 — KEEP;
+- OPERATOR_READINESS_V1 — KEEP on native gate;
+- 15m RANGE_ROTATION EARLY_ANY1 — targeted diagnosis required;
+- 3D — insufficient representative sample;
+- 1W — insufficient evidence;
+- no retuning performed;
+- no production Pine/default/profile change.
 
-Representative first matrix:
-- BTCUSDT
-- ETHUSDT
-- AVAXUSDT
+15m RANGE_ROTATION observed:
+- BTC 132 confirms / 6 failed-before-mid;
+- ETH 118 / 7;
+- AVAX 86 / 2;
+- combined 336 confirms / 15 failed-before-mid = 4.46%.
 
-Locks:
-- no per-timeframe retuning;
-- no profiles;
-- no semantic/state-definition changes;
-- exact accepted production Parquets and SHA verification;
-- 1M is deferred until native horizons are measured;
-- no production Pine change.
+Operator projection:
+- 100% single-active parity and fresh-over-ALIGNED surfacing;
+- sub-100% confirm preservation at 15m/1H is expected conflict suppression;
+- all observed conflicts in this gate were frozen 0.1 vs RANGE_ROTATION.
 
-Exact intended work:
-1. run all four accepted layers unchanged on 15m/1H/3D/1W;
-2. measure per horizon:
-   - frozen/trend/range event load per 1000 bars;
-   - trend opportunity kind/stage + confirmation reachability;
-   - breakout held/fakeout confirmation diagnostic where available;
-   - RANGE_ROTATION episode count, +1 acceptance, confirmations, structural outcomes and remaining room;
-   - OPERATOR_READINESS single-active parity, conflict rate and confirmation preservation;
-3. report confirmation latency in bars **and clock time** where episode timing is available;
-4. distinguish:
-   - true semantic pathology;
-   - simple sample scarcity;
-   - expected horizon/time-cost effect;
-5. no tuning from isolated percentages;
-6. if representative matrix is healthy, expand unchanged to broader symbol robustness;
-7. only after native horizons are stable derive reproducible 1M evidence.
-
-Recovery:
-- inspect only newer horizon-validation commits/runs/artifacts;
-- do not reopen accepted 4H/1D path semantics or arbitration without a concrete defect.
+Next discriminant:
+- isolate and classify the 15 confirmed 15m RANGE_ROTATION failures before any semantic change.
 
 
 ## 7. Continuity protocol
