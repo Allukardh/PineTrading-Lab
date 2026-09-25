@@ -5,7 +5,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from tools.market_execution_bridge_reference import APPROACH_ATR, EVENT_HOLD_BARS
+from tools.market_execution_bridge_reference import (
+    APPROACH_ATR,
+    EVENT_HOLD_BARS,
+    EVENT_HOLD_MAX_MS,
+)
 from tools.participation_reference import (
     CONTRACTED_BELOW,
     EXPANDED_AT_OR_ABOVE,
@@ -25,7 +29,7 @@ from tools.momentum_turn_reference import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-MANIFEST = ROOT / "manifests" / "execution-research-defaults-v1.json"
+MANIFEST = ROOT / "manifests" / "execution-research-defaults-v2.json"
 
 
 def _expect(actual, expected, label: str) -> None:
@@ -36,7 +40,7 @@ def _expect(actual, expected, label: str) -> None:
 def main() -> int:
     data = json.loads(MANIFEST.read_text(encoding="utf-8"))
 
-    _expect(data.get("execution_research_defaults_version"), 1, "defaults version")
+    _expect(data.get("execution_research_defaults_version"), 2, "defaults version")
     _expect(data.get("status"), "candidate", "status")
 
     m = data["momentum_turn"]
@@ -54,6 +58,11 @@ def main() -> int:
     b = data["market_map_execution_bridge"]
     _expect(b["approach_distance_atr"], APPROACH_ATR, "approach ATR")
     _expect(b["event_hold_bars"], EVENT_HOLD_BARS, "event hold bars")
+    _expect(
+        b["event_hold_max_hours"],
+        EVENT_HOLD_MAX_MS / (60 * 60 * 1000),
+        "event hold max hours",
+    )
 
     rsi = data["rsi"]
     expected_rsi = {
@@ -79,10 +88,11 @@ def main() -> int:
         "strong_at_or_above": STRONG_AT_OR_ABOVE,
         "baseline_reference": "prior_confirmed_ema",
         "pressure_min": PRESSURE_MIN,
+        "strength_deterioration": "contrary_only",
     }
     _expect(participation, expected_participation, "participation defaults")
 
-    print("PASS: Execution research defaults v1")
+    print("PASS: Execution research defaults v2")
     return 0
 
 
