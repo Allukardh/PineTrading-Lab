@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — RANGE_ROTATION 15-symbol daily robustness  
+**Checkpoint state:** STABLE  
+**Active product front:** Suite 0.2 — RANGE_ROTATION structural class accepted  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,49 +131,42 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — RANGE_ROTATION 15-symbol 1D robustness
+### STABLE result — RANGE_ROTATION structural class
 
-Active research:
+Research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `3c818adf502d95677493100d80c0f0881f5042f9`
+- accepted range research head: `905fc9adf190b0c1b12d17d2109027302ee8a410`
 
-Closed evidence:
+Evidence:
 - BTC 4H/1D `36153024231` — PASS;
 - ETH/AVAX robustness `36153274614` — PASS;
+- 15-symbol 1D universe `36153654841` — PASS;
+- Static integrity `36153654694`, `36153661271` — PASS;
 - worklog: `docs/worklog/2026-09-25-suite-0.2-range-rotation.md`.
 
-Current RANGE_ROTATION decision:
-- stable structural box — KEEP;
-- EDGE_REJECTION — **KEEP as primary trigger**;
-- raw SWEEP_RECLAIM standalone trigger — **REMOVE**, may remain auxiliary telemetry;
-- 4H label — KEEP;
-- regime-relation hard filter — not justified;
-- 1D — promising but sample too small across BTC/ETH/AVAX.
+Accepted research decisions:
+- stable structural range box — KEEP;
+- EDGE_REJECTION — KEEP as primary RANGE_ROTATION trigger;
+- raw SWEEP_RECLAIM standalone trigger — REMOVE;
+- RANGE_ROTATION 4H — KEEP;
+- RANGE_ROTATION 1D — KEEP;
+- regime relation — KEEP as context / integration discriminant;
+- frozen Execution 0.1 remains independent;
+- Opportunity v2 breakout/reacceleration baseline remains accepted and unchanged;
+- no production Pine/default/profile changes.
 
-Exact intended work:
-1. run unchanged structural range detector on the accepted 15-symbol 1D universe;
-2. primary evaluation uses EDGE_REJECTION only;
-3. no threshold/symbol tuning;
-4. aggregate:
-   - episode count;
-   - midpoint-or-better rate;
-   - opposite-edge reach;
-   - failed-before-midpoint;
-   - censoring;
-   - LONG/SHORT balance;
-   - frozen 0.1 coverage gap;
-   - per-symbol sample breadth;
-   - regime-relation diagnostics;
-5. decide 1D RANGE_ROTATION KEEP/REFINE/REMOVE/INSUFFICIENT;
-6. only if daily robustness is acceptable may RANGE_ROTATION enter Opportunity v2 integration research;
-7. no production Pine/default/profile change.
+15-symbol daily EDGE_REJECTION:
+- 94 episodes across 15/15 symbols;
+- midpoint+ 67.02%;
+- opposite edge 32.98%;
+- failed before midpoint 9.57%;
+- frozen 0.1 covered 1.06%;
+- LONG/SHORT 51/43.
 
-Recovery:
-- compare branch with `3c818adf...`;
-- inspect only newer RANGE_ROTATION universe commits/runs/artifacts;
-- do not reopen closed breakout/reacceleration/Opportunity-v2 research.
+Next:
+- integrate RANGE_ROTATION into research-only Opportunity v2 with A/B regime-context comparison before any production work.
 
 
 ## 7. Continuity protocol
