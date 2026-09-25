@@ -241,13 +241,19 @@ def analyze_timeframe(
     by_type = defaultdict(list)
     by_outcome = defaultdict(list)
     outcome_counts = Counter()
+    outcome_latency = defaultdict(list)
 
     for response in responses:
         by_type[response.opportunity_type].append(response)
-        outcome = outcomes[response.episode_id].outcome.value
+        outcome_obj = outcomes[response.episode_id]
+        outcome = outcome_obj.outcome.value
         outcome_counts[outcome] += 1
         if outcome != "NOT_APPLICABLE":
             by_outcome[outcome].append(response)
+            if outcome_obj.outcome_bar is not None:
+                outcome_latency[outcome].append(
+                    outcome_obj.outcome_bar - response.confirmation_bar
+                )
 
     return {
         "rows": len(chart),
@@ -259,6 +265,10 @@ def analyze_timeframe(
         },
         "candidate_outcomes": {
             "counts": dict(sorted(outcome_counts.items())),
+            "outcome_latency_bars": {
+                outcome: _dist(values)
+                for outcome, values in sorted(outcome_latency.items())
+            },
             "response_by_outcome": {
                 outcome: _response_summary(items)
                 for outcome, items in sorted(by_outcome.items())
@@ -307,17 +317,22 @@ def markdown_report(report: dict) -> str:
         "",
         "## Candidate outcome diagnostics",
         "",
-        "| TF | retrospective outcome | episodes | already PREP+ % | reached ARMED % | confirm or already aligned % |",
-        "| --- | --- | ---: | ---: | ---: | ---: |",
+        "| TF | retrospective outcome | episodes | outcome lag median | already PREP+ % | reached ARMED % | confirm or already aligned % |",
+        "| --- | --- | ---: | ---: | ---: | ---: | ---: |",
     ]
 
     for tf, item in report["timeframes"].items():
         for outcome, summary in item["candidate_outcomes"]["response_by_outcome"].items():
             lines.append(
-                "| {tf} | {outcome} | {episodes} | {prep} | {armed} | {covered} |".format(
+                "| {tf} | {outcome} | {episodes} | {lag} | {prep} | {armed} | {covered} |".format(
                     tf=tf,
                     outcome=outcome,
                     episodes=summary["episodes"],
+                    lag=_fmt(
+                        item["candidate_outcomes"]["outcome_latency_bars"]
+                        .get(outcome, {})
+                        .get("median")
+                    ),
                     prep=_fmt(summary["already_preparing_or_better_pct"]),
                     armed=_fmt(summary["reached_armed_pct"]),
                     covered=_fmt(summary["confirmed_or_already_aligned_pct"]),
