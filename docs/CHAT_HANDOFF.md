@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** STABLE  
-**Active product front:** Suite 0.2 — capability-aware Thesis Management V1.1 accepted in research  
+**Checkpoint state:** PREPARED  
+**Active product front:** Suite 0.2 — responsiveness/profile counterfactuals  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,57 +131,54 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### STABLE result — capability-aware Thesis Management V1.1
+### PREPARED block — responsiveness/profile counterfactuals
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- accepted research head: `5bcc6efa167fe336a76b6684fe9888ce8b0b5e82`
+- durable pre-block research head: `5bcc6efa167fe336a76b6684fe9888ce8b0b5e82`
 
-Evidence:
-- BTC/ETH/AVAX V1.1 `36181579092` — PASS;
-- 15-symbol 1D V1.1 `36184683360` — PASS;
-- Static integrity — PASS;
-- worklog: `docs/worklog/2026-09-25-suite-0.2-thesis-management.md`.
+Closed prerequisites:
+- Opportunity Engine v2 accepted in research;
+- RANGE_ROTATION EARLY_ANY1 accepted in research;
+- OPERATOR_READINESS_V1 accepted in research;
+- native horizon study 15m/1H/3D/1W completed;
+- deterministic 1M macro-context role established;
+- capability-aware Thesis Management V1.1 accepted in research.
 
-Accepted research decisions:
-- every unified directional CONFIRMA creates a management thesis;
-- target/invalidation capabilities are independent;
-- anchor classes:
-  - FULL
-  - INVALIDATION_ONLY
-  - TARGET_ONLY
-  - NONE
-- no synthetic target or invalidation;
-- FULL episodes preserve exact V1 parity;
-- 4H PROTECT — KEEP;
-- 4H REALIZATION_RISK — KEEP as selective management warning;
-- 1D PROTECT — KEEP;
-- 1D REALIZATION_RISK — internal mature-thesis/profit-protection evidence; direct `REALIZAÇÃO` wording not promoted;
-- no production Pine/default/profile/panel change.
+Profile candidates remain **unapproved**:
+- ANTECIPADO
+- PADRÃO
+- CONFIRMADO
 
-15-symbol 1D V1.1:
-- 86/86 confirms managed;
-- FULL 63;
-- INVALIDATION_ONLY 10;
-- TARGET_ONLY 12;
-- NONE 1;
-- target-capable 87.21%;
-- invalidation-capable 84.88%;
-- FULL V1 parity 100%;
-- invalidated with prior PROTECT 15/18 = 83.33%;
-- invalidated with REALIZATION_RISK 0/18;
-- completed target-capable with REALIZATION_RISK 2/61 = 3.28%.
+Locks:
+- PADRÃO comparator = accepted OPERATOR_READINESS_V1 / accepted opportunity semantics;
+- no production Pine/default/panel change;
+- no lookahead/repaint;
+- no per-asset tuning;
+- profiles, if retained, must be coherent behavior bundles rather than exposed raw thresholds.
 
-Daily REALIZATION persistence:
-- 3 episodes on 3/15 symbols;
-- AAVE SHORT dominates: 224 live bars, 57 REALIZATION bars, 19 entries/runs, first warning ~0.62 path progress and 115 daily bars before target;
-- this supports horizon-aware operator wording rather than threshold retuning.
+Exact intended work:
+1. audit accepted readiness paths and existing latency evidence;
+2. define profile counterfactuals in terms of lifecycle/evidence burden, not arbitrary EMA/RSI numbers;
+3. measure on BTC 4H/1D first:
+   - opportunity coverage;
+   - PREP / ARMED / CONFIRMA latency;
+   - ATR displacement consumed;
+   - remaining structural room;
+   - cancellations / <=3-bar churn;
+   - held/fakeout and structural-failure diagnostics where applicable;
+4. require PADRÃO exact parity with accepted research baseline;
+5. only if useful tradeoffs exist, validate unchanged on ETH/AVAX;
+6. then test broader/horizon robustness as warranted;
+7. if profiles do not create distinct useful operating modes, **do not ship a profile selector**;
+8. no production Pine/default/profile/panel change in this block.
 
-Next roadmap frontier:
-- Phase E responsiveness/profile counterfactuals;
-- profiles remain unapproved until a coherent timing/confirmation tradeoff is demonstrated.
+Recovery:
+- compare active branch with `5bcc6efa...`;
+- inspect only newer profile/responsiveness commits/runs/artifacts;
+- do not reopen closed Opportunity, horizon or management research without a concrete defect.
 
 
 ## 7. Continuity protocol
