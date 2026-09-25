@@ -131,65 +131,50 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — RANGE_ROTATION source-arm readiness variants
+### PREPARED block — EARLY_ANY1 RANGE_ROTATION cross-asset robustness
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- durable pre-block research head: `d437069ed7b35b874ab4d5ae4df29e3266544ae4`
+- durable pre-block research head: `1f595a3962146f3aafa03917cc5f12ca60c7c4a4`
 
-Audit correction:
-- strict pre-midpoint component window fixed before implementation;
-- corrected component run `36159037602` — PASS;
-- source ignition run `36159220967` — PASS.
+Closed BTC source-arm gate:
+- workflow `36159790705` — PASS;
+- Static integrity `36159790678` — PASS;
+- worklog: `docs/worklog/2026-09-25-suite-0.2-range-rotation.md`.
 
-Superseding preregistration:
+Decision:
+- EARLY_ANY1 — KEEP provisionally;
+- SELECTIVE_ANY2 — REMOVE from active candidate path.
 
-**EARLY_ANY1**
-- source EDGE_REJECTION:
-  - dual MTE + local-RSI opposition -> WAIT;
-  - otherwise >=1 ignition family -> ARMADO;
-  - zero ignition -> WAIT;
-- next-bar structural ACCEPTED:
-  - already ARMADO from same source -> CONFIRMA.
+EARLY_ANY1 contract:
+- source EDGE_REJECTION;
+- dual MTE + local-RSI opposition -> WAIT;
+- otherwise >=1 ignition family (MTE aligned / local RSI supportive / PSE CONFIRM) -> ARMADO;
+- next-bar structural ACCEPTED from same source -> CONFIRMA;
+- HTF RSI is context, not veto;
+- range invalidation/opposite-edge completion clears setup.
 
-**SELECTIVE_ANY2**
-- source:
-  - dual opposition -> WAIT;
-  - 1 ignition family -> PREPARANDO;
-  - >=2 ignition families -> ARMADO;
-  - zero -> WAIT;
-- next-bar ACCEPTED:
-  - only already ARMADO -> CONFIRMA;
-  - PREPARANDO does not create a late entry.
-
-Ignition families:
-- MTE aligned;
-- local RSE supportive;
-- PSE CONFIRM.
-
-Locks:
-- HTF RSI is context, not readiness veto;
-- structural ACCEPTED mandatory;
-- range detector/thresholds unchanged;
-- no hard regime filter;
-- MTE/RSE/PSE state definitions unchanged;
-- breakout/reacceleration Opportunity v2 unchanged;
-- frozen 0.1 unchanged;
-- no production Pine/default/profile change.
+BTC evidence:
+- 4H: 5 confirms, 100% midpoint+, 60% opposite, 0 failed-before-mid;
+- median latency +1 bar;
+- median room 0.99 ATR;
+- cancel load 1.57/1000 bars;
+- 1D: 1 confirm, OPPOSITE_REACHED, 0 failed.
 
 Exact intended work:
-1. implement both range-specific readiness variants;
-2. run BTC 4H/1D;
-3. compare confirmation breadth/selectivity, +1 timing, midpoint timing, room, churn and structural outcomes;
-4. target zero FAILED_BEFORE_MID confirmations;
-5. choose the better semantic tradeoff;
-6. only then validate unchanged on ETH/AVAX.
+1. run unchanged EARLY_ANY1 and comparison telemetry on ETH 4H/1D;
+2. run unchanged on AVAX 4H/1D;
+3. no threshold or asset tuning;
+4. evaluate failed-confirm contamination, midpoint/opposite quality, room, churn and direction;
+5. if robust, accept EARLY_ANY1 as RANGE_ROTATION Opportunity-readiness research baseline;
+6. only then decide how RANGE_ROTATION is merged into the overall Opportunity v2 presentation/arbitration;
+7. no production Pine/default/profile change.
 
 Recovery:
-- compare active branch with `d437069...`;
-- inspect only newer range-readiness source-arm commits/runs/artifacts.
+- compare branch with `1f595a3...`;
+- inspect only newer source-arm robustness commits/runs/artifacts.
 
 
 ## 7. Continuity protocol
