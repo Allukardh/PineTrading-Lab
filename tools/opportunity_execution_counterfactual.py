@@ -60,6 +60,7 @@ class OpportunityFrame:
     direction: int = 0
     source_bar: int | None = None
     break_level: float | None = None
+    source_strong: bool = False
 
 
 @dataclass(frozen=True)
@@ -191,6 +192,7 @@ def build_opportunity_frames(
                             direction=active.direction,
                             source_bar=active.source_bar,
                             break_level=active.break_level,
+                            source_strong=active.source_strong,
                         )
                 elif age == 2:
                     source = active.source_bar
@@ -215,6 +217,7 @@ def build_opportunity_frames(
                             direction=active.direction,
                             source_bar=source,
                             break_level=active.break_level,
+                            source_strong=active.source_strong,
                         )
                     else:
                         clear()
@@ -244,6 +247,7 @@ def build_opportunity_frames(
                         chosen.direction,
                         chosen.confirmation_bar,
                         None,
+                        False,
                     )
                     strong_at_source = False
                 else:
@@ -270,6 +274,7 @@ def build_opportunity_frames(
                         chosen.direction,
                         chosen.confirmation_bar,
                         level,
+                        strong_at_source,
                     )
 
         frames.append(active)
