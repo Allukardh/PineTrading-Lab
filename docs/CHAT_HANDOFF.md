@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** STABLE  
-**Active product front:** Suite 0.2 — monthly regime comparison closed  
+**Checkpoint state:** PREPARED  
+**Active product front:** Suite 0.2 — 1M macro-context role for 3D/1W  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,42 +131,57 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### STABLE result — monthly regime basis comparison
+### PREPARED block — prior-completed 1M macro context for 3D/1W
 
 Active research:
 - Issue #23
 - draft PR #25
 - branch `research/suite-0.2-opportunity-evidence`
-- stable research head: `eda3f81ac03ec6351add373c83d7814b0af0d8d8`
+- durable pre-block research head: `eda3f81ac03ec6351add373c83d7814b0af0d8d8`
 
-Evidence:
-- monthly regime comparison `36171266299` — PASS;
-- Static integrity `36171265814`, `36171270322` — PASS;
-- artifact `10881120141`;
-- worklog: `docs/worklog/2026-09-25-suite-0.2-native-horizons.md`.
+Closed monthly regime comparison:
+- workflow `36171266299` — PASS;
+- FIXED 50/200 = control;
+- WEEK_EQUIV 12/46 = do not promote as standalone monthly regime basis;
+- standalone 1M execution role = not proven.
 
-Audit correction:
-- offline EMA is recursively seeded;
-- lack of 200 observed monthly bars does not imply EMA200 numeric unavailability;
-- fixed 50/200 monthly regime is directional on ~75.52% of bars.
+Hypothesis:
+- 1M may be more useful as a macro/cycle context layer for accepted 3D/1W opportunity execution than as a standalone confirmation engine.
 
-Comparison:
-- fixed 50/200 regime changes: 8.51 / 100 bars;
-- 12/46 regime changes: 14.86 / 100 bars;
-- 12/46 reduced structural-conflict bars but increased churn;
-- both variants produced 0 HELD/FAKEOUT breakout confirmations;
-- both produced 0 HELD/FAKEOUT reacceleration confirmations;
-- 12/46 produced only two sparse REGIME_REVERSAL LONG confirmations (ETH/AVAX).
+Time-safety lock:
+- a 3D/1W bar may use **only the prior completed monthly bar**;
+- no current incomplete month state;
+- no backdating.
 
-Decisions:
-- FIXED 50/200 = KEEP as control only;
-- WEEK_EQUIV 12/46 = DO NOT PROMOTE;
-- standalone 1M execution role = NOT PROVEN;
-- deterministic 1M derivation remains KEEP;
-- no lower-horizon / production / profile changes.
+Exact intended work:
+1. derive deterministic 1M from the same accepted 1D data;
+2. run both monthly context descriptors:
+   - FIXED 50/200 control;
+   - WEEK_EQUIV 12/46 research comparator;
+3. map accepted 3D/1W opportunity episodes to prior-completed monthly state;
+4. classify relation separately for:
+   - monthly `regime_dir`;
+   - monthly `map_dir`;
+   as ALIGNED / NEUTRAL / OPPOSING;
+5. do **not** alter accepted 3D/1W Opportunity readiness in this block;
+6. stratify BREAKOUT_EXPANSION / REACCELERATION / strict REGIME_REVERSAL by:
+   - candidate counts;
+   - HELD / FAKEOUT / other structural outcomes;
+   - accepted Opportunity confirm counts/outcomes;
+   - relation to prior monthly state;
+7. compare whether monthly context provides stable discrimination on 3D and/or 1W;
+8. no hard filtering from this first study;
+9. no per-symbol tuning;
+10. no production Pine/default/profile changes.
 
-Next:
-- test prior-completed 1M state as macro/cycle context for accepted 3D/1W opportunities.
+Decision target:
+- if monthly context is informative, define 1M as macro/cycle layer and then test an explicit context-aware rule;
+- if not informative, keep 1M awareness-only and do not force it into execution.
+
+Recovery:
+- compare active branch with `eda3f81a...`;
+- inspect only newer monthly-context commits/runs/artifacts;
+- do not reopen closed monthly basis, 3D/1W, or lower-horizon gates.
 
 
 ## 7. Continuity protocol
