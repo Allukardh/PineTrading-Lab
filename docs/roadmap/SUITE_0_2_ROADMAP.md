@@ -357,18 +357,34 @@ The visible panel must remain compact. No second full panel and no return of Com
 3. 15m/1H precision;
 4. compare HTF mappings.
 
-### Phase E — Profile counterfactuals
-Only if latency evidence warrants:
-- ANTECIPADO;
-- PADRÃO;
-- CONFIRMADO.
+### Phase E — Profile counterfactuals — **CLOSED**
+Final policy:
+- **PADRÃO** — global default / KEEP;
+- **ANTECIPADO** — scoped TREND posture on 15m / 1H / 4H / 1D / 3D for BREAKOUT_EXPANSION + REACCELERATION;
+- **CONFIRMADO** tested +1 contract — REMOVE;
+- 1W execution and 1M macro/cycle remain PADRÃO semantics;
+- no additional profile variant is authorized merely to force symmetry.
 
-### Phase F — integrated evidence
-- Market Map + Execution;
-- BTC primary;
-- ETH/AVAX unchanged-default robustness first;
-- broader universe only where useful;
-- no per-asset retuning by default.
+Final high-horizon gate:
+- 15-symbol 3D/1W workflow `36192491182` — PASS;
+- 3D scope supported;
+- 1W early-action evidence insufficient.
+
+### Phase F — integrated evidence — **ACTIVE**
+F1:
+- Market Map + independent Execution/Opportunity paths + OPERATOR_READINESS_V1;
+- apply the final profile policy without mutating internal paths;
+- BTC primary across 15m / 1H / 4H / 1D / 3D / 1W;
+- ETH/AVAX unchanged-policy robustness first.
+
+F2:
+- capability-aware Thesis Management V1.1;
+- preserve accepted 4H/1D behavior;
+- establish whether 15m / 1H / 3D / 1W can reuse the same management semantics without retuning;
+- 1M remains macro/cycle awareness, not execution management.
+
+Broader universe is used only where it answers a real robustness question.
+No per-asset retuning by default.
 
 ### Phase G — TradingView gate
 - targeted live/reload parity;
