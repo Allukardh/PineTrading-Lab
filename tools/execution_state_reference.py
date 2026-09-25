@@ -222,21 +222,38 @@ def classify_strength(direction: int, evidence: Evidence) -> Strength:
     if not _valid_dir(direction):
         return Strength.NORMAL
 
-    deterioration = sum(
+    momentum_deteriorates = _momentum_deteriorates(direction, evidence.momentum)
+    rsi_deteriorates = _rsi_deteriorates(direction, evidence.rsi)
+
+    # Low participation is not the same as directional participation against
+    # the thesis. For generic continuation strength only CONTRARY is an
+    # independent PSE deterioration family.
+    generic_deterioration = sum(
         [
-            _momentum_deteriorates(direction, evidence.momentum),
-            _rsi_deteriorates(direction, evidence.rsi),
-            # Low participation is not the same as directional participation
-            # against the thesis. WEAK still blocks confirmation by failing to
-            # become CONFIRM, but only CONTRARY is an independent strength
-            # deterioration family.
+            momentum_deteriorates,
+            rsi_deteriorates,
             evidence.participation == Participation.CONTRARY,
         ]
     )
 
-    if evidence.location == Location.DESTINATION_NEAR and deterioration >= 2:
+    # Near an explicit Market Map destination, however, participation failing
+    # to expand is contextually meaningful exhaustion evidence. WEAK may
+    # therefore contribute to REACTION_RISK only at DESTINATION_NEAR.
+    destination_deterioration = sum(
+        [
+            momentum_deteriorates,
+            rsi_deteriorates,
+            evidence.participation in {Participation.WEAK, Participation.CONTRARY},
+        ]
+    )
+
+    if evidence.location == Location.DESTINATION_NEAR and destination_deterioration >= 2:
         return Strength.REACTION_RISK
-    if deterioration >= 2:
+    if generic_deterioration >= 2:
+        return Strength.EXHAUSTED
+    if generic_deterioration == 1:
+        return Strength.FADING
+    return Strength.NORMAL
         return Strength.EXHAUSTED
     if deterioration == 1:
         return Strength.FADING
