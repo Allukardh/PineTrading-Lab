@@ -31,6 +31,8 @@ class BreakoutAcceptance(str, Enum):
     HOLD_2 = "HOLD_2"
     PSE_OR_HOLD_1 = "PSE_OR_HOLD_1"
     PSE_MTE_OR_HOLD_1 = "PSE_MTE_OR_HOLD_1"
+    PSE_OR_HOLD_2 = "PSE_OR_HOLD_2"
+    PSE_MTE_OR_HOLD_2 = "PSE_MTE_OR_HOLD_2"
 
 
 @dataclass(frozen=True)
@@ -155,15 +157,28 @@ def decide(
     elif rule in {
         BreakoutAcceptance.PSE_OR_HOLD_1,
         BreakoutAcceptance.PSE_MTE_OR_HOLD_1,
+        BreakoutAcceptance.PSE_OR_HOLD_2,
+        BreakoutAcceptance.PSE_MTE_OR_HOLD_2,
     }:
+        pse_only = rule in {
+            BreakoutAcceptance.PSE_OR_HOLD_1,
+            BreakoutAcceptance.PSE_OR_HOLD_2,
+        }
         immediate_rule = (
             BreakoutAcceptance.PENETRATION_PSE
-            if rule == BreakoutAcceptance.PSE_OR_HOLD_1
+            if pse_only
             else BreakoutAcceptance.PENETRATION_PSE_MTE
         )
         if immediate_accepts(immediate_rule, features):
             return AcceptanceDecision(rule, True, start, 0)
-        follow_bars = 1
+        follow_bars = (
+            1
+            if rule in {
+                BreakoutAcceptance.PSE_OR_HOLD_1,
+                BreakoutAcceptance.PSE_MTE_OR_HOLD_1,
+            }
+            else 2
+        )
 
     if follow_bars is not None:
         bar = follow_through_bar(
