@@ -71,6 +71,7 @@ class IntegrationSnapshot:
     thesis_key: int | None = None
     destination: float | None = None
     invalidation: float | None = None
+    structural_break_level: float | None = None
 
 
 @dataclass
@@ -544,6 +545,7 @@ class Kernel:
                     thesis_key=key,
                     destination=None if thesis_inv else dest,
                     invalidation=inval if ready else None,
+                    structural_break_level=break_level if (bu or bd) else None,
                 ))
             ts = datetime.fromtimestamp(x.t / 1000000.0, tz=timezone.utc).isoformat().replace('+00:00', 'Z')
             if emit_audit:
