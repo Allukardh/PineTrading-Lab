@@ -1190,7 +1190,7 @@ def main() -> int:
 
     rsi_cache = {tf: calculate_rsi(datasets[tf]["close"]) for tf in TIMEFRAMES}
 
-    defaults_path = Path("manifests/execution-research-defaults-v1.json")
+    defaults_path = Path("manifests/execution-research-defaults-v2.json")
     semantics_path = Path("manifests/suite-semantics-v1.json")
     defaults = json.loads(defaults_path.read_text(encoding="utf-8"))
     semantics = json.loads(semantics_path.read_text(encoding="utf-8"))
