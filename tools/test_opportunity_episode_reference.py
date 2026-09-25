@@ -97,6 +97,44 @@ class OpportunityEpisodeTests(unittest.TestCase):
         self.assertEqual([e.thesis_key for e in pullbacks], [7, 8])
         self.assertEqual([e.confirmation_bar for e in pullbacks], [0, 2])
 
+    def test_regime_transition_candidate_is_known_on_opposite_break(self):
+        xs = [
+            snap(
+                i,
+                map_dir=-1,
+                regime_dir=-1,
+                structure_dir=-1,
+                thesis_key=100,
+            )
+            for i in range(REVERSAL_PRIOR_REGIME_MIN_BARS)
+        ]
+        break_bar = len(xs)
+        xs.append(
+            snap(
+                break_bar,
+                map_dir=0,
+                regime_dir=0,
+                structure_dir=1,
+                structural_break_dir=1,
+                thesis_key=None,
+                structural_conflict=True,
+            )
+        )
+        eps = detect_episodes(
+            xs,
+            [x.close + 1 for x in xs],
+            [x.close - 1 for x in xs],
+        )
+        transitions = [
+            e
+            for e in eps
+            if e.opportunity_type == OpportunityType.REGIME_TRANSITION_CANDIDATE
+        ]
+        self.assertEqual(len(transitions), 1)
+        self.assertEqual(transitions[0].direction, 1)
+        self.assertEqual(transitions[0].onset_bar, break_bar)
+        self.assertEqual(transitions[0].confirmation_bar, break_bar)
+
     def test_regime_reversal_confirmation_is_not_backdated(self):
         xs = []
         for i in range(REVERSAL_PRIOR_REGIME_MIN_BARS):
