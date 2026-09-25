@@ -38,7 +38,8 @@
     "strong_at_or_above": 1.5,
     "baseline_reference": "prior_confirmed_ema",
     "pressure_min": 0.2,
-    "strength_deterioration": "contrary_only"
+    "strength_deterioration": "contrary_only",
+    "destination_reaction_evidence": "weak_or_contrary"
   },
   "market_map_execution_bridge": {
     "approach_distance_atr": 0.5,
