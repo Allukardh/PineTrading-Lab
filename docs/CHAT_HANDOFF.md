@@ -2,8 +2,8 @@
 
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
-**Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — 0.1 latency / missed-opportunity baseline  
+**Checkpoint state:** STABLE  
+**Active product front:** Suite 0.2 — first 4H/1D latency baseline complete  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -131,44 +131,43 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED research block — 0.1 latency / missed-opportunity baseline
+### STABLE result — frozen 0.1 BTC 4H/1D latency baseline
 
-Canonical roadmap:
-- Issue #23
-- `docs/roadmap/SUITE_0_2_ROADMAP.md`
-- `docs/design/OPPORTUNITY_ENGINE.md`
-- `docs/testing/SUITE_0_2_EVIDENCE_PLAN.md`
+Research branch:
+`research/suite-0.2-opportunity-evidence`
 
-Frozen 0.1 comparators:
-- Market Map 0.1.0 — `0eeb0d37b256a950cfb38f627fa3521bb213d380`
-- Execution 0.1.0 — `a7557df2d0142441ea782dba4b8c3f95ebc38371`
+Latest durable research result:
+`1cba5126d6bbf219c6e6c5e44e1114d535c60217`
 
-Exact intended work:
-1. create `research/suite-0.2-opportunity-evidence` from current `main`;
-2. audit/reuse the accepted offline Market Map + Execution reference kernels;
-3. define deterministic opportunity-episode labels before changing candidate behavior;
-4. establish the frozen 0.1 response baseline around those episodes;
-5. measure bars + ATR displacement to PREPARANDO / ARMADO / CONFIRMA;
-6. classify missed-opportunity causes;
-7. keep 0.1 Pine/defaults untouched;
-8. do not create ANTECIPADO/CONFIRMADO behavior until the baseline shows what problem actually exists.
+Evidence:
+- workflow `36095191710` — PASS;
+- Static integrity `36095191796` — PASS;
+- detailed worklog: `docs/worklog/2026-09-25-suite-0.2-latency-baseline.md`.
 
-Initial horizon priority:
-- primary: 4H / 1D;
-- then 15m / 1H precision;
-- then 3D / 1W / derived 1M medium-long context.
+First-pass independent opportunity labels:
+- `BREAKOUT_CANDIDATE`;
+- `PULLBACK_RETEST`;
+- `REGIME_TRANSITION_CANDIDATE`;
+- strict coherent `REGIME_REVERSAL`.
 
-Expected durable outputs:
-- deterministic episode-label reference model + tests;
-- 0.1 latency evidence runner;
-- machine-readable baseline report;
-- explicit evidence about whether profiles/opportunity expansion are justified.
+Key result:
+- 0.1 is not globally late;
+- pullback/retest is frequently already PREP+ at the event (~55% 4H / ~63% 1D);
+- breakout misses are dominated by `LOCATION_NOT_RELEVANT`, proving opportunity-location narrowness rather than merely slow thresholds;
+- held 4H breakouts are covered more often than fakeouts (22.28% vs 11.90%), so current selectivity has value;
+- raw opposite breaks against mature regimes are far too broad to become actionable transition signals by themselves;
+- only 11/607 4H regime-transition candidates mature into coherent reversal within 12 bars; 19 within 24; 35 within 48;
+- canonical `map_dir` must remain conservative;
+- profiles remain unapproved.
 
-Recovery if interrupted:
-- compare active research branch with this checkpoint;
-- inspect only newer commits/runs/artifacts;
-- do not repeat roadmap work;
-- do not mutate the 0.1 production Pine files.
+Do not rerun/reinterpret this block unless a measurement defect is found.
+
+Next discriminant:
+- research deterministic **acceptance/follow-through semantics** for breakout and regime transition candidates;
+- then add REACCELERATION and RANGE_ROTATION episode contracts;
+- only after those labels stabilize may a 0.2 Opportunity Engine counterfactual alter readiness coverage.
+
+No production Pine/default change is authorized yet.
 
 
 ## 7. Continuity protocol
