@@ -1,9 +1,9 @@
 # PineTrading-Lab — Chat Continuation Checkpoint
 
 **Status:** CANONICAL FAST HANDOFF  
-**Date:** 2026-09-24  
-**Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — Phase G final automated promotion gate  
+**Date:** 2026-09-25  
+**Checkpoint state:** STABLE  
+**Active product front:** none — Suite 0.2 promoted  
 **Operator evidence required now:** none
 
 ## 1. Resume order
@@ -14,265 +14,173 @@ Read in this order:
 2. `docs/CANONICAL_STATE.md`
 3. `docs/CONTINUITY_LOG.md`
 4. this file
-5. only then open a new issue/branch for the next concrete product objective
+5. only then open a new issue/branch for a concrete next objective
 
-GitHub is canonical. Do not reconstruct from old chats unless canonical project evidence contains an unresolved contradiction.
+GitHub is canonical. Do not reconstruct product state from old chats unless canonical project evidence contains an unresolved contradiction.
 
-## 2. Accepted suite baseline
+## 2. Accepted production baseline
 
-Final runtime topology:
+Final runtime topology remains **two indicators**:
 
-1. **Market Map 0.1.0**
-   - overlay
-   - trend/regime
-   - structure
-   - structural liquidity
-   - correction/retest/reclaim
-   - destination
-   - invalidation
-   - embedded semantic Decision Panel
-   - embedded Execution rows: `EXECUÇÃO` + `FORÇA`
+1. **Market Map 0.2.0**
+   - overlay;
+   - trend/regime/structure/liquidity;
+   - correction/retest/reclaim;
+   - broader Opportunity Engine context;
+   - targets + structural invalidation;
+   - direct embedded operator panel:
+     - CENÁRIO
+     - OPORTUNIDADE
+     - LADO
+     - AÇÃO
+     - ALVO
+     - GESTÃO
+     - INVALIDA
+     - CORREÇÃO when relevant.
 
-2. **Execution 0.1.0**
-   - lower pane
-   - MTE-A momentum timing
-   - RSE-A RSI recovery/exhaustion + confirmed HTF context
-   - PSE-A participation / reload-safe pressure proxy
-   - readiness states: AGUARDAR / PREPARANDO / ARMADO / CONFIRMA / ALINHADO
-   - strength states: NORMAL / PERDENDO FORÇA / EXAUSTÃO / RISCO DE REAÇÃO
-   - compact one-line semantic cue only; no second full Decision Panel
+2. **Execution 0.2.0**
+   - lower timing pane;
+   - MTE / RSE / PSE;
+   - frozen 0.1 readiness path;
+   - TREND_OPPORTUNITY_V2;
+   - RANGE_EARLY_ANY1;
+   - OPERATOR_READINESS_V1;
+   - scoped ANTECIPADO posture;
+   - Thesis Management V1.1;
+   - compact semantic cue only.
 
-Decision Panel remains a logical synthesis layer embedded in Market Map, not a third runtime Pine script.
+Decision Panel remains embedded in Market Map, not a third runtime script.
 
-SignalGate Dashboard 0.1.0 remains preserved as a timing/reload/alert engineering donor/baseline only.
+Historical accepted comparators:
+- Market Map 0.1.0 promotion `0eeb0d37b256a950cfb38f627fa3521bb213d380`;
+- Execution 0.1.0 promotion `a7557df2d0142441ea782dba4b8c3f95ebc38371`.
 
-## 3. Accepted promotion refs
+SignalGate Dashboard 0.1.0 remains an engineering/timing donor only.
 
-### Market Map 0.1.0
+## 3. Suite 0.2 promotion
 
-PR #10 merged.
+Research baseline:
+- PR #25
+- merge `74d58a4376f004ec0548e2f9a3640f0d82119c35`
 
-Promotion merge:
+Production implementation:
+- Issue #26 — closed completed
+- PR #27 — merged
+- promotion merge `224157f652581209e81a87409a7a111f21f6f289`
 
-`0eeb0d37b256a950cfb38f627fa3521bb213d380`
+Suite 0.2 umbrella:
+- Issue #23 — closed completed
 
-Do not reopen MM-0 lifecycle/tuning without a concrete new defect.
+Final reconciled branch evidence:
+- Static integrity `36203618280` — PASS
+- Pine compile `36203618294` — PASS
 
-### Execution research contract
+Promotion-merge evidence on `main`:
+- Static integrity `36203676274` — PASS
+- Pine compile `36203676265` — PASS
 
-PR #12 merged.
+TradingView manual gate:
+- BTCUSDT 4H PADRÃO — PASS
+- BTCUSDT 1D PADRÃO — PASS
+- BTCUSDT 3D PADRÃO + monthly macro context — PASS
+- BTCUSDT 1W PADRÃO — PASS
+- BTCUSDT 4H reload parity — PASS
+- BTCUSDT 4H ANTECIPADO scope sanity — PASS
+- supplemental ETH / AVAX / XRP / SUI / DOT / DOGE / NEAR / SOL / HBAR 4H sanity — no obvious cross-script contradiction
 
-Promotion merge:
-
-`1df7adaf3d39047fd400e4d81a4b30415a2934bd`
-
-Final research decisions:
-- MTE-A — KEEP
-- RSE-A — KEEP
-- PSE-A — KEEP
-- readiness state machine — KEEP
-- strength state machine — KEEP
-
-### Execution 0.1.0 production
-
-PR #21 merged.
-
-Promotion merge:
-
-`a7557df2d0142441ea782dba4b8c3f95ebc38371`
-
-Issue #20 is closed as completed.
-
-Final reconciled production gates:
-- Static integrity `36084356518` — PASS
-- Pine compile `36084356547` — PASS
-- branch was 0 commits behind `main` before promotion
-
-Final TradingView cross-script parity:
-- BTCUSDT 4H before reload:
-  - Market Map = `AGUARDAR / NORMAL`
-  - standalone Execution = `AGUARDAR • NORMAL`
-- BTCUSDT 4H after reload:
-  - same confirmed semantic state
-- BTCUSDT 1D after reload:
-  - Market Map = `PREPARANDO LONG / NORMAL`
-  - standalone Execution = `PREPARANDO LONG • NORMAL`
-
-No additional manual promotion gate is open.
-
-## 4. Semantic locks
-
-Do not silently change these without new evidence:
-
-- MTE TURN = early counter-acceleration / preparation evidence, not a guaranteed reversal.
-- RSE RECOVERING/FADING = short recent-zone transition semantic.
-- PSE pressure = OHLC close-location proxy, never true aggressor buy/sell flow.
-- actionable state transitions are chart-close confirmed.
-- HTF RSI context is confirmed.
-- realtime-only delta cannot alter reload-safe confirmed history.
-- Decision Panel is embedded in Market Map, not a third script.
-- no Compact/Full panel split.
-- no mandatory profile selector.
-- no opaque probability/score.
-- do not resurrect six legacy scripts as six final products.
-- do not retune from aggregate historical percentages alone.
-
-## 5. Repository state
-
-Completed product/research trackers:
-- Issue #4 SignalGate live-observation tracker — closed as superseded
-- Issue #9 Market Map foundation — closed completed
-- Issue #11 Execution research — closed completed
-- Issue #20 Execution production — closed completed
-
-Historical merged branches may remain visible. They are not competing active implementations.
-
-Preserve useful donor/history refs unless branch retention becomes a real maintenance problem.
-
-## 6. Exact next action
-
-### PREPARED block — Phase G TradingView cross-script/reload validation
-
-Active implementation:
-- Issue #26
-- draft PR #27
-- branch `feat/suite-0.2-phase-g`
-- current branch head: `4b1eb9c5cc43b135fc40aac79b0c76a5fcb7a5ce`
-- compiled Pine candidate head: `88efeb6e92ec186d46ad2b4b0315cf84dea40970`
-
-Implementation contract:
-- `docs/design/SUITE_0_2_PINE_IMPLEMENTATION.md`
-
-Manual validation contract:
+Detailed evidence:
 - `docs/testing/SUITE_0_2_PHASE_G_VALIDATION.md`
 
-Automated Phase G gate — CLOSED:
-- Pine compile `36199944975` — **PASS**
-- Static integrity `36199944904` — **PASS**
-- Market Map v0.2.0 compiles
-- Execution v0.2.0 compiles
-- cross-script static/default/semantic contract checker passes
-- no research retuning was introduced during compile cleanup
+Operator guide:
+- `docs/GUIA_DO_OPERADOR.md`
 
-Manual gate blocker discovered on BTCUSDT 4H PADRÃO:
-- Market Map runtime error RE10140: 94 plot counts > TradingView limit 64;
-- Execution runtime error RE10140: 82 plot counts > TradingView limit 64;
-- both scripts fail before rendering;
-- classify as production instrumentation/translation defect first, not a research-semantic defect;
-- do not retune thresholds/profiles/opportunity/management logic;
-- repair plot-count footprint, preferably diagnostics/audit instrumentation, preserve required parity telemetry, then rerun Static integrity + Pine compile before asking the operator to resume the same six-screenshot matrix.
+## 4. Runtime plot-budget repair
 
-Runtime repair completed on Phase G branch:
-- repair head `42b8ebb3812395cf17520626368456e003930ab2`;
-- Market Map source-level plot-producing calls: 53;
-- Execution source-level plot-producing calls: 43;
-- conservative static budget: <=55 calls per script;
-- Pine compile `36202404753` — **PASS**;
-- Static integrity `36202404767` — **PASS**;
-- no trading semantic/default retuning.
+The first Phase G TradingView load exposed RE10140:
+- Market Map: 94 plot counts > 64;
+- Execution: 82 plot counts > 64.
 
-TradingView re-entry result:
-- BTCUSDT 4H PADRÃO smoke — **PASS**;
-- both repaired scripts render; RE10140 is gone;
-- Market Map = MISTO / CONFLITO, OPORTUNIDADE NENHUMA, AÇÃO AGUARDAR, GESTÃO —;
-- standalone Execution = AGUARDAR;
-- no visible cross-script contradiction;
-- this screenshot counts as the original matrix's BTCUSDT 4H PADRÃO capture.
+The cause was audit/Data Window instrumentation, not trading logic.
 
-Supplemental 4H PADRÃO cross-asset sanity also supplied for ETH, AVAX, XRP, SUI, DOT, DOGE, NEAR, SOL and HBAR:
-- exercised WAIT, PREP, ARMED, active CONTINUIDADE management, mixed/conflict, transition, trend, correction and retest/reclaim states;
-- no obvious Market Map ↔ Execution semantic contradiction observed;
-- evidence is supplemental only and does not replace the official BTC matrix;
-- no tuning decision taken.
+Repair:
+- redundant diagnostic plots reduced;
+- essential parity fields retained;
+- conservative source-level plot-producing-call guard added.
 
-TradingView final matrix result — **PASS**:
-- BTCUSDT 1D PADRÃO: Market Map PREPARANDO LONG; Execution PREPARANDO LONG;
-- BTCUSDT 3D PADRÃO: TRANSIÇÃO ↑ • MACRO NEUTRO; PREPARANDO LONG parity;
-- BTCUSDT 1W PADRÃO: ALTA; ARMADO LONG parity;
-- BTCUSDT 4H reload: confirmed MISTO / CONFLITO + AGUARDAR state preserved;
-- BTCUSDT 4H ANTECIPADO: no qualifying TREND opportunity, so AGUARDAR remained valid; no fake CONFIRMA; no management start;
-- manual parity/reload/profile gate closed without retuning.
+Current source-level calls:
+- Market Map: 53;
+- Execution: 43;
+- static budget: <=55 per script.
 
-Post-manual durable work:
-- validation evidence recorded in `docs/testing/SUITE_0_2_PHASE_G_VALIDATION.md`;
-- Portuguese operator guide created at `docs/GUIA_DO_OPERADOR.md`;
-- PR #28 merged current `main` into `feat/suite-0.2-phase-g`;
-- reconciled Phase G head: `a80d94413cdc8ed9adfb060fab61dcb357ab62ee`.
+Post-repair evidence:
+- Pine compile `36202404753` — PASS;
+- Static integrity `36202404767` — PASS;
+- TradingView runtime render — PASS.
 
-Immediate next discriminant:
-1. require final Static integrity + Pine compile PASS on reconciled head;
-2. update PR #27 final evidence / mark ready;
-3. merge PR #27 to `main`;
-4. update canonical state + continuity to Suite 0.2 promoted;
-5. close Issue #26 if promotion succeeds.
+Do not remove the plot-budget guard without replacing it with an equal or stronger protection.
 
-Current runtime contract:
-- frozen 0.1 correction/retest/reclaim path independent;
-- TREND_OPPORTUNITY_V2 independent;
-- RANGE_EARLY_ANY1 independent;
-- OPERATOR_READINESS_V1 arbitrates;
-- PADRÃO default;
-- scoped ANTECIPADO only for accepted trend opportunities;
+## 5. Semantic locks
+
+Do not silently change without new evidence:
+
+- frozen 0.1 correction/retest/reclaim path remains independent;
+- TREND_OPPORTUNITY_V2 and RANGE_EARLY_ANY1 remain independent until OPERATOR_READINESS_V1;
+- raw regime transition is not an automatic actionable reversal;
+- PADRÃO is the global recommended default;
+- ANTECIPADO is only for BREAKOUT_EXPANSION / REACCELERATION on 15m / 1H / 4H / 1D / 3D;
+- ANTECIPADO never creates a fake PADRÃO CONFIRMA;
+- ANTECIPADO never starts Thesis Management;
+- 1W remains PADRÃO;
+- 1M remains macro/cycle awareness only;
 - Thesis Management V1.1 starts only from PADRÃO CONFIRMA;
-- no synthetic anchors;
-- 1W PADRÃO only;
-- 1M macro/cycle awareness only;
-- direct operator UX in Market Map;
-- compact standalone Execution cue.
+- no synthetic target/invalidation anchors;
+- actionable state transitions are chart-close confirmed;
+- confirmed HTF context remains reload-safe;
+- PSE pressure is an OHLC close-location proxy, not true aggressor flow;
+- no Compact/Full panel split;
+- no opaque probability/score;
+- no third runtime indicator;
+- do not retune from isolated screenshots, recent PnL or aggregate percentages alone.
 
-Exact manual matrix now required:
+## 6. Current horizon policy
 
-1. BTCUSDT **4H**, both scripts, defaults, PADRÃO;
-2. BTCUSDT **1D**, same;
-3. BTCUSDT **3D**, same;
-4. BTCUSDT **1W**, same;
-5. reload TradingView on BTCUSDT 4H with inputs unchanged and capture the same state again;
-6. BTCUSDT 4H with **both scripts** set to ANTECIPADO; no other input change.
+- **15m / 1H** — short trades / precision; PADRÃO + supported TREND ANTECIPADO.
+- **4H / 1D** — primary swing horizons.
+- **3D** — active medium/long horizon with confirmed monthly context when available.
+- **1W** — high-horizon opportunity/context; PADRÃO only; management valid but sparse.
+- **1M** — macro/cycle awareness only; no standalone execution management.
 
-Where practical, screenshots should include Market Map panel + standalone Execution lower pane/cue and Data Window.
+## 7. Exact next action
 
-Hard PASS:
-- no Market Map/Execution direction/readiness contradiction;
-- no contradictory unified CONFIRMA;
-- management state/anchors agree when active;
-- 4H confirmed state survives reload;
-- ANTECIPADO never creates fake PADRÃO CONFIRMA or starts management;
-- no obvious high-horizon contradiction.
+There is **no active successor engineering branch**.
 
-Do not tune thresholds from this matrix.
+Normal next step:
+- use Suite 0.2 as the current product baseline;
+- collect concrete operator feedback or reproducible defects;
+- if a real product objective emerges, create a new issue and branch from current `main`;
+- write a PREPARED handoff before substantial new work.
 
-After manual PASS:
-1. record operator evidence;
-2. create/finalize `docs/GUIA_DO_OPERADOR.md` in Portuguese;
-3. reconcile PR #27 with current `main` if required;
-4. rerun final Static integrity + Pine compile;
-5. only then promote Suite 0.2.
+Do not reopen Phase A–F research or retune 0.2 merely because one market example looks attractive or unattractive.
 
-Recovery:
-- if interrupted while waiting for screenshots, do not redo Phase G implementation;
-- inspect only newer PR #27 commits/runs and supplied TradingView evidence;
-- candidate Pine is protected at `88efeb6e...`;
-- do not reopen Phase A–F research without a concrete parity defect.
+A future 1.0.0 remains a later integrated maturity milestone, not an automatic next version.
 
-
-## 7. Continuity protocol
+## 8. Continuity protocol
 
 For every substantial future block:
 
-1. set this file to **PREPARED** before the risky/in-progress work;
-2. record refs + exact intended action + expected evidence + recovery rule;
-3. persist the real work/results first;
+1. update this file on `main` to **PREPARED**;
+2. record exact refs, intended action, expected evidence and recovery rule;
+3. persist real work/results;
 4. return this file to **STABLE** after the milestone.
 
 If interruption occurs while PREPARED:
 - compare recorded refs with GitHub;
 - inspect only newer commits/runs/artifacts;
-- infer completed work from the durable delta;
-- continue from the first incomplete step.
+- continue from the first incomplete discriminant.
 
-`CONTINUITY_LOG.md` remains slow causal memory, not a per-commit diary.
+`CONTINUITY_LOG.md` remains slow causal memory, not a per-commit journal.
 
-## 8. Working contract
+## 9. Working contract
 
 Preserve the established rhythm:
 - product/trading usefulness first;
