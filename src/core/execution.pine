@@ -1,9 +1,9 @@
 //@version=6
-indicator("Execution v0.1.0", shorttitle="Execution", overlay=false, max_bars_back=5000)
+indicator("Execution v0.2.0", shorttitle="Execution", overlay=false, max_bars_back=5000)
 
 // ============================================================================
-// PineTrading-Lab — Execution 0.1.0
-// Production implementation of the accepted Execution research contract.
+// PineTrading-Lab — Execution 0.2.0 candidate
+// Phase G translation of the accepted Suite 0.2 research contract.
 //
 // Production kernel:
 //   - MTE-A momentum kernel
@@ -15,9 +15,15 @@ indicator("Execution v0.1.0", shorttitle="Execution", overlay=false, max_bars_ba
 // ============================================================================
 
 // ---------------------------------------------------------------------------
+// Minimal operator control
+// ---------------------------------------------------------------------------
+groupExecution = "Execução"
+string responseProfile = input.string("PADRÃO", "Perfil de resposta", options=["PADRÃO", "ANTECIPADO"], group=groupExecution)
+
+// ---------------------------------------------------------------------------
 // Accepted defaults v2 — engine-owned, not operator tuning inputs
 // ---------------------------------------------------------------------------
-int EXECUTION_CONTRACT = 1
+int EXECUTION_CONTRACT = 2
 int EXECUTION_DEFAULTS_VERSION = 2
 
 int MTE_FAST_EMA = 8
@@ -81,6 +87,61 @@ int STRENGTH_FADING = 1
 int STRENGTH_EXHAUSTED = 2
 int STRENGTH_REACTION_RISK = 3
 
+// Suite 0.2 Opportunity / operator projection codes.
+int OPP_NONE = 0
+int OPP_BREAKOUT_EXPANSION = 1
+int OPP_REACCELERATION = 2
+int OPP_REGIME_REVERSAL = 3
+int OPP_RANGE_ROTATION = 4
+
+int OPP_STAGE_NONE = 0
+int OPP_STAGE_CANDIDATE = 1
+int OPP_STAGE_STRONG = 2
+int OPP_STAGE_ACCEPTED = 3
+
+int OP_READY_WAIT = 0
+int OP_READY_PREP = 1
+int OP_READY_ARMED = 2
+int OP_READY_CONFIRMED = 3
+int OP_READY_ALIGNED = 4
+int OP_READY_CONFLICT = 5
+
+int PATH_NONE = 0
+int PATH_FROZEN_0_1 = 1
+int PATH_TREND_V2 = 2
+int PATH_RANGE_ANY1 = 3
+int PATH_MULTI = 4
+
+int BREAK_OTHER = 0
+int BREAK_EARLY_TRANSITION = 1
+int BREAK_FRESH_EXPANSION = 2
+int BREAK_PULLBACK_RESOLUTION = 3
+int BREAK_REACCELERATION = 4
+
+int REVERSAL_PRIOR_REGIME_MIN_BARS = 8
+int REACCELERATION_REGIME_MIN_BARS = 8
+float BREAK_DECISIVE_ATR = 0.50
+
+float RANGE_BOUNDARY_DRIFT_MAX = 0.20
+float RANGE_MIN_HEIGHT_ATR = 2.0
+float RANGE_EDGE_FRACTION = 0.20
+
+int MGMT_NONE = 0
+int MGMT_CONTINUATION = 1
+int MGMT_PROTECT = 2
+int MGMT_REALIZATION_RISK = 3
+int MGMT_COMPLETED = 4
+int MGMT_INVALIDATED = 5
+int MGMT_AMBIGUOUS = 6
+
+int CAP_NONE = 0
+int CAP_TARGET_ONLY = 1
+int CAP_INVALIDATION_ONLY = 2
+int CAP_FULL = 3
+
+float MGMT_TARGET_NEAR_ATR = 0.30
+float MGMT_INVALID_WARN_ATR = 0.20
+
 // ---------------------------------------------------------------------------
 // Deterministic research-parity helpers
 // ---------------------------------------------------------------------------
@@ -133,6 +194,93 @@ f_strength_txt(_state) =>
      _state == STRENGTH_EXHAUSTED ? "EXAUSTÃO" :
      _state == STRENGTH_REACTION_RISK ? "RISCO DE REAÇÃO" :
      "NORMAL"
+
+f_momentum_aligned(_dir, _state) =>
+    _dir == 1 ? (_state == MTE_TURN_UP or _state == MTE_UP_ACCEL) :
+     _dir == -1 ? (_state == MTE_TURN_DOWN or _state == MTE_DOWN_ACCEL) : false
+
+f_momentum_strongly_opposes(_dir, _state) =>
+    _dir == 1 ? (_state == MTE_TURN_DOWN or _state == MTE_DOWN_ACCEL) :
+     _dir == -1 ? (_state == MTE_TURN_UP or _state == MTE_UP_ACCEL) : true
+
+f_rsi_local_supports(_dir, _state) =>
+    _dir == 1 ? (_state == RSI_BULL or _state == RSI_RECOVERING_OVERSOLD or _state == RSI_RECOVERING_OVERBOUGHT) :
+     _dir == -1 ? (_state == RSI_BEAR or _state == RSI_FADING_OVERBOUGHT or _state == RSI_FADING_OVERSOLD) : false
+
+f_rsi_local_opposes(_dir, _state) =>
+    _dir == 1 ? (_state == RSI_BEAR or _state == RSI_FADING_OVERBOUGHT or _state == RSI_EXTREME_OVERBOUGHT) :
+     _dir == -1 ? (_state == RSI_BULL or _state == RSI_RECOVERING_OVERSOLD or _state == RSI_EXTREME_OVERSOLD) : true
+
+f_rsi_supports(_dir, _state, _ctx) =>
+    f_rsi_local_supports(_dir, _state) and _ctx != -_dir
+
+f_rsi_opposes(_dir, _state, _ctx) =>
+    f_rsi_local_opposes(_dir, _state) or (_dir != 0 and _ctx == -_dir)
+
+f_pse_state(_dir, _ready, _relVolume, _pressure) =>
+    int result = PSE_NEUTRAL
+    if _ready and _dir != 0
+        float directional = _pressure * _dir
+        result := _relVolume < PSE_CONTRACTED_BELOW ? PSE_WEAK :
+             _relVolume >= PSE_EXPANDED_AT_OR_ABOVE and directional >= PSE_PRESSURE_MIN ? PSE_CONFIRM :
+             _relVolume >= PSE_EXPANDED_AT_OR_ABOVE and directional <= -PSE_PRESSURE_MIN ? PSE_CONTRARY :
+             PSE_NEUTRAL
+    result
+
+f_ready_urgency(_ready) =>
+    _ready == READY_CONFIRMED ? 4 :
+     _ready == READY_ARMED ? 3 :
+     _ready == READY_PREP ? 2 :
+     _ready == READY_ALIGNED ? 1 : 0
+
+f_operator_txt(_stage, _dir) =>
+    _stage == OP_READY_CONFLICT ? "CONFLITO" :
+     _stage == OP_READY_PREP ? (_dir == 1 ? "PREPARANDO LONG" : _dir == -1 ? "PREPARANDO SHORT" : "AGUARDAR") :
+     _stage == OP_READY_ARMED ? (_dir == 1 ? "ARMADO LONG" : _dir == -1 ? "ARMADO SHORT" : "AGUARDAR") :
+     _stage == OP_READY_CONFIRMED ? (_dir == 1 ? "CONFIRMA LONG" : _dir == -1 ? "CONFIRMA SHORT" : "AGUARDAR") :
+     _stage == OP_READY_ALIGNED ? (_dir == 1 ? "ALINHADO LONG" : _dir == -1 ? "ALINHADO SHORT" : "AGUARDAR") :
+     "AGUARDAR"
+
+f_opp_txt(_kind) =>
+    _kind == OPP_BREAKOUT_EXPANSION ? "BREAKOUT" :
+     _kind == OPP_REACCELERATION ? "REACELERAÇÃO" :
+     _kind == OPP_REGIME_REVERSAL ? "REVERSÃO" :
+     _kind == OPP_RANGE_ROTATION ? "ROTAÇÃO DE RANGE" :
+     "—"
+
+f_momentum_deteriorates(_dir, _state) =>
+    _dir == 1 ? (_state == MTE_UP_DECEL or _state == MTE_TURN_DOWN or _state == MTE_DOWN_ACCEL or _state == MTE_DOWN_DECEL) :
+     _dir == -1 ? (_state == MTE_DOWN_DECEL or _state == MTE_TURN_UP or _state == MTE_UP_ACCEL or _state == MTE_UP_DECEL) : false
+
+f_rsi_deteriorates(_dir, _state) =>
+    _dir == 1 ? (_state == RSI_FADING_OVERBOUGHT or _state == RSI_EXTREME_OVERBOUGHT) :
+     _dir == -1 ? (_state == RSI_RECOVERING_OVERSOLD or _state == RSI_EXTREME_OVERSOLD) : false
+
+f_strength_for_dir(_dir, _destinationNear, _mte, _rsi, _pse) =>
+    int generic = (f_momentum_deteriorates(_dir, _mte) ? 1 : 0) + (f_rsi_deteriorates(_dir, _rsi) ? 1 : 0) + (_pse == PSE_CONTRARY ? 1 : 0)
+    int destination = (f_momentum_deteriorates(_dir, _mte) ? 1 : 0) + (f_rsi_deteriorates(_dir, _rsi) ? 1 : 0) + ((_pse == PSE_WEAK or _pse == PSE_CONTRARY) ? 1 : 0)
+    _destinationNear and destination >= 2 ? STRENGTH_REACTION_RISK :
+     generic >= 2 ? STRENGTH_EXHAUSTED :
+     generic == 1 ? STRENGTH_FADING : STRENGTH_NORMAL
+
+f_same_level(_a, _b) =>
+    float tol = 1e-9 * math.max(1.0, math.max(math.abs(_a), math.abs(_b)))
+    math.abs(_a - _b) <= tol
+
+f_target_usable(_dir, _confirmClose, _target) =>
+    not na(_target) and _dir != 0 and _dir * (_target - _confirmClose) > 0
+
+f_invalidation_usable(_dir, _confirmClose, _invalidation) =>
+    not na(_invalidation) and _dir != 0 and _dir * (_confirmClose - _invalidation) > 0
+
+f_management_txt(_state) =>
+    _state == MGMT_CONTINUATION ? "CONTINUIDADE" :
+     _state == MGMT_PROTECT ? "PROTEGER" :
+     _state == MGMT_REALIZATION_RISK ? "REALIZAÇÃO" :
+     _state == MGMT_COMPLETED ? "CONCLUÍDA" :
+     _state == MGMT_INVALIDATED ? "INVALIDADA" :
+     _state == MGMT_AMBIGUOUS ? "AMBÍGUA" :
+     "—"
 
 // ---------------------------------------------------------------------------
 // Timeframe policy — identical suite mapping, confirmed HTF only
@@ -280,6 +428,20 @@ f_mm_sec(_tf, _expr) =>
     reqSec > chartSec ?
          request.security(syminfo.tickerid, _tf, _expr[1], barmerge.gaps_off, barmerge.lookahead_on) :
          _expr
+
+// High-horizon macro context: prior completed calendar month only.
+// It is descriptive context and never a hard execution filter.
+// Kept here so MM_* defaults and the confirmed security helper are already declared.
+bool monthlyMacroOnly = timeframe.ismonthly
+bool monthlyMacroContextEnabled = timeframe.period == "3D" or timeframe.period == "W"
+float monthlyMacroMidExpr = ta.ema(close, MM_MID_LEN)
+float monthlyMacroSlowExpr = ta.ema(close, MM_SLOW_LEN)
+float monthlyMacroSignalExpr = monthlyMacroMidExpr > monthlyMacroSlowExpr and monthlyMacroSlowExpr >= monthlyMacroSlowExpr[3] and close > monthlyMacroSlowExpr ? 1.0 :
+     monthlyMacroMidExpr < monthlyMacroSlowExpr and monthlyMacroSlowExpr <= monthlyMacroSlowExpr[3] and close < monthlyMacroSlowExpr ? -1.0 : 0.0
+float monthlyMacroRequested = f_mm_sec("M", monthlyMacroSignalExpr)
+float monthlyMacroRaw = monthlyMacroContextEnabled ? monthlyMacroRequested : na
+bool monthlyMacroAvailable = monthlyMacroContextEnabled and not na(monthlyMacroRaw)
+int monthlyMacroDir = monthlyMacroAvailable ? int(monthlyMacroRaw) : 0
 
 f_mm_trim_pool(_levels, _swept) =>
     if array.size(_levels) > MM_POOL_MAX
@@ -712,6 +874,514 @@ if pseReady and mapDir != 0
          PSE_NEUTRAL
 
 // ---------------------------------------------------------------------------
+// Suite 0.2 Opportunity Engine — independent trend/range paths
+// ---------------------------------------------------------------------------
+// The frozen 0.1 path below remains untouched. New opportunity paths own
+// their own lifecycle/readiness and meet only at OPERATOR_READINESS_V1.
+
+bool oppZoneTouchNow = mmCorrectionActive and not na(mmPrimaryTop) and not na(mmPrimaryBottom) and high >= mmPrimaryBottom and low <= mmPrimaryTop
+bool oppReactionOnBar = mmRetestEvent or mmReclaimEvent or oppZoneTouchNow
+int oppStructuralBreakDir = mmBreakUp ? 1 : mmBreakDown ? -1 : 0
+
+var int oppCurrentRegimeDir = 0
+var int oppCurrentRegimeLen = 0
+var int oppPreviousRegimeDir = 0
+var int oppPreviousRegimeLen = 0
+var int oppPreviousRegimeEndBar = na
+var int oppLastBreakLongBar = na
+var int oppLastBreakShortBar = na
+var int oppLastReactionLongBar = na
+var int oppLastReactionShortBar = na
+var int oppSeenReactionThesisKey = na
+var int oppPendingReversalDir = 0
+var int oppPendingReversalOnsetBar = na
+
+bool oppBreakoutEvent = false
+bool oppReaccelerationEvent = false
+bool oppRegimeReversalEvent = false
+int oppBreakContext = BREAK_OTHER
+int oppBreakRegimeAge = 0
+
+if barstate.isconfirmed
+    // 1) Classify the current structural break using state that existed before
+    // this bar's regime bookkeeping update.
+    if oppStructuralBreakDir != 0
+        int previousSameBreak = oppStructuralBreakDir == 1 ? oppLastBreakLongBar : oppLastBreakShortBar
+        int lastReaction = oppStructuralBreakDir == 1 ? oppLastReactionLongBar : oppLastReactionShortBar
+
+        int matureDir = 0
+        if oppCurrentRegimeDir != 0 and oppCurrentRegimeLen >= REVERSAL_PRIOR_REGIME_MIN_BARS
+            matureDir := oppCurrentRegimeDir
+        else if oppCurrentRegimeDir == 0 and oppPreviousRegimeDir != 0 and oppPreviousRegimeLen >= REVERSAL_PRIOR_REGIME_MIN_BARS
+            matureDir := oppPreviousRegimeDir
+
+        bool pullbackSincePreviousBreak = not na(previousSameBreak) and not na(lastReaction) and previousSameBreak < lastReaction and lastReaction < bar_index
+        bool oppositeMatureRegime = matureDir == -oppStructuralBreakDir
+        bool coherentBreak = mapDir == oppStructuralBreakDir and mmRegimeDir == oppStructuralBreakDir and not mmRegimeStructureConflict and not thesisInvalidated
+
+        oppBreakRegimeAge := oppCurrentRegimeDir == oppStructuralBreakDir ? oppCurrentRegimeLen : 0
+        oppBreakContext := oppositeMatureRegime ? BREAK_EARLY_TRANSITION :
+             not coherentBreak ? BREAK_OTHER :
+             pullbackSincePreviousBreak or oppReactionOnBar ? BREAK_PULLBACK_RESOLUTION :
+             oppBreakRegimeAge >= REACCELERATION_REGIME_MIN_BARS and not na(previousSameBreak) ? BREAK_REACCELERATION :
+             BREAK_FRESH_EXPANSION
+
+        oppReaccelerationEvent := oppBreakContext == BREAK_REACCELERATION
+        oppBreakoutEvent := coherentBreak and (oppBreakContext == BREAK_FRESH_EXPANSION or oppBreakContext == BREAK_OTHER)
+
+        if oppBreakContext == BREAK_EARLY_TRANSITION
+            oppPendingReversalDir := oppStructuralBreakDir
+            oppPendingReversalOnsetBar := bar_index
+
+        if oppStructuralBreakDir == 1
+            oppLastBreakLongBar := bar_index
+        else
+            oppLastBreakShortBar := bar_index
+
+    // 2) First accepted reaction per Market Map thesis feeds future
+    // reacceleration sequencing. Retest/reclaim may occur on a new thesis;
+    // a plain zone touch may not.
+    bool oppNewThesis = not na(mmImpulseKey) and (na(mmImpulseKey[1]) or mmImpulseKey != mmImpulseKey[1])
+    bool oppFirstReaction = not na(mmImpulseKey) and mmImpulseKey != oppSeenReactionThesisKey and mapDir != 0 and not mmRegimeStructureConflict and not thesisInvalidated and
+         (mmRetestEvent or mmReclaimEvent or (not oppNewThesis and oppZoneTouchNow))
+    if oppFirstReaction
+        oppSeenReactionThesisKey := mmImpulseKey
+        if mapDir == 1
+            oppLastReactionLongBar := bar_index
+        else
+            oppLastReactionShortBar := bar_index
+
+    // 3) A pending early transition becomes strict REGIME_REVERSAL only when
+    // the accepted Market Map is coherent in the new confirmed regime.
+    if oppPendingReversalDir != 0
+        if mmRegimeDir == oppPendingReversalDir and mapDir == oppPendingReversalDir and not mmRegimeStructureConflict and not thesisInvalidated
+            oppRegimeReversalEvent := true
+            oppPendingReversalDir := 0
+            oppPendingReversalOnsetBar := na
+        else if mmRegimeDir != 0 and mmRegimeDir != oppPendingReversalDir
+            oppPendingReversalDir := 0
+            oppPendingReversalOnsetBar := na
+
+    // 4) Update mature-regime bookkeeping only after the current event
+    // classification, matching the accepted offline timing contract.
+    if mmRegimeDir == oppCurrentRegimeDir and mmRegimeDir != 0
+        oppCurrentRegimeLen += 1
+    else if mmRegimeDir == 0
+        if oppCurrentRegimeDir != 0
+            oppPreviousRegimeDir := oppCurrentRegimeDir
+            oppPreviousRegimeLen := oppCurrentRegimeLen
+            oppPreviousRegimeEndBar := bar_index - 1
+        oppCurrentRegimeDir := 0
+        oppCurrentRegimeLen := 0
+    else
+        if oppCurrentRegimeDir != 0
+            oppPreviousRegimeDir := oppCurrentRegimeDir
+            oppPreviousRegimeLen := oppCurrentRegimeLen
+            oppPreviousRegimeEndBar := bar_index - 1
+
+        if oppPreviousRegimeDir == -mmRegimeDir and oppPreviousRegimeLen >= REVERSAL_PRIOR_REGIME_MIN_BARS and not oppRegimeReversalEvent
+            int candidateBreak = mmRegimeDir == 1 ? oppLastBreakLongBar : oppLastBreakShortBar
+            oppPendingReversalDir := mmRegimeDir
+            oppPendingReversalOnsetBar := not na(candidateBreak) and (na(oppPreviousRegimeEndBar) or candidateBreak > oppPreviousRegimeEndBar) ? candidateBreak : bar_index
+            if mapDir == mmRegimeDir and not mmRegimeStructureConflict and not thesisInvalidated
+                oppRegimeReversalEvent := true
+                oppPendingReversalDir := 0
+                oppPendingReversalOnsetBar := na
+
+        oppCurrentRegimeDir := mmRegimeDir
+        oppCurrentRegimeLen := 1
+
+// Trend OpportunityFrame.
+var int trendOppKind = OPP_NONE
+var int trendOppStage = OPP_STAGE_NONE
+var int trendOppDir = 0
+var int trendOppSourceBar = na
+var float trendOppBreakLevel = na
+var bool trendOppSourceStrong = false
+
+bool trendOppNewSource = false
+if barstate.isconfirmed
+    // Evolve / terminate the older opportunity first.
+    if trendOppStage != OPP_STAGE_NONE
+        bool trendInvalid = mapDir != trendOppDir or thesisInvalidated or mmRegimeStructureConflict or mmFailedBreakUp or mmFailedBreakDown or mmDestinationNear or relevantLocation
+        if trendInvalid
+            trendOppKind := OPP_NONE
+            trendOppStage := OPP_STAGE_NONE
+            trendOppDir := 0
+            trendOppSourceBar := na
+            trendOppBreakLevel := na
+            trendOppSourceStrong := false
+        else if trendOppKind == OPP_BREAKOUT_EXPANSION or trendOppKind == OPP_REACCELERATION
+            int trendAge = bar_index - trendOppSourceBar
+            if trendAge == 1
+                bool held1 = trendOppDir == 1 ? close > trendOppBreakLevel : close < trendOppBreakLevel
+                if not held1
+                    trendOppKind := OPP_NONE
+                    trendOppStage := OPP_STAGE_NONE
+                    trendOppDir := 0
+                    trendOppSourceBar := na
+                    trendOppBreakLevel := na
+                    trendOppSourceStrong := false
+                else
+                    trendOppStage := trendOppSourceStrong ? OPP_STAGE_STRONG : OPP_STAGE_CANDIDATE
+            else if trendAge == 2
+                bool heldPrev = trendOppDir == 1 ? close[1] > trendOppBreakLevel : close[1] < trendOppBreakLevel
+                bool heldNow = trendOppDir == 1 ? close > trendOppBreakLevel : close < trendOppBreakLevel
+                if heldPrev and heldNow
+                    trendOppStage := OPP_STAGE_ACCEPTED
+                else
+                    trendOppKind := OPP_NONE
+                    trendOppStage := OPP_STAGE_NONE
+                    trendOppDir := 0
+                    trendOppSourceBar := na
+                    trendOppBreakLevel := na
+                    trendOppSourceStrong := false
+            else if trendAge > 2 and trendOppStage != OPP_STAGE_ACCEPTED
+                trendOppKind := OPP_NONE
+                trendOppStage := OPP_STAGE_NONE
+                trendOppDir := 0
+                trendOppSourceBar := na
+                trendOppBreakLevel := na
+                trendOppSourceStrong := false
+
+    // New source priority: strict reversal > reacceleration > generic breakout.
+    int newTrendKind = oppRegimeReversalEvent ? OPP_REGIME_REVERSAL :
+         oppReaccelerationEvent ? OPP_REACCELERATION :
+         oppBreakoutEvent ? OPP_BREAKOUT_EXPANSION : OPP_NONE
+    if newTrendKind != OPP_NONE
+        int newTrendDir = oppRegimeReversalEvent ? mmRegimeDir : oppStructuralBreakDir
+        trendOppNewSource := true
+        trendOppKind := newTrendKind
+        trendOppDir := newTrendDir
+        trendOppSourceBar := bar_index
+        if newTrendKind == OPP_REGIME_REVERSAL
+            trendOppStage := OPP_STAGE_ACCEPTED
+            trendOppBreakLevel := na
+            trendOppSourceStrong := false
+        else
+            trendOppStage := OPP_STAGE_CANDIDATE
+            trendOppBreakLevel := mmLastBreakLevel
+            int sourcePseState = f_pse_state(newTrendDir, pseReady, relativeVolume, pressureProxy)
+            float penetrationAtr = not na(trendOppBreakLevel) and not na(mmAtr) and mmAtr > 0 ? newTrendDir * (close - trendOppBreakLevel) / mmAtr : na
+            trendOppSourceStrong := not na(penetrationAtr) and penetrationAtr >= BREAK_DECISIVE_ATR and sourcePseState == PSE_CONFIRM
+
+// Trend readiness path.
+int trendParticipationState = f_pse_state(trendOppDir, pseReady, relativeVolume, pressureProxy)
+bool trendMomentumAligned = f_momentum_aligned(trendOppDir, mteState)
+bool trendMomentumOpposes = f_momentum_strongly_opposes(trendOppDir, mteState)
+bool trendRsiSupportive = f_rsi_supports(trendOppDir, rsiState, rsiContextDir)
+bool trendRsiOpposes = f_rsi_opposes(trendOppDir, rsiState, rsiContextDir)
+
+var int trendReadiness = READY_WAIT
+var int trendReadinessDir = 0
+bool trendPreparingEntered = false
+bool trendArmedEntered = false
+bool trendConfirmEvent = false
+bool trendCanceledEvent = false
+
+if barstate.isconfirmed
+    int trPrev = trendReadiness
+    int trPrevDir = trendReadinessDir
+    int trNext = trPrev
+    int trNextDir = trPrevDir
+
+    bool validTrendFrame = trendOppStage != OPP_STAGE_NONE and trendOppDir != 0
+    if not validTrendFrame
+        trendCanceledEvent := trPrev != READY_WAIT
+        trNext := READY_WAIT
+        trNextDir := 0
+    else if trPrevDir != 0 and trPrevDir != trendOppDir
+        trendCanceledEvent := true
+        trNext := READY_WAIT
+        trNextDir := 0
+    else
+        if trendOppStage == OPP_STAGE_CANDIDATE
+            if trPrev == READY_PREP or trPrev == READY_ARMED
+                trendCanceledEvent := true
+                trNext := READY_WAIT
+                trNextDir := 0
+            else if trPrev == READY_CONFIRMED
+                trNext := READY_ALIGNED
+                trNextDir := trendOppDir
+            else if trPrev == READY_ALIGNED
+                if trendMomentumOpposes and trendRsiOpposes
+                    trendCanceledEvent := true
+                    trNext := READY_WAIT
+                    trNextDir := 0
+                else
+                    trNext := READY_ALIGNED
+                    trNextDir := trendOppDir
+            else
+                trNext := READY_WAIT
+                trNextDir := 0
+        else if trPrev == READY_WAIT
+            if trendMomentumOpposes or trendParticipationState == PSE_CONTRARY
+                trNext := READY_WAIT
+                trNextDir := 0
+            else if trendOppStage == OPP_STAGE_STRONG
+                trNext := READY_PREP
+                trNextDir := trendOppDir
+                trendPreparingEntered := true
+            else if trendOppStage >= OPP_STAGE_ACCEPTED
+                if trendRsiSupportive and not trendMomentumOpposes
+                    trNext := READY_ARMED
+                    trNextDir := trendOppDir
+                    trendArmedEntered := true
+                else
+                    trNext := READY_PREP
+                    trNextDir := trendOppDir
+                    trendPreparingEntered := true
+        else if trPrev == READY_PREP
+            if trendMomentumOpposes or trendParticipationState == PSE_CONTRARY
+                trendCanceledEvent := true
+                trNext := READY_WAIT
+                trNextDir := 0
+            else if trendOppStage == OPP_STAGE_STRONG
+                if trendMomentumAligned and trendRsiSupportive
+                    trNext := READY_ARMED
+                    trNextDir := trendOppDir
+                    trendArmedEntered := true
+                else
+                    trNext := READY_PREP
+                    trNextDir := trendOppDir
+            else if trendOppStage >= OPP_STAGE_ACCEPTED
+                if trendRsiSupportive and not trendMomentumOpposes
+                    trNext := READY_ARMED
+                    trNextDir := trendOppDir
+                    trendArmedEntered := true
+                else
+                    trNext := READY_PREP
+                    trNextDir := trendOppDir
+            else
+                trendCanceledEvent := true
+                trNext := READY_WAIT
+                trNextDir := 0
+        else if trPrev == READY_ARMED
+            if trendMomentumOpposes or trendRsiOpposes or trendParticipationState == PSE_CONTRARY
+                trendCanceledEvent := true
+                trNext := READY_WAIT
+                trNextDir := 0
+            else if trendOppStage >= OPP_STAGE_ACCEPTED and not trendMomentumOpposes and trendRsiSupportive and (trendParticipationState == PSE_CONFIRM or trendOppSourceStrong)
+                trNext := READY_CONFIRMED
+                trNextDir := trendOppDir
+                trendConfirmEvent := true
+            else
+                trNext := READY_ARMED
+                trNextDir := trendOppDir
+        else if trPrev == READY_CONFIRMED
+            trNext := READY_ALIGNED
+            trNextDir := trendOppDir
+        else if trPrev == READY_ALIGNED
+            if trendMomentumOpposes and trendRsiOpposes
+                trendCanceledEvent := true
+                trNext := READY_WAIT
+                trNextDir := 0
+            else
+                trNext := READY_ALIGNED
+                trNextDir := trendOppDir
+
+    trendReadiness := trNext
+    trendReadinessDir := trNextDir
+
+// RANGE_ROTATION structural box from already-confirmed Market Map swings.
+bool rangeBoxValuesReady = not na(mmPrevSwingHigh) and not na(mmLastSwingHigh) and not na(mmPrevSwingLow) and not na(mmLastSwingLow) and
+     not na(mmPrevSwingHighBar) and not na(mmLastSwingHighBar) and not na(mmPrevSwingLowBar) and not na(mmLastSwingLowBar) and not na(mmAtr) and mmAtr > 0
+bool rangeCycleOrder = rangeBoxValuesReady and mmPrevSwingHighBar < mmLastSwingHighBar and mmPrevSwingLowBar < mmLastSwingLowBar and
+     math.max(mmPrevSwingHighBar, mmPrevSwingLowBar) < math.min(mmLastSwingHighBar, mmLastSwingLowBar)
+bool rangeVerticalOrder = rangeBoxValuesReady and math.min(mmPrevSwingHigh, mmLastSwingHigh) > math.max(mmPrevSwingLow, mmLastSwingLow)
+float rangeBoxHigh = rangeBoxValuesReady ? (mmPrevSwingHigh + mmLastSwingHigh) * 0.5 : na
+float rangeBoxLow = rangeBoxValuesReady ? (mmPrevSwingLow + mmLastSwingLow) * 0.5 : na
+float rangeBoxHeight = rangeBoxValuesReady ? rangeBoxHigh - rangeBoxLow : na
+float rangeBoundaryDrift = rangeBoxValuesReady and not na(rangeBoxHeight) and rangeBoxHeight > 0 ? math.max(math.abs(mmPrevSwingHigh - mmLastSwingHigh), math.abs(mmPrevSwingLow - mmLastSwingLow)) / rangeBoxHeight : na
+bool rangeBoxValid = rangeCycleOrder and rangeVerticalOrder and not na(rangeBoxHeight) and rangeBoxHeight > 0 and rangeBoxHeight / mmAtr >= RANGE_MIN_HEIGHT_ATR and rangeBoundaryDrift <= RANGE_BOUNDARY_DRIFT_MAX
+float rangeBoxMid = rangeBoxValid ? (rangeBoxHigh + rangeBoxLow) * 0.5 : na
+float rangeBoxEdge = rangeBoxValid ? rangeBoxHeight * RANGE_EDGE_FRACTION : na
+
+var float rangeDetectorHigh = na
+var float rangeDetectorLow = na
+var float rangeDetectorEdge = na
+var bool rangeLowerReady = true
+var bool rangeUpperReady = true
+
+var int rangeOppStage = OPP_STAGE_NONE
+var int rangeOppDir = 0
+var int rangeOppSourceBar = na
+var float rangeOppHigh = na
+var float rangeOppLow = na
+var float rangeOppMid = na
+var float rangeOppEdge = na
+var float rangeOppSourceClose = na
+
+bool rangeSourceLong = false
+bool rangeSourceShort = false
+bool rangeSourceAmbiguous = false
+bool rangeOppNewSource = false
+
+if barstate.isconfirmed
+    // Evolve the older frame against the current confirmed box first.
+    if rangeOppStage != OPP_STAGE_NONE
+        bool sourceCompatible = rangeBoxValid and not na(rangeOppHigh) and not na(rangeOppLow) and not na(rangeOppEdge) and
+             math.abs(rangeBoxHigh - rangeOppHigh) <= math.max(rangeBoxEdge, rangeOppEdge) and
+             math.abs(rangeBoxLow - rangeOppLow) <= math.max(rangeBoxEdge, rangeOppEdge) and
+             math.min(rangeBoxHigh, rangeOppHigh) > math.max(rangeBoxLow, rangeOppLow)
+        bool sourceInvalidated = rangeOppDir == 1 ? close < rangeOppLow : close > rangeOppHigh
+        bool sourceOppositeReached = rangeOppDir == 1 ? high >= rangeOppHigh - rangeOppEdge : low <= rangeOppLow + rangeOppEdge
+        if not sourceCompatible or sourceInvalidated or sourceOppositeReached
+            rangeOppStage := OPP_STAGE_NONE
+            rangeOppDir := 0
+            rangeOppSourceBar := na
+            rangeOppHigh := na
+            rangeOppLow := na
+            rangeOppMid := na
+            rangeOppEdge := na
+            rangeOppSourceClose := na
+        else if rangeOppStage == OPP_STAGE_STRONG
+            int rangeAge = bar_index - rangeOppSourceBar
+            bool insideSource = close >= rangeOppLow and close <= rangeOppHigh
+            bool progress = rangeOppDir == 1 ? close > rangeOppSourceClose : close < rangeOppSourceClose
+            if rangeAge == 1 and insideSource and progress
+                rangeOppStage := OPP_STAGE_ACCEPTED
+            else if rangeAge >= 1
+                rangeOppStage := OPP_STAGE_NONE
+                rangeOppDir := 0
+                rangeOppSourceBar := na
+                rangeOppHigh := na
+                rangeOppLow := na
+                rangeOppMid := na
+                rangeOppEdge := na
+                rangeOppSourceClose := na
+
+    // Detector identity: compatible pivot refreshes do not create a new box.
+    if not rangeBoxValid
+        rangeDetectorHigh := na
+        rangeDetectorLow := na
+        rangeDetectorEdge := na
+        rangeLowerReady := true
+        rangeUpperReady := true
+    else
+        bool detectorCompatible = not na(rangeDetectorHigh) and not na(rangeDetectorLow) and not na(rangeDetectorEdge) and
+             math.abs(rangeBoxHigh - rangeDetectorHigh) <= math.max(rangeBoxEdge, rangeDetectorEdge) and
+             math.abs(rangeBoxLow - rangeDetectorLow) <= math.max(rangeBoxEdge, rangeDetectorEdge) and
+             math.min(rangeBoxHigh, rangeDetectorHigh) > math.max(rangeBoxLow, rangeDetectorLow)
+        if not detectorCompatible
+            rangeLowerReady := true
+            rangeUpperReady := true
+        rangeDetectorHigh := rangeBoxHigh
+        rangeDetectorLow := rangeBoxLow
+        rangeDetectorEdge := rangeBoxEdge
+
+        if close >= rangeBoxLow and close <= rangeBoxHigh
+            if close >= rangeBoxMid
+                rangeLowerReady := true
+            if close <= rangeBoxMid
+                rangeUpperReady := true
+
+            bool lowerTouch = low <= rangeBoxLow + rangeBoxEdge
+            bool upperTouch = high >= rangeBoxHigh - rangeBoxEdge
+            bool longRawReclaim = not na(mmReclaimBelowLevel) and lowerTouch and close > rangeBoxLow
+            bool shortRawReclaim = not na(mmReclaimAboveLevel) and upperTouch and close < rangeBoxHigh
+            bool longEdgeReject = lowerTouch and close >= rangeBoxLow + rangeBoxEdge and pressureProxy > 0
+            bool shortEdgeReject = upperTouch and close <= rangeBoxHigh - rangeBoxEdge and pressureProxy < 0
+
+            bool lowerEvent = rangeLowerReady and (longRawReclaim or longEdgeReject)
+            bool upperEvent = rangeUpperReady and (shortRawReclaim or shortEdgeReject)
+            rangeSourceLong := lowerEvent and longEdgeReject and not longRawReclaim
+            rangeSourceShort := upperEvent and shortEdgeReject and not shortRawReclaim
+            rangeSourceAmbiguous := rangeSourceLong and rangeSourceShort
+
+            if lowerEvent
+                rangeLowerReady := false
+            if upperEvent
+                rangeUpperReady := false
+
+            if not rangeSourceAmbiguous and (rangeSourceLong or rangeSourceShort)
+                rangeOppNewSource := true
+                rangeOppStage := OPP_STAGE_STRONG
+                rangeOppDir := rangeSourceLong ? 1 : -1
+                rangeOppSourceBar := bar_index
+                rangeOppHigh := rangeBoxHigh
+                rangeOppLow := rangeBoxLow
+                rangeOppMid := rangeBoxMid
+                rangeOppEdge := rangeBoxEdge
+                rangeOppSourceClose := close
+            else if rangeSourceAmbiguous
+                rangeOppStage := OPP_STAGE_NONE
+                rangeOppDir := 0
+                rangeOppSourceBar := na
+                rangeOppHigh := na
+                rangeOppLow := na
+                rangeOppMid := na
+                rangeOppEdge := na
+                rangeOppSourceClose := na
+
+// RANGE_EARLY_ANY1 readiness.
+int rangeParticipationState = f_pse_state(rangeOppDir, pseReady, relativeVolume, pressureProxy)
+bool rangeMomentumAligned = f_momentum_aligned(rangeOppDir, mteState)
+bool rangeMomentumOpposes = f_momentum_strongly_opposes(rangeOppDir, mteState)
+bool rangeRsiLocalSupportive = f_rsi_local_supports(rangeOppDir, rsiState)
+bool rangeRsiLocalOpposes = f_rsi_local_opposes(rangeOppDir, rsiState)
+int rangeIgnitionCount = (rangeMomentumAligned ? 1 : 0) + (rangeRsiLocalSupportive ? 1 : 0) + (rangeParticipationState == PSE_CONFIRM ? 1 : 0)
+bool rangeHardOpposition = rangeMomentumOpposes and rangeRsiLocalOpposes
+
+var int rangeReadiness = READY_WAIT
+var int rangeReadinessDir = 0
+var int rangeReadinessSourceBar = na
+bool rangeArmedEntered = false
+bool rangeConfirmEvent = false
+bool rangeCanceledEvent = false
+
+if barstate.isconfirmed
+    int rrPrev = rangeReadiness
+    int rrPrevDir = rangeReadinessDir
+    bool sourceReset = rangeOppStage != OPP_STAGE_NONE and not na(rangeOppSourceBar) and not na(rangeReadinessSourceBar) and rangeOppSourceBar != rangeReadinessSourceBar
+    if sourceReset
+        rangeCanceledEvent := rrPrev != READY_WAIT
+        rrPrev := READY_WAIT
+        rrPrevDir := 0
+
+    int rrNext = rrPrev
+    int rrNextDir = rrPrevDir
+
+    if rangeOppStage == OPP_STAGE_NONE or rangeOppDir == 0
+        rangeCanceledEvent := rangeCanceledEvent or rrPrev != READY_WAIT
+        rrNext := READY_WAIT
+        rrNextDir := 0
+        rangeReadinessSourceBar := na
+    else
+        rangeReadinessSourceBar := rangeOppSourceBar
+        if rangeOppStage == OPP_STAGE_STRONG
+            if rangeHardOpposition
+                rrNext := READY_WAIT
+                rrNextDir := 0
+            else if rangeIgnitionCount >= 1
+                rrNext := READY_ARMED
+                rrNextDir := rangeOppDir
+                rangeArmedEntered := rrPrev != READY_ARMED or rrPrevDir != rangeOppDir
+            else
+                rrNext := READY_WAIT
+                rrNextDir := 0
+        else if rangeOppStage == OPP_STAGE_ACCEPTED
+            if rrPrev == READY_ARMED and rrPrevDir == rangeOppDir
+                rrNext := READY_CONFIRMED
+                rrNextDir := rangeOppDir
+                rangeConfirmEvent := true
+            else if rrPrev == READY_CONFIRMED and rrPrevDir == rangeOppDir
+                rrNext := READY_ALIGNED
+                rrNextDir := rangeOppDir
+            else if rrPrev == READY_ALIGNED and rrPrevDir == rangeOppDir
+                rrNext := READY_ALIGNED
+                rrNextDir := rangeOppDir
+            else if rrPrev == READY_ARMED or rrPrev == READY_PREP
+                rrNext := rrPrev
+                rrNextDir := rrPrevDir
+            else
+                rrNext := READY_WAIT
+                rrNextDir := 0
+
+    rangeReadiness := rrNext
+    rangeReadinessDir := rrNextDir
+
+// ---------------------------------------------------------------------------
 // Canonical Execution evidence predicates
 // ---------------------------------------------------------------------------
 bool momentumAligned = mapDir == 1 ?
@@ -828,8 +1498,209 @@ if barstate.isconfirmed
     executionDir := nextDir
     executionStrength := nextStrength
 
-bool confirmLong = confirmEvent and executionDir == 1
-bool confirmShort = confirmEvent and executionDir == -1
+// ---------------------------------------------------------------------------
+// OPERATOR_READINESS_V1 — pure projection across independent paths
+// ---------------------------------------------------------------------------
+bool executionHorizonEnabled = not monthlyMacroOnly
+bool frozenActive = executionHorizonEnabled and executionReadiness != READY_WAIT and executionDir != 0
+bool trendActive = executionHorizonEnabled and trendReadiness != READY_WAIT and trendReadinessDir != 0
+bool rangeActive = executionHorizonEnabled and rangeReadiness != READY_WAIT and rangeReadinessDir != 0
+
+int operatorDirCandidate = 0
+bool operatorConflict = false
+if frozenActive
+    operatorDirCandidate := executionDir
+if trendActive
+    if operatorDirCandidate != 0 and trendReadinessDir != operatorDirCandidate
+        operatorConflict := true
+    else if operatorDirCandidate == 0
+        operatorDirCandidate := trendReadinessDir
+if rangeActive
+    if operatorDirCandidate != 0 and rangeReadinessDir != operatorDirCandidate
+        operatorConflict := true
+    else if operatorDirCandidate == 0
+        operatorDirCandidate := rangeReadinessDir
+
+int frozenUrgency = frozenActive ? f_ready_urgency(executionReadiness) : 0
+int trendUrgency = trendActive ? f_ready_urgency(trendReadiness) : 0
+int rangeUrgency = rangeActive ? f_ready_urgency(rangeReadiness) : 0
+int operatorMaxUrgency = math.max(frozenUrgency, math.max(trendUrgency, rangeUrgency))
+
+bool selectFrozen = frozenActive and frozenUrgency == operatorMaxUrgency
+bool selectTrend = trendActive and trendUrgency == operatorMaxUrgency
+bool selectRange = rangeActive and rangeUrgency == operatorMaxUrgency
+int selectedPathCount = (selectFrozen ? 1 : 0) + (selectTrend ? 1 : 0) + (selectRange ? 1 : 0)
+
+int operatorReadiness = OP_READY_WAIT
+int operatorDir = 0
+int operatorSourcePath = PATH_NONE
+int operatorOppKind = OPP_NONE
+
+if operatorConflict
+    operatorReadiness := OP_READY_CONFLICT
+else if operatorDirCandidate != 0 and operatorMaxUrgency > 0
+    operatorDir := operatorDirCandidate
+    operatorReadiness := selectFrozen ? executionReadiness : selectTrend ? trendReadiness : rangeReadiness
+    operatorSourcePath := selectedPathCount > 1 ? PATH_MULTI : selectFrozen ? PATH_FROZEN_0_1 : selectTrend ? PATH_TREND_V2 : PATH_RANGE_ANY1
+    operatorOppKind := selectTrend and not selectRange ? trendOppKind :
+         selectRange and not selectTrend ? OPP_RANGE_ROTATION : OPP_NONE
+
+bool operatorConfirmEvent = barstate.isconfirmed and not operatorConflict and operatorDir != 0 and
+     ((confirmEvent and executionDir == operatorDir) or
+      (trendConfirmEvent and trendReadinessDir == operatorDir) or
+      (rangeConfirmEvent and rangeReadinessDir == operatorDir))
+
+bool operatorArmedEntered = barstate.isconfirmed and operatorReadiness == OP_READY_ARMED and
+     (nz(operatorReadiness[1], OP_READY_WAIT) != OP_READY_ARMED or nz(operatorDir[1], 0) != operatorDir)
+
+bool anticipatedTfSupported = timeframe.period == "15" or timeframe.period == "60" or timeframe.period == "240" or timeframe.period == "D" or timeframe.period == "3D"
+bool anticipatedKindSupported = trendOppKind == OPP_BREAKOUT_EXPANSION or trendOppKind == OPP_REACCELERATION
+bool anticipatedPosture = responseProfile == "ANTECIPADO" and anticipatedTfSupported and operatorSourcePath == PATH_TREND_V2 and anticipatedKindSupported and operatorReadiness == OP_READY_ARMED and not operatorConflict
+bool anticipatedEvent = anticipatedPosture and operatorArmedEntered
+
+bool confirmLong = operatorConfirmEvent and operatorDir == 1
+bool confirmShort = operatorConfirmEvent and operatorDir == -1
+
+// ---------------------------------------------------------------------------
+// Thesis Management V1.1 — starts only from unified PADRÃO CONFIRMA
+// ---------------------------------------------------------------------------
+bool confirmingFrozen = operatorConfirmEvent and confirmEvent and executionDir == operatorDir
+bool confirmingTrend = operatorConfirmEvent and trendConfirmEvent and trendReadinessDir == operatorDir
+bool confirmingRange = operatorConfirmEvent and rangeConfirmEvent and rangeReadinessDir == operatorDir
+int confirmingSourceCount = (confirmingFrozen ? 1 : 0) + (confirmingTrend ? 1 : 0) + (confirmingRange ? 1 : 0)
+
+var bool managementActive = false
+var int managementState = MGMT_NONE
+var int managementDir = 0
+var int managementSourcePath = PATH_NONE
+var int managementOppKind = OPP_NONE
+var int managementConfirmBar = na
+var float managementConfirmClose = na
+var float managementTarget = na
+var float managementInvalidation = na
+var int managementCapability = CAP_NONE
+
+bool managementNewThesis = false
+bool managementCompletedEvent = false
+bool managementInvalidatedEvent = false
+bool managementAmbiguousEvent = false
+float managementPathProgress = na
+float managementTargetRoomAtr = na
+float managementInvalidationBufferAtr = na
+int managementStrength = STRENGTH_NORMAL
+
+if barstate.isconfirmed
+    // A new standard confirmation supersedes an older management thesis.
+    if operatorConfirmEvent and operatorDir != 0 and confirmingSourceCount > 0
+        float mergedTarget = na
+        float mergedInvalidation = na
+        bool targetConflict = false
+        bool invalidationConflict = false
+
+        float frozenTarget = confirmingFrozen ? mmDestination1 : na
+        float frozenInvalidation = confirmingFrozen ? mmInvalidation : na
+        float trendTarget = confirmingTrend ? mmDestination1 : na
+        float trendInvalidation = confirmingTrend ? mmInvalidation : na
+        float rangeTarget = confirmingRange ? (operatorDir == 1 ? rangeOppHigh - rangeOppEdge : rangeOppLow + rangeOppEdge) : na
+        float rangeInvalidation = confirmingRange ? (operatorDir == 1 ? rangeOppLow : rangeOppHigh) : na
+
+        if f_target_usable(operatorDir, close, frozenTarget)
+            mergedTarget := frozenTarget
+        if f_target_usable(operatorDir, close, trendTarget)
+            if na(mergedTarget)
+                mergedTarget := trendTarget
+            else if not f_same_level(mergedTarget, trendTarget)
+                targetConflict := true
+        if f_target_usable(operatorDir, close, rangeTarget)
+            if na(mergedTarget)
+                mergedTarget := rangeTarget
+            else if not f_same_level(mergedTarget, rangeTarget)
+                targetConflict := true
+
+        if f_invalidation_usable(operatorDir, close, frozenInvalidation)
+            mergedInvalidation := frozenInvalidation
+        if f_invalidation_usable(operatorDir, close, trendInvalidation)
+            if na(mergedInvalidation)
+                mergedInvalidation := trendInvalidation
+            else if not f_same_level(mergedInvalidation, trendInvalidation)
+                invalidationConflict := true
+        if f_invalidation_usable(operatorDir, close, rangeInvalidation)
+            if na(mergedInvalidation)
+                mergedInvalidation := rangeInvalidation
+            else if not f_same_level(mergedInvalidation, rangeInvalidation)
+                invalidationConflict := true
+
+        if targetConflict
+            mergedTarget := na
+        if invalidationConflict
+            mergedInvalidation := na
+
+        managementActive := true
+        managementState := MGMT_CONTINUATION
+        managementDir := operatorDir
+        managementSourcePath := confirmingSourceCount > 1 ? PATH_MULTI : confirmingFrozen ? PATH_FROZEN_0_1 : confirmingTrend ? PATH_TREND_V2 : PATH_RANGE_ANY1
+        managementOppKind := confirmingSourceCount > 1 ? OPP_NONE : confirmingTrend ? trendOppKind : confirmingRange ? OPP_RANGE_ROTATION : OPP_NONE
+        managementConfirmBar := bar_index
+        managementConfirmClose := close
+        managementTarget := mergedTarget
+        managementInvalidation := mergedInvalidation
+        managementCapability := not na(mergedTarget) and not na(mergedInvalidation) ? CAP_FULL :
+             not na(mergedInvalidation) ? CAP_INVALIDATION_ONLY :
+             not na(mergedTarget) ? CAP_TARGET_ONLY : CAP_NONE
+        managementNewThesis := true
+
+    if managementActive and managementDir != 0
+        bool targetHit = not na(managementTarget) and (managementDir == 1 ? high >= managementTarget : low <= managementTarget)
+        bool invalidated = not na(managementInvalidation) and (managementDir == 1 ? close < managementInvalidation : close > managementInvalidation)
+
+        managementTargetRoomAtr := not na(managementTarget) and not na(mmAtr) and mmAtr > 0 ? managementDir * (managementTarget - close) / mmAtr : na
+        managementInvalidationBufferAtr := not na(managementInvalidation) and not na(mmAtr) and mmAtr > 0 ? managementDir * (close - managementInvalidation) / mmAtr : na
+        bool targetNear = not targetHit and not na(managementTargetRoomAtr) and managementTargetRoomAtr >= 0 and managementTargetRoomAtr <= MGMT_TARGET_NEAR_ATR
+        bool invalidationNear = not invalidated and not na(managementInvalidationBufferAtr) and managementInvalidationBufferAtr >= 0 and managementInvalidationBufferAtr <= MGMT_INVALID_WARN_ATR
+
+        float initialTargetDistance = not na(managementTarget) ? managementDir * (managementTarget - managementConfirmClose) : na
+        managementPathProgress := not na(initialTargetDistance) and initialTargetDistance > 0 ? managementDir * (close - managementConfirmClose) / initialTargetDistance : na
+
+        int managementPse = f_pse_state(managementDir, pseReady, relativeVolume, pressureProxy)
+        managementStrength := f_strength_for_dir(managementDir, targetNear, mteState, rsiState, managementPse)
+
+        if targetHit and invalidated
+            managementState := MGMT_AMBIGUOUS
+            managementAmbiguousEvent := true
+            managementActive := false
+        else if targetHit
+            managementState := MGMT_COMPLETED
+            managementCompletedEvent := true
+            managementActive := false
+        else if invalidated
+            managementState := MGMT_INVALIDATED
+            managementInvalidatedEvent := true
+            managementActive := false
+        else if invalidationNear
+            managementState := MGMT_PROTECT
+        else if (targetNear and managementStrength == STRENGTH_REACTION_RISK) or
+             (not na(managementPathProgress) and managementPathProgress >= 0.50 and
+              (managementStrength == STRENGTH_FADING or managementStrength == STRENGTH_EXHAUSTED or managementStrength == STRENGTH_REACTION_RISK))
+            managementState := MGMT_REALIZATION_RISK
+        else if managementStrength == STRENGTH_EXHAUSTED
+            managementState := MGMT_PROTECT
+        else
+            managementState := MGMT_CONTINUATION
+    else if not managementNewThesis and managementState != MGMT_NONE
+        // Terminal states remain visible on their event bar only.
+        managementState := MGMT_NONE
+        managementDir := 0
+        managementSourcePath := PATH_NONE
+        managementOppKind := OPP_NONE
+        managementConfirmBar := na
+        managementConfirmClose := na
+        managementTarget := na
+        managementInvalidation := na
+        managementCapability := CAP_NONE
+        managementPathProgress := na
+        managementTargetRoomAtr := na
+        managementInvalidationBufferAtr := na
+        managementStrength := STRENGTH_NORMAL
 
 // ---------------------------------------------------------------------------
 // Lower-pane renderer — one numeric scale, no RSI/volume dashboard
@@ -851,7 +1722,7 @@ bgcolor(strengthBg, title="Força")
 plot(mteReady ? mteCore : na, "Momentum", style=plot.style_histogram, color=mteColor, linewidth=2)
 hline(0.0, "Zero", color=color.new(color.gray, 70))
 
-plot(armedEntered ? mteCore : na, "ARMADO", style=plot.style_circles, color=color.new(color.yellow, 0), linewidth=3)
+plot(operatorArmedEntered ? mteCore : na, "ARMADO", style=plot.style_circles, color=color.new(color.yellow, 0), linewidth=3)
 plotshape(confirmLong ? mteCore : na, title="CONFIRMA LONG", style=shape.triangleup, location=location.absolute, color=color.new(color.lime, 0), size=size.small)
 plotshape(confirmShort ? mteCore : na, title="CONFIRMA SHORT", style=shape.triangledown, location=location.absolute, color=color.new(color.red, 0), size=size.small)
 
@@ -860,52 +1731,69 @@ plotshape(confirmShort ? mteCore : na, title="CONFIRMA SHORT", style=shape.trian
 // second full semantic panel.
 var table statusCue = table.new(position.top_right, 1, 1, bgcolor=color.new(color.black, 86), frame_color=color.new(color.gray, 75), frame_width=1)
 if barstate.islast
-    string statusText = f_execution_txt(executionReadiness, executionDir) + " • " + f_strength_txt(executionStrength)
-    color statusColor = executionReadiness == READY_CONFIRMED ? (executionDir == 1 ? color.lime : color.red) :
-         executionReadiness == READY_ARMED ? color.yellow :
-         executionReadiness == READY_PREP ? color.aqua :
-         executionReadiness == READY_ALIGNED ? (executionDir == 1 ? color.lime : color.red) :
+    string opportunityCue = operatorOppKind != OPP_NONE ? " • " + f_opp_txt(operatorOppKind) : ""
+    string profileCue = anticipatedPosture ? " • ANTECIPADO" : ""
+    string managementCue = managementState != MGMT_NONE ? " • " + f_management_txt(managementState) : ""
+    string macroCue = monthlyMacroContextEnabled ? (monthlyMacroAvailable ? (monthlyMacroDir == 1 ? " • MACRO ALTA" : monthlyMacroDir == -1 ? " • MACRO BAIXA" : " • MACRO NEUTRO") : " • MACRO —") : monthlyMacroOnly ? " • MACRO / CICLO" : ""
+    string statusText = f_operator_txt(operatorReadiness, operatorDir) + opportunityCue + profileCue + managementCue + macroCue
+    color statusColor = operatorReadiness == OP_READY_CONFLICT ? color.orange :
+         operatorReadiness == OP_READY_CONFIRMED ? (operatorDir == 1 ? color.lime : color.red) :
+         operatorReadiness == OP_READY_ARMED ? color.yellow :
+         operatorReadiness == OP_READY_PREP ? color.aqua :
+         operatorReadiness == OP_READY_ALIGNED ? (operatorDir == 1 ? color.lime : color.red) :
          color.silver
     table.cell(statusCue, 0, 0, statusText, text_color=statusColor, text_size=size.small)
 
 // ---------------------------------------------------------------------------
-// Data Window diagnostics — hidden from normal pane
+// Data Window diagnostics — plot-budgeted for TradingView's 64-count ceiling
 // ---------------------------------------------------------------------------
+// Keep semantic states needed for parity/reload validation. Raw intermediate
+// telemetry remains calculated internally but is not emitted as one plot each.
 plot(EXECUTION_CONTRACT, "EX Audit • Contract", color=color.new(color.white, 100), display=display.data_window)
 plot(EXECUTION_DEFAULTS_VERSION, "EX Audit • Defaults", color=color.new(color.white, 100), display=display.data_window)
 plot(barstate.isconfirmed ? 1 : 0, "EX Audit • Confirmado", color=color.new(color.white, 100), display=display.data_window)
 
-plot(mteReady ? 1 : 0, "EX MTE • Ready", color=color.new(color.white, 100), display=display.data_window)
-plot(mteCore, "EX MTE • Core", color=color.new(color.white, 100), display=display.data_window)
-plot(mteAccel, "EX MTE • Aceleração", color=color.new(color.white, 100), display=display.data_window)
-plot(mteNeutralBand, "EX MTE • Banda neutra", color=color.new(color.white, 100), display=display.data_window)
-plot(mteTurnBand, "EX MTE • Banda turn", color=color.new(color.white, 100), display=display.data_window)
 plot(mteState, "EX MTE • Estado", color=color.new(color.white, 100), display=display.data_window)
-
-plot(rsiReady ? 1 : 0, "EX RSE • Ready", color=color.new(color.white, 100), display=display.data_window)
-plot(rsiLocal, "EX RSE • RSI local", color=color.new(color.white, 100), display=display.data_window)
-plot(rsiStep, "EX RSE • Passo", color=color.new(color.white, 100), display=display.data_window)
 plot(rsiState, "EX RSE • Estado", color=color.new(color.white, 100), display=display.data_window)
-plot(rsiContextValue, "EX RSE • RSI contexto confirmado", color=color.new(color.white, 100), display=display.data_window)
 plot(rsiContextDir, "EX RSE • Direção contexto", color=color.new(color.white, 100), display=display.data_window)
-
-plot(pseReady ? 1 : 0, "EX PSE • Ready", color=color.new(color.white, 100), display=display.data_window)
-plot(relativeVolume, "EX PSE • Volume relativo", color=color.new(color.white, 100), display=display.data_window)
-plot(pressureProxy, "EX PSE • Pressão proxy", color=color.new(color.white, 100), display=display.data_window)
-plot(strongExpansion ? 1 : 0, "EX PSE • Expansão forte", color=color.new(color.white, 100), display=display.data_window)
-plot(directionalPressure, "EX PSE • Pressão direcional", color=color.new(color.white, 100), display=display.data_window)
 plot(participationState, "EX PSE • Estado", color=color.new(color.white, 100), display=display.data_window)
-
 plot(mapDir, "EX MM • MapDir", color=color.new(color.white, 100), display=display.data_window)
 plot(executionLocation, "EX MM • Localização", color=color.new(color.white, 100), display=display.data_window)
-plot(thesisInvalidated ? 1 : 0, "EX MM • Tese invalidada", color=color.new(color.white, 100), display=display.data_window)
-plot(mmRegimeStructureConflict ? 1 : 0, "EX MM • Conflito estrutural", color=color.new(color.white, 100), display=display.data_window)
-
-plot(executionReadiness, "EX • Readiness", color=color.new(color.white, 100), display=display.data_window)
-plot(executionDir, "EX • Direção", color=color.new(color.white, 100), display=display.data_window)
 plot(executionStrength, "EX • Força", color=color.new(color.white, 100), display=display.data_window)
-plot(preparingEntered ? 1 : 0, "EX EVT • Preparando", color=color.new(color.white, 100), display=display.data_window)
-plot(armedEntered ? 1 : 0, "EX EVT • Armado", color=color.new(color.white, 100), display=display.data_window)
-plot(confirmEvent ? 1 : 0, "EX EVT • Confirma", color=color.new(color.white, 100), display=display.data_window)
-plot(canceledEvent ? 1 : 0, "EX EVT • Cancela", color=color.new(color.white, 100), display=display.data_window)
-plot(reactionRiskEntered ? 1 : 0, "EX EVT • Risco reação", color=color.new(color.white, 100), display=display.data_window)
+
+// Suite 0.2 independent source paths.
+plot(trendOppKind, "EX 0.2 • Trend oportunidade", color=color.new(color.white, 100), display=display.data_window)
+plot(trendOppStage, "EX 0.2 • Trend estágio", color=color.new(color.white, 100), display=display.data_window)
+plot(trendOppDir, "EX 0.2 • Trend direção", color=color.new(color.white, 100), display=display.data_window)
+plot(trendReadiness, "EX 0.2 • Trend readiness", color=color.new(color.white, 100), display=display.data_window)
+plot(trendConfirmEvent ? 1 : 0, "EX 0.2 • Trend confirma", color=color.new(color.white, 100), display=display.data_window)
+
+plot(rangeBoxValid ? 1 : 0, "EX 0.2 • Range válido", color=color.new(color.white, 100), display=display.data_window)
+plot(rangeOppStage, "EX 0.2 • Range estágio", color=color.new(color.white, 100), display=display.data_window)
+plot(rangeOppDir, "EX 0.2 • Range direção", color=color.new(color.white, 100), display=display.data_window)
+plot(rangeReadiness, "EX 0.2 • Range readiness", color=color.new(color.white, 100), display=display.data_window)
+plot(rangeConfirmEvent ? 1 : 0, "EX 0.2 • Range confirma", color=color.new(color.white, 100), display=display.data_window)
+
+// Operator projection: primary cross-script/reload evidence.
+plot(operatorReadiness, "EX 0.2 • Operator readiness", color=color.new(color.white, 100), display=display.data_window)
+plot(operatorDir, "EX 0.2 • Operator direção", color=color.new(color.white, 100), display=display.data_window)
+plot(operatorConflict ? 1 : 0, "EX 0.2 • Operator conflito", color=color.new(color.white, 100), display=display.data_window)
+plot(operatorSourcePath, "EX 0.2 • Operator fonte", color=color.new(color.white, 100), display=display.data_window)
+plot(operatorOppKind, "EX 0.2 • Operator oportunidade", color=color.new(color.white, 100), display=display.data_window)
+plot(operatorConfirmEvent ? 1 : 0, "EX 0.2 • Operator confirma", color=color.new(color.white, 100), display=display.data_window)
+plot(anticipatedPosture ? 1 : 0, "EX 0.2 • Perfil antecipado ativo", color=color.new(color.white, 100), display=display.data_window)
+plot(anticipatedEvent ? 1 : 0, "EX 0.2 • Evento antecipado", color=color.new(color.white, 100), display=display.data_window)
+
+// High-horizon context.
+plot(monthlyMacroAvailable ? 1 : 0, "EX 0.2 • Macro mensal disponível", color=color.new(color.white, 100), display=display.data_window)
+plot(monthlyMacroDir, "EX 0.2 • Macro mensal direção", color=color.new(color.white, 100), display=display.data_window)
+
+// Thesis-management parity.
+plot(managementActive ? 1 : 0, "EX 0.2 • Gestão ativa", color=color.new(color.white, 100), display=display.data_window)
+plot(managementState, "EX 0.2 • Gestão estado", color=color.new(color.white, 100), display=display.data_window)
+plot(managementDir, "EX 0.2 • Gestão direção", color=color.new(color.white, 100), display=display.data_window)
+plot(managementSourcePath, "EX 0.2 • Gestão fonte", color=color.new(color.white, 100), display=display.data_window)
+plot(managementOppKind, "EX 0.2 • Gestão oportunidade", color=color.new(color.white, 100), display=display.data_window)
+plot(managementCapability, "EX 0.2 • Gestão capacidade", color=color.new(color.white, 100), display=display.data_window)
+plot(managementTarget, "EX 0.2 • Gestão alvo congelado", color=color.new(color.white, 100), display=display.data_window)
+plot(managementInvalidation, "EX 0.2 • Gestão invalidação congelada", color=color.new(color.white, 100), display=display.data_window)

@@ -15,6 +15,9 @@ groupView = "Visual"
 showMAs = input.bool(true, "Mostrar médias", group=groupView)
 showPanel = input.bool(true, "Mostrar painel", group=groupView)
 
+groupExecution = "Execução"
+string responseProfile = input.string("PADRÃO", "Perfil de resposta", options=["PADRÃO", "ANTECIPADO"], group=groupExecution)
+
 groupAdvanced = "Avançado / Diagnóstico"
 showStructureDetails = input.bool(false, "Mostrar BOS/CHoCH e zonas secundárias", group=groupAdvanced)
 
@@ -114,6 +117,61 @@ int EX_STRENGTH_FADING = 1
 int EX_STRENGTH_EXHAUSTED = 2
 int EX_STRENGTH_REACTION_RISK = 3
 
+// Suite 0.2 Opportunity / operator / management codes.
+int EX_OPP_NONE = 0
+int EX_OPP_BREAKOUT_EXPANSION = 1
+int EX_OPP_REACCELERATION = 2
+int EX_OPP_REGIME_REVERSAL = 3
+int EX_OPP_RANGE_ROTATION = 4
+
+int EX_OPP_STAGE_NONE = 0
+int EX_OPP_STAGE_CANDIDATE = 1
+int EX_OPP_STAGE_STRONG = 2
+int EX_OPP_STAGE_ACCEPTED = 3
+
+int EX_OP_READY_WAIT = 0
+int EX_OP_READY_PREP = 1
+int EX_OP_READY_ARMED = 2
+int EX_OP_READY_CONFIRMED = 3
+int EX_OP_READY_ALIGNED = 4
+int EX_OP_READY_CONFLICT = 5
+
+int EX_PATH_NONE = 0
+int EX_PATH_FROZEN_0_1 = 1
+int EX_PATH_TREND_V2 = 2
+int EX_PATH_RANGE_ANY1 = 3
+int EX_PATH_MULTI = 4
+
+int EX_BREAK_OTHER = 0
+int EX_BREAK_EARLY_TRANSITION = 1
+int EX_BREAK_FRESH_EXPANSION = 2
+int EX_BREAK_PULLBACK_RESOLUTION = 3
+int EX_BREAK_REACCELERATION = 4
+
+int EX_REVERSAL_PRIOR_REGIME_MIN_BARS = 8
+int EX_REACCELERATION_REGIME_MIN_BARS = 8
+float EX_BREAK_DECISIVE_ATR = 0.50
+
+float EX_RANGE_BOUNDARY_DRIFT_MAX = 0.20
+float EX_RANGE_MIN_HEIGHT_ATR = 2.0
+float EX_RANGE_EDGE_FRACTION = 0.20
+
+int EX_MGMT_NONE = 0
+int EX_MGMT_CONTINUATION = 1
+int EX_MGMT_PROTECT = 2
+int EX_MGMT_REALIZATION_RISK = 3
+int EX_MGMT_COMPLETED = 4
+int EX_MGMT_INVALIDATED = 5
+int EX_MGMT_AMBIGUOUS = 6
+
+int EX_CAP_NONE = 0
+int EX_CAP_TARGET_ONLY = 1
+int EX_CAP_INVALIDATION_ONLY = 2
+int EX_CAP_FULL = 3
+
+float EX_MGMT_TARGET_NEAR_ATR = 0.30
+float EX_MGMT_INVALID_WARN_ATR = 0.20
+
 bool detailed = showStructureDetails
 
 // ---------------------------------------------------------------------------
@@ -208,6 +266,93 @@ f_ex_strength_txt(_state) =>
      _state == EX_STRENGTH_REACTION_RISK ? "RISCO DE REAÇÃO" :
      "NORMAL"
 
+f_ex_momentum_aligned_dir(_dir, _state) =>
+    _dir == 1 ? (_state == EX_MTE_TURN_UP or _state == EX_MTE_UP_ACCEL) :
+     _dir == -1 ? (_state == EX_MTE_TURN_DOWN or _state == EX_MTE_DOWN_ACCEL) : false
+
+f_ex_momentum_opposes_dir(_dir, _state) =>
+    _dir == 1 ? (_state == EX_MTE_TURN_DOWN or _state == EX_MTE_DOWN_ACCEL) :
+     _dir == -1 ? (_state == EX_MTE_TURN_UP or _state == EX_MTE_UP_ACCEL) : true
+
+f_ex_rsi_local_supports_dir(_dir, _state) =>
+    _dir == 1 ? (_state == EX_RSI_BULL or _state == EX_RSI_RECOVERING_OVERSOLD or _state == EX_RSI_RECOVERING_OVERBOUGHT) :
+     _dir == -1 ? (_state == EX_RSI_BEAR or _state == EX_RSI_FADING_OVERBOUGHT or _state == EX_RSI_FADING_OVERSOLD) : false
+
+f_ex_rsi_local_opposes_dir(_dir, _state) =>
+    _dir == 1 ? (_state == EX_RSI_BEAR or _state == EX_RSI_FADING_OVERBOUGHT or _state == EX_RSI_EXTREME_OVERBOUGHT) :
+     _dir == -1 ? (_state == EX_RSI_BULL or _state == EX_RSI_RECOVERING_OVERSOLD or _state == EX_RSI_EXTREME_OVERSOLD) : true
+
+f_ex_rsi_supports_dir(_dir, _state, _ctx) =>
+    f_ex_rsi_local_supports_dir(_dir, _state) and _ctx != -_dir
+
+f_ex_rsi_opposes_dir(_dir, _state, _ctx) =>
+    f_ex_rsi_local_opposes_dir(_dir, _state) or (_dir != 0 and _ctx == -_dir)
+
+f_ex_pse_state_dir(_dir, _ready, _relVolume, _pressure) =>
+    int result = EX_PSE_NEUTRAL
+    if _ready and _dir != 0
+        float directional = _pressure * _dir
+        result := _relVolume < EX_PSE_CONTRACTED_BELOW ? EX_PSE_WEAK :
+             _relVolume >= EX_PSE_EXPANDED_AT_OR_ABOVE and directional >= EX_PSE_PRESSURE_MIN ? EX_PSE_CONFIRM :
+             _relVolume >= EX_PSE_EXPANDED_AT_OR_ABOVE and directional <= -EX_PSE_PRESSURE_MIN ? EX_PSE_CONTRARY :
+             EX_PSE_NEUTRAL
+    result
+
+f_ex_ready_urgency(_ready) =>
+    _ready == EX_READY_CONFIRMED ? 4 :
+     _ready == EX_READY_ARMED ? 3 :
+     _ready == EX_READY_PREP ? 2 :
+     _ready == EX_READY_ALIGNED ? 1 : 0
+
+f_ex_operator_txt(_stage, _dir) =>
+    _stage == EX_OP_READY_CONFLICT ? "CONFLITO" :
+     _stage == EX_OP_READY_PREP ? (_dir == 1 ? "PREPARANDO LONG" : _dir == -1 ? "PREPARANDO SHORT" : "AGUARDAR") :
+     _stage == EX_OP_READY_ARMED ? (_dir == 1 ? "ARMADO LONG" : _dir == -1 ? "ARMADO SHORT" : "AGUARDAR") :
+     _stage == EX_OP_READY_CONFIRMED ? (_dir == 1 ? "CONFIRMA LONG" : _dir == -1 ? "CONFIRMA SHORT" : "AGUARDAR") :
+     _stage == EX_OP_READY_ALIGNED ? (_dir == 1 ? "ALINHADO LONG" : _dir == -1 ? "ALINHADO SHORT" : "AGUARDAR") :
+     "AGUARDAR"
+
+f_ex_opp_txt(_kind) =>
+    _kind == EX_OPP_BREAKOUT_EXPANSION ? "BREAKOUT" :
+     _kind == EX_OPP_REACCELERATION ? "REACELERAÇÃO" :
+     _kind == EX_OPP_REGIME_REVERSAL ? "REVERSÃO" :
+     _kind == EX_OPP_RANGE_ROTATION ? "ROTAÇÃO DE RANGE" :
+     "—"
+
+f_ex_momentum_deteriorates_dir(_dir, _state) =>
+    _dir == 1 ? (_state == EX_MTE_UP_DECEL or _state == EX_MTE_TURN_DOWN or _state == EX_MTE_DOWN_ACCEL or _state == EX_MTE_DOWN_DECEL) :
+     _dir == -1 ? (_state == EX_MTE_DOWN_DECEL or _state == EX_MTE_TURN_UP or _state == EX_MTE_UP_ACCEL or _state == EX_MTE_UP_DECEL) : false
+
+f_ex_rsi_deteriorates_dir(_dir, _state) =>
+    _dir == 1 ? (_state == EX_RSI_FADING_OVERBOUGHT or _state == EX_RSI_EXTREME_OVERBOUGHT) :
+     _dir == -1 ? (_state == EX_RSI_RECOVERING_OVERSOLD or _state == EX_RSI_EXTREME_OVERSOLD) : false
+
+f_ex_strength_for_dir(_dir, _destinationNear, _mte, _rsi, _pse) =>
+    int generic = (f_ex_momentum_deteriorates_dir(_dir, _mte) ? 1 : 0) + (f_ex_rsi_deteriorates_dir(_dir, _rsi) ? 1 : 0) + (_pse == EX_PSE_CONTRARY ? 1 : 0)
+    int destination = (f_ex_momentum_deteriorates_dir(_dir, _mte) ? 1 : 0) + (f_ex_rsi_deteriorates_dir(_dir, _rsi) ? 1 : 0) + ((_pse == EX_PSE_WEAK or _pse == EX_PSE_CONTRARY) ? 1 : 0)
+    _destinationNear and destination >= 2 ? EX_STRENGTH_REACTION_RISK :
+     generic >= 2 ? EX_STRENGTH_EXHAUSTED :
+     generic == 1 ? EX_STRENGTH_FADING : EX_STRENGTH_NORMAL
+
+f_ex_same_level(_a, _b) =>
+    float tol = 1e-9 * math.max(1.0, math.max(math.abs(_a), math.abs(_b)))
+    math.abs(_a - _b) <= tol
+
+f_ex_target_usable(_dir, _confirmClose, _target) =>
+    not na(_target) and _dir != 0 and _dir * (_target - _confirmClose) > 0
+
+f_ex_invalidation_usable(_dir, _confirmClose, _invalidation) =>
+    not na(_invalidation) and _dir != 0 and _dir * (_confirmClose - _invalidation) > 0
+
+f_ex_management_txt(_state) =>
+    _state == EX_MGMT_CONTINUATION ? "CONTINUIDADE" :
+     _state == EX_MGMT_PROTECT ? "PROTEGER" :
+     _state == EX_MGMT_REALIZATION_RISK ? "REALIZAÇÃO" :
+     _state == EX_MGMT_COMPLETED ? "CONCLUÍDA" :
+     _state == EX_MGMT_INVALIDATED ? "INVALIDADA" :
+     _state == EX_MGMT_AMBIGUOUS ? "AMBÍGUA" :
+     "—"
+
 f_impulse_acceptance(_startBar, _endBar, _low, _high) =>
     float vwapValue = na
     float volumeNode = na
@@ -254,6 +399,19 @@ string contextTf = chartSec <= tf15Sec ? "60" :
      chartSec <= tf240Sec ? "D" :
      chartSec <= tfDSec ? "W" :
      timeframe.period
+
+// High-horizon macro context: prior completed calendar month only.
+// It is descriptive context and never a hard execution filter.
+bool monthlyMacroOnly = timeframe.ismonthly
+bool monthlyMacroContextEnabled = timeframe.period == "3D" or timeframe.period == "W"
+float monthlyMacroMidExpr = ta.ema(close, MID_LEN)
+float monthlyMacroSlowExpr = ta.ema(close, SLOW_LEN)
+float monthlyMacroSignalExpr = monthlyMacroMidExpr > monthlyMacroSlowExpr and monthlyMacroSlowExpr >= monthlyMacroSlowExpr[3] and close > monthlyMacroSlowExpr ? 1.0 :
+     monthlyMacroMidExpr < monthlyMacroSlowExpr and monthlyMacroSlowExpr <= monthlyMacroSlowExpr[3] and close < monthlyMacroSlowExpr ? -1.0 : 0.0
+float monthlyMacroRequested = f_sec("M", monthlyMacroSignalExpr)
+float monthlyMacroRaw = monthlyMacroContextEnabled ? monthlyMacroRequested : na
+bool monthlyMacroAvailable = monthlyMacroContextEnabled and not na(monthlyMacroRaw)
+int monthlyMacroDir = monthlyMacroAvailable ? int(monthlyMacroRaw) : 0
 
 // ---------------------------------------------------------------------------
 // Trend / regime layer
@@ -967,6 +1125,477 @@ if exCoherentMap
 
 bool exRelevantLocation = exLocation == EX_LOC_APPROACHING or exLocation == EX_LOC_IN_CORRECTION or exLocation == EX_LOC_RETEST or exLocation == EX_LOC_RECLAIM
 
+// ---------------------------------------------------------------------------
+// Suite 0.2 Opportunity Engine — embedded parity consumer
+// ---------------------------------------------------------------------------
+bool exOppZoneTouchNow = correctionActive and not na(primaryTop) and not na(primaryBottom) and high >= primaryBottom and low <= primaryTop
+bool exOppReactionOnBar = exRetestEvent or exReclaimEvent or exOppZoneTouchNow
+int exOppStructuralBreakDir = breakUp ? 1 : breakDown ? -1 : 0
+
+var int exOppCurrentRegimeDir = 0
+var int exOppCurrentRegimeLen = 0
+var int exOppPreviousRegimeDir = 0
+var int exOppPreviousRegimeLen = 0
+var int exOppPreviousRegimeEndBar = na
+var int exOppLastBreakLongBar = na
+var int exOppLastBreakShortBar = na
+var int exOppLastReactionLongBar = na
+var int exOppLastReactionShortBar = na
+var int exOppSeenReactionThesisKey = na
+var int exOppPendingReversalDir = 0
+var int exOppPendingReversalOnsetBar = na
+
+bool exOppBreakoutEvent = false
+bool exOppReaccelerationEvent = false
+bool exOppRegimeReversalEvent = false
+int exOppBreakContext = EX_BREAK_OTHER
+int exOppBreakRegimeAge = 0
+
+if barstate.isconfirmed
+    if exOppStructuralBreakDir != 0
+        int previousSameBreak = exOppStructuralBreakDir == 1 ? exOppLastBreakLongBar : exOppLastBreakShortBar
+        int lastReaction = exOppStructuralBreakDir == 1 ? exOppLastReactionLongBar : exOppLastReactionShortBar
+
+        int matureDir = 0
+        if exOppCurrentRegimeDir != 0 and exOppCurrentRegimeLen >= EX_REVERSAL_PRIOR_REGIME_MIN_BARS
+            matureDir := exOppCurrentRegimeDir
+        else if exOppCurrentRegimeDir == 0 and exOppPreviousRegimeDir != 0 and exOppPreviousRegimeLen >= EX_REVERSAL_PRIOR_REGIME_MIN_BARS
+            matureDir := exOppPreviousRegimeDir
+
+        bool pullbackSincePreviousBreak = not na(previousSameBreak) and not na(lastReaction) and previousSameBreak < lastReaction and lastReaction < bar_index
+        bool oppositeMatureRegime = matureDir == -exOppStructuralBreakDir
+        bool coherentBreak = mapDir == exOppStructuralBreakDir and regimeDir == exOppStructuralBreakDir and not regimeStructureConflict and not thesisInvalidated
+
+        exOppBreakRegimeAge := exOppCurrentRegimeDir == exOppStructuralBreakDir ? exOppCurrentRegimeLen : 0
+        exOppBreakContext := oppositeMatureRegime ? EX_BREAK_EARLY_TRANSITION :
+             not coherentBreak ? EX_BREAK_OTHER :
+             pullbackSincePreviousBreak or exOppReactionOnBar ? EX_BREAK_PULLBACK_RESOLUTION :
+             exOppBreakRegimeAge >= EX_REACCELERATION_REGIME_MIN_BARS and not na(previousSameBreak) ? EX_BREAK_REACCELERATION :
+             EX_BREAK_FRESH_EXPANSION
+
+        exOppReaccelerationEvent := exOppBreakContext == EX_BREAK_REACCELERATION
+        exOppBreakoutEvent := coherentBreak and (exOppBreakContext == EX_BREAK_FRESH_EXPANSION or exOppBreakContext == EX_BREAK_OTHER)
+
+        if exOppBreakContext == EX_BREAK_EARLY_TRANSITION
+            exOppPendingReversalDir := exOppStructuralBreakDir
+            exOppPendingReversalOnsetBar := bar_index
+
+        if exOppStructuralBreakDir == 1
+            exOppLastBreakLongBar := bar_index
+        else
+            exOppLastBreakShortBar := bar_index
+
+    bool exOppNewThesis = not na(impulseKey) and (na(impulseKey[1]) or impulseKey != impulseKey[1])
+    bool exOppFirstReaction = not na(impulseKey) and impulseKey != exOppSeenReactionThesisKey and mapDir != 0 and not regimeStructureConflict and not thesisInvalidated and
+         (exRetestEvent or exReclaimEvent or (not exOppNewThesis and exOppZoneTouchNow))
+    if exOppFirstReaction
+        exOppSeenReactionThesisKey := impulseKey
+        if mapDir == 1
+            exOppLastReactionLongBar := bar_index
+        else
+            exOppLastReactionShortBar := bar_index
+
+    if exOppPendingReversalDir != 0
+        if regimeDir == exOppPendingReversalDir and mapDir == exOppPendingReversalDir and not regimeStructureConflict and not thesisInvalidated
+            exOppRegimeReversalEvent := true
+            exOppPendingReversalDir := 0
+            exOppPendingReversalOnsetBar := na
+        else if regimeDir != 0 and regimeDir != exOppPendingReversalDir
+            exOppPendingReversalDir := 0
+            exOppPendingReversalOnsetBar := na
+
+    if regimeDir == exOppCurrentRegimeDir and regimeDir != 0
+        exOppCurrentRegimeLen += 1
+    else if regimeDir == 0
+        if exOppCurrentRegimeDir != 0
+            exOppPreviousRegimeDir := exOppCurrentRegimeDir
+            exOppPreviousRegimeLen := exOppCurrentRegimeLen
+            exOppPreviousRegimeEndBar := bar_index - 1
+        exOppCurrentRegimeDir := 0
+        exOppCurrentRegimeLen := 0
+    else
+        if exOppCurrentRegimeDir != 0
+            exOppPreviousRegimeDir := exOppCurrentRegimeDir
+            exOppPreviousRegimeLen := exOppCurrentRegimeLen
+            exOppPreviousRegimeEndBar := bar_index - 1
+
+        if exOppPreviousRegimeDir == -regimeDir and exOppPreviousRegimeLen >= EX_REVERSAL_PRIOR_REGIME_MIN_BARS and not exOppRegimeReversalEvent
+            int candidateBreak = regimeDir == 1 ? exOppLastBreakLongBar : exOppLastBreakShortBar
+            exOppPendingReversalDir := regimeDir
+            exOppPendingReversalOnsetBar := not na(candidateBreak) and (na(exOppPreviousRegimeEndBar) or candidateBreak > exOppPreviousRegimeEndBar) ? candidateBreak : bar_index
+            if mapDir == regimeDir and not regimeStructureConflict and not thesisInvalidated
+                exOppRegimeReversalEvent := true
+                exOppPendingReversalDir := 0
+                exOppPendingReversalOnsetBar := na
+
+        exOppCurrentRegimeDir := regimeDir
+        exOppCurrentRegimeLen := 1
+
+// TREND_OPPORTUNITY_V2 frame.
+var int exTrendOppKind = EX_OPP_NONE
+var int exTrendOppStage = EX_OPP_STAGE_NONE
+var int exTrendOppDir = 0
+var int exTrendOppSourceBar = na
+var float exTrendOppBreakLevel = na
+var bool exTrendOppSourceStrong = false
+
+if barstate.isconfirmed
+    if exTrendOppStage != EX_OPP_STAGE_NONE
+        bool trendInvalid = mapDir != exTrendOppDir or thesisInvalidated or regimeStructureConflict or fakeoutUpEvt or fakeoutDownEvt or destinationNear or exRelevantLocation
+        if trendInvalid
+            exTrendOppKind := EX_OPP_NONE
+            exTrendOppStage := EX_OPP_STAGE_NONE
+            exTrendOppDir := 0
+            exTrendOppSourceBar := na
+            exTrendOppBreakLevel := na
+            exTrendOppSourceStrong := false
+        else if exTrendOppKind == EX_OPP_BREAKOUT_EXPANSION or exTrendOppKind == EX_OPP_REACCELERATION
+            int trendAge = bar_index - exTrendOppSourceBar
+            if trendAge == 1
+                bool held1 = exTrendOppDir == 1 ? close > exTrendOppBreakLevel : close < exTrendOppBreakLevel
+                if not held1
+                    exTrendOppKind := EX_OPP_NONE
+                    exTrendOppStage := EX_OPP_STAGE_NONE
+                    exTrendOppDir := 0
+                    exTrendOppSourceBar := na
+                    exTrendOppBreakLevel := na
+                    exTrendOppSourceStrong := false
+                else
+                    exTrendOppStage := exTrendOppSourceStrong ? EX_OPP_STAGE_STRONG : EX_OPP_STAGE_CANDIDATE
+            else if trendAge == 2
+                bool heldPrev = exTrendOppDir == 1 ? close[1] > exTrendOppBreakLevel : close[1] < exTrendOppBreakLevel
+                bool heldNow = exTrendOppDir == 1 ? close > exTrendOppBreakLevel : close < exTrendOppBreakLevel
+                if heldPrev and heldNow
+                    exTrendOppStage := EX_OPP_STAGE_ACCEPTED
+                else
+                    exTrendOppKind := EX_OPP_NONE
+                    exTrendOppStage := EX_OPP_STAGE_NONE
+                    exTrendOppDir := 0
+                    exTrendOppSourceBar := na
+                    exTrendOppBreakLevel := na
+                    exTrendOppSourceStrong := false
+            else if trendAge > 2 and exTrendOppStage != EX_OPP_STAGE_ACCEPTED
+                exTrendOppKind := EX_OPP_NONE
+                exTrendOppStage := EX_OPP_STAGE_NONE
+                exTrendOppDir := 0
+                exTrendOppSourceBar := na
+                exTrendOppBreakLevel := na
+                exTrendOppSourceStrong := false
+
+    int newTrendKind = exOppRegimeReversalEvent ? EX_OPP_REGIME_REVERSAL :
+         exOppReaccelerationEvent ? EX_OPP_REACCELERATION :
+         exOppBreakoutEvent ? EX_OPP_BREAKOUT_EXPANSION : EX_OPP_NONE
+    if newTrendKind != EX_OPP_NONE
+        int newTrendDir = exOppRegimeReversalEvent ? regimeDir : exOppStructuralBreakDir
+        exTrendOppKind := newTrendKind
+        exTrendOppDir := newTrendDir
+        exTrendOppSourceBar := bar_index
+        if newTrendKind == EX_OPP_REGIME_REVERSAL
+            exTrendOppStage := EX_OPP_STAGE_ACCEPTED
+            exTrendOppBreakLevel := na
+            exTrendOppSourceStrong := false
+        else
+            exTrendOppStage := EX_OPP_STAGE_CANDIDATE
+            exTrendOppBreakLevel := lastBreakLevel
+            int sourcePseState = f_ex_pse_state_dir(newTrendDir, exPseReady, exRelativeVolume, exPressureProxy)
+            float penetrationAtr = not na(exTrendOppBreakLevel) and not na(atr) and atr > 0 ? newTrendDir * (close - exTrendOppBreakLevel) / atr : na
+            exTrendOppSourceStrong := not na(penetrationAtr) and penetrationAtr >= EX_BREAK_DECISIVE_ATR and sourcePseState == EX_PSE_CONFIRM
+
+int exTrendParticipationState = f_ex_pse_state_dir(exTrendOppDir, exPseReady, exRelativeVolume, exPressureProxy)
+bool exTrendMomentumAligned = f_ex_momentum_aligned_dir(exTrendOppDir, exMteState)
+bool exTrendMomentumOpposes = f_ex_momentum_opposes_dir(exTrendOppDir, exMteState)
+bool exTrendRsiSupportive = f_ex_rsi_supports_dir(exTrendOppDir, exRsiState, exRsiContextDir)
+bool exTrendRsiOpposes = f_ex_rsi_opposes_dir(exTrendOppDir, exRsiState, exRsiContextDir)
+
+var int exTrendReadiness = EX_READY_WAIT
+var int exTrendReadinessDir = 0
+bool exTrendPreparingEntered = false
+bool exTrendArmedEntered = false
+bool exTrendConfirmEvent = false
+
+if barstate.isconfirmed
+    int trPrev = exTrendReadiness
+    int trPrevDir = exTrendReadinessDir
+    int trNext = trPrev
+    int trNextDir = trPrevDir
+    bool validTrendFrame = exTrendOppStage != EX_OPP_STAGE_NONE and exTrendOppDir != 0
+
+    if not validTrendFrame
+        trNext := EX_READY_WAIT
+        trNextDir := 0
+    else if trPrevDir != 0 and trPrevDir != exTrendOppDir
+        trNext := EX_READY_WAIT
+        trNextDir := 0
+    else
+        if exTrendOppStage == EX_OPP_STAGE_CANDIDATE
+            if trPrev == EX_READY_PREP or trPrev == EX_READY_ARMED
+                trNext := EX_READY_WAIT
+                trNextDir := 0
+            else if trPrev == EX_READY_CONFIRMED
+                trNext := EX_READY_ALIGNED
+                trNextDir := exTrendOppDir
+            else if trPrev == EX_READY_ALIGNED
+                if exTrendMomentumOpposes and exTrendRsiOpposes
+                    trNext := EX_READY_WAIT
+                    trNextDir := 0
+                else
+                    trNext := EX_READY_ALIGNED
+                    trNextDir := exTrendOppDir
+            else
+                trNext := EX_READY_WAIT
+                trNextDir := 0
+        else if trPrev == EX_READY_WAIT
+            if exTrendMomentumOpposes or exTrendParticipationState == EX_PSE_CONTRARY
+                trNext := EX_READY_WAIT
+                trNextDir := 0
+            else if exTrendOppStage == EX_OPP_STAGE_STRONG
+                trNext := EX_READY_PREP
+                trNextDir := exTrendOppDir
+                exTrendPreparingEntered := true
+            else if exTrendOppStage >= EX_OPP_STAGE_ACCEPTED
+                if exTrendRsiSupportive and not exTrendMomentumOpposes
+                    trNext := EX_READY_ARMED
+                    trNextDir := exTrendOppDir
+                    exTrendArmedEntered := true
+                else
+                    trNext := EX_READY_PREP
+                    trNextDir := exTrendOppDir
+                    exTrendPreparingEntered := true
+        else if trPrev == EX_READY_PREP
+            if exTrendMomentumOpposes or exTrendParticipationState == EX_PSE_CONTRARY
+                trNext := EX_READY_WAIT
+                trNextDir := 0
+            else if exTrendOppStage == EX_OPP_STAGE_STRONG
+                if exTrendMomentumAligned and exTrendRsiSupportive
+                    trNext := EX_READY_ARMED
+                    trNextDir := exTrendOppDir
+                    exTrendArmedEntered := true
+                else
+                    trNext := EX_READY_PREP
+                    trNextDir := exTrendOppDir
+            else if exTrendOppStage >= EX_OPP_STAGE_ACCEPTED
+                if exTrendRsiSupportive and not exTrendMomentumOpposes
+                    trNext := EX_READY_ARMED
+                    trNextDir := exTrendOppDir
+                    exTrendArmedEntered := true
+                else
+                    trNext := EX_READY_PREP
+                    trNextDir := exTrendOppDir
+            else
+                trNext := EX_READY_WAIT
+                trNextDir := 0
+        else if trPrev == EX_READY_ARMED
+            if exTrendMomentumOpposes or exTrendRsiOpposes or exTrendParticipationState == EX_PSE_CONTRARY
+                trNext := EX_READY_WAIT
+                trNextDir := 0
+            else if exTrendOppStage >= EX_OPP_STAGE_ACCEPTED and not exTrendMomentumOpposes and exTrendRsiSupportive and (exTrendParticipationState == EX_PSE_CONFIRM or exTrendOppSourceStrong)
+                trNext := EX_READY_CONFIRMED
+                trNextDir := exTrendOppDir
+                exTrendConfirmEvent := true
+            else
+                trNext := EX_READY_ARMED
+                trNextDir := exTrendOppDir
+        else if trPrev == EX_READY_CONFIRMED
+            trNext := EX_READY_ALIGNED
+            trNextDir := exTrendOppDir
+        else if trPrev == EX_READY_ALIGNED
+            if exTrendMomentumOpposes and exTrendRsiOpposes
+                trNext := EX_READY_WAIT
+                trNextDir := 0
+            else
+                trNext := EX_READY_ALIGNED
+                trNextDir := exTrendOppDir
+
+    exTrendReadiness := trNext
+    exTrendReadinessDir := trNextDir
+
+// RANGE_ROTATION box and EDGE_REJECTION detector.
+bool exRangeBoxValuesReady = not na(prevSwingHigh) and not na(lastSwingHigh) and not na(prevSwingLow) and not na(lastSwingLow) and
+     not na(prevSwingHighBar) and not na(lastSwingHighBar) and not na(prevSwingLowBar) and not na(lastSwingLowBar) and not na(atr) and atr > 0
+bool exRangeCycleOrder = exRangeBoxValuesReady and prevSwingHighBar < lastSwingHighBar and prevSwingLowBar < lastSwingLowBar and
+     math.max(prevSwingHighBar, prevSwingLowBar) < math.min(lastSwingHighBar, lastSwingLowBar)
+bool exRangeVerticalOrder = exRangeBoxValuesReady and math.min(prevSwingHigh, lastSwingHigh) > math.max(prevSwingLow, lastSwingLow)
+float exRangeBoxHigh = exRangeBoxValuesReady ? (prevSwingHigh + lastSwingHigh) * 0.5 : na
+float exRangeBoxLow = exRangeBoxValuesReady ? (prevSwingLow + lastSwingLow) * 0.5 : na
+float exRangeBoxHeight = exRangeBoxValuesReady ? exRangeBoxHigh - exRangeBoxLow : na
+float exRangeBoundaryDrift = exRangeBoxValuesReady and not na(exRangeBoxHeight) and exRangeBoxHeight > 0 ? math.max(math.abs(prevSwingHigh - lastSwingHigh), math.abs(prevSwingLow - lastSwingLow)) / exRangeBoxHeight : na
+bool exRangeBoxValid = exRangeCycleOrder and exRangeVerticalOrder and not na(exRangeBoxHeight) and exRangeBoxHeight > 0 and exRangeBoxHeight / atr >= EX_RANGE_MIN_HEIGHT_ATR and exRangeBoundaryDrift <= EX_RANGE_BOUNDARY_DRIFT_MAX
+float exRangeBoxMid = exRangeBoxValid ? (exRangeBoxHigh + exRangeBoxLow) * 0.5 : na
+float exRangeBoxEdge = exRangeBoxValid ? exRangeBoxHeight * EX_RANGE_EDGE_FRACTION : na
+
+var float exRangeDetectorHigh = na
+var float exRangeDetectorLow = na
+var float exRangeDetectorEdge = na
+var bool exRangeLowerReady = true
+var bool exRangeUpperReady = true
+
+var int exRangeOppStage = EX_OPP_STAGE_NONE
+var int exRangeOppDir = 0
+var int exRangeOppSourceBar = na
+var float exRangeOppHigh = na
+var float exRangeOppLow = na
+var float exRangeOppMid = na
+var float exRangeOppEdge = na
+var float exRangeOppSourceClose = na
+
+bool exRangeSourceLong = false
+bool exRangeSourceShort = false
+bool exRangeSourceAmbiguous = false
+
+if barstate.isconfirmed
+    if exRangeOppStage != EX_OPP_STAGE_NONE
+        bool sourceCompatible = exRangeBoxValid and not na(exRangeOppHigh) and not na(exRangeOppLow) and not na(exRangeOppEdge) and
+             math.abs(exRangeBoxHigh - exRangeOppHigh) <= math.max(exRangeBoxEdge, exRangeOppEdge) and
+             math.abs(exRangeBoxLow - exRangeOppLow) <= math.max(exRangeBoxEdge, exRangeOppEdge) and
+             math.min(exRangeBoxHigh, exRangeOppHigh) > math.max(exRangeBoxLow, exRangeOppLow)
+        bool sourceInvalidated = exRangeOppDir == 1 ? close < exRangeOppLow : close > exRangeOppHigh
+        bool sourceOppositeReached = exRangeOppDir == 1 ? high >= exRangeOppHigh - exRangeOppEdge : low <= exRangeOppLow + exRangeOppEdge
+        if not sourceCompatible or sourceInvalidated or sourceOppositeReached
+            exRangeOppStage := EX_OPP_STAGE_NONE
+            exRangeOppDir := 0
+            exRangeOppSourceBar := na
+            exRangeOppHigh := na
+            exRangeOppLow := na
+            exRangeOppMid := na
+            exRangeOppEdge := na
+            exRangeOppSourceClose := na
+        else if exRangeOppStage == EX_OPP_STAGE_STRONG
+            int rangeAge = bar_index - exRangeOppSourceBar
+            bool insideSource = close >= exRangeOppLow and close <= exRangeOppHigh
+            bool progress = exRangeOppDir == 1 ? close > exRangeOppSourceClose : close < exRangeOppSourceClose
+            if rangeAge == 1 and insideSource and progress
+                exRangeOppStage := EX_OPP_STAGE_ACCEPTED
+            else if rangeAge >= 1
+                exRangeOppStage := EX_OPP_STAGE_NONE
+                exRangeOppDir := 0
+                exRangeOppSourceBar := na
+                exRangeOppHigh := na
+                exRangeOppLow := na
+                exRangeOppMid := na
+                exRangeOppEdge := na
+                exRangeOppSourceClose := na
+
+    if not exRangeBoxValid
+        exRangeDetectorHigh := na
+        exRangeDetectorLow := na
+        exRangeDetectorEdge := na
+        exRangeLowerReady := true
+        exRangeUpperReady := true
+    else
+        bool detectorCompatible = not na(exRangeDetectorHigh) and not na(exRangeDetectorLow) and not na(exRangeDetectorEdge) and
+             math.abs(exRangeBoxHigh - exRangeDetectorHigh) <= math.max(exRangeBoxEdge, exRangeDetectorEdge) and
+             math.abs(exRangeBoxLow - exRangeDetectorLow) <= math.max(exRangeBoxEdge, exRangeDetectorEdge) and
+             math.min(exRangeBoxHigh, exRangeDetectorHigh) > math.max(exRangeBoxLow, exRangeDetectorLow)
+        if not detectorCompatible
+            exRangeLowerReady := true
+            exRangeUpperReady := true
+        exRangeDetectorHigh := exRangeBoxHigh
+        exRangeDetectorLow := exRangeBoxLow
+        exRangeDetectorEdge := exRangeBoxEdge
+
+        if close >= exRangeBoxLow and close <= exRangeBoxHigh
+            if close >= exRangeBoxMid
+                exRangeLowerReady := true
+            if close <= exRangeBoxMid
+                exRangeUpperReady := true
+
+            bool lowerTouch = low <= exRangeBoxLow + exRangeBoxEdge
+            bool upperTouch = high >= exRangeBoxHigh - exRangeBoxEdge
+            bool longRawReclaim = not na(reclaimBelowLevel) and lowerTouch and close > exRangeBoxLow
+            bool shortRawReclaim = not na(reclaimAboveLevel) and upperTouch and close < exRangeBoxHigh
+            bool longEdgeReject = lowerTouch and close >= exRangeBoxLow + exRangeBoxEdge and exPressureProxy > 0
+            bool shortEdgeReject = upperTouch and close <= exRangeBoxHigh - exRangeBoxEdge and exPressureProxy < 0
+
+            bool lowerEvent = exRangeLowerReady and (longRawReclaim or longEdgeReject)
+            bool upperEvent = exRangeUpperReady and (shortRawReclaim or shortEdgeReject)
+            exRangeSourceLong := lowerEvent and longEdgeReject and not longRawReclaim
+            exRangeSourceShort := upperEvent and shortEdgeReject and not shortRawReclaim
+            exRangeSourceAmbiguous := exRangeSourceLong and exRangeSourceShort
+
+            if lowerEvent
+                exRangeLowerReady := false
+            if upperEvent
+                exRangeUpperReady := false
+
+            if not exRangeSourceAmbiguous and (exRangeSourceLong or exRangeSourceShort)
+                exRangeOppStage := EX_OPP_STAGE_STRONG
+                exRangeOppDir := exRangeSourceLong ? 1 : -1
+                exRangeOppSourceBar := bar_index
+                exRangeOppHigh := exRangeBoxHigh
+                exRangeOppLow := exRangeBoxLow
+                exRangeOppMid := exRangeBoxMid
+                exRangeOppEdge := exRangeBoxEdge
+                exRangeOppSourceClose := close
+            else if exRangeSourceAmbiguous
+                exRangeOppStage := EX_OPP_STAGE_NONE
+                exRangeOppDir := 0
+                exRangeOppSourceBar := na
+                exRangeOppHigh := na
+                exRangeOppLow := na
+                exRangeOppMid := na
+                exRangeOppEdge := na
+                exRangeOppSourceClose := na
+
+int exRangeParticipationState = f_ex_pse_state_dir(exRangeOppDir, exPseReady, exRelativeVolume, exPressureProxy)
+bool exRangeMomentumAligned = f_ex_momentum_aligned_dir(exRangeOppDir, exMteState)
+bool exRangeMomentumOpposes = f_ex_momentum_opposes_dir(exRangeOppDir, exMteState)
+bool exRangeRsiLocalSupportive = f_ex_rsi_local_supports_dir(exRangeOppDir, exRsiState)
+bool exRangeRsiLocalOpposes = f_ex_rsi_local_opposes_dir(exRangeOppDir, exRsiState)
+int exRangeIgnitionCount = (exRangeMomentumAligned ? 1 : 0) + (exRangeRsiLocalSupportive ? 1 : 0) + (exRangeParticipationState == EX_PSE_CONFIRM ? 1 : 0)
+bool exRangeHardOpposition = exRangeMomentumOpposes and exRangeRsiLocalOpposes
+
+var int exRangeReadiness = EX_READY_WAIT
+var int exRangeReadinessDir = 0
+var int exRangeReadinessSourceBar = na
+bool exRangeArmedEntered = false
+bool exRangeConfirmEvent = false
+
+if barstate.isconfirmed
+    int rrPrev = exRangeReadiness
+    int rrPrevDir = exRangeReadinessDir
+    bool sourceReset = exRangeOppStage != EX_OPP_STAGE_NONE and not na(exRangeOppSourceBar) and not na(exRangeReadinessSourceBar) and exRangeOppSourceBar != exRangeReadinessSourceBar
+    if sourceReset
+        rrPrev := EX_READY_WAIT
+        rrPrevDir := 0
+
+    int rrNext = rrPrev
+    int rrNextDir = rrPrevDir
+
+    if exRangeOppStage == EX_OPP_STAGE_NONE or exRangeOppDir == 0
+        rrNext := EX_READY_WAIT
+        rrNextDir := 0
+        exRangeReadinessSourceBar := na
+    else
+        exRangeReadinessSourceBar := exRangeOppSourceBar
+        if exRangeOppStage == EX_OPP_STAGE_STRONG
+            if exRangeHardOpposition
+                rrNext := EX_READY_WAIT
+                rrNextDir := 0
+            else if exRangeIgnitionCount >= 1
+                rrNext := EX_READY_ARMED
+                rrNextDir := exRangeOppDir
+                exRangeArmedEntered := rrPrev != EX_READY_ARMED or rrPrevDir != exRangeOppDir
+            else
+                rrNext := EX_READY_WAIT
+                rrNextDir := 0
+        else if exRangeOppStage == EX_OPP_STAGE_ACCEPTED
+            if rrPrev == EX_READY_ARMED and rrPrevDir == exRangeOppDir
+                rrNext := EX_READY_CONFIRMED
+                rrNextDir := exRangeOppDir
+                exRangeConfirmEvent := true
+            else if rrPrev == EX_READY_CONFIRMED and rrPrevDir == exRangeOppDir
+                rrNext := EX_READY_ALIGNED
+                rrNextDir := exRangeOppDir
+            else if rrPrev == EX_READY_ALIGNED and rrPrevDir == exRangeOppDir
+                rrNext := EX_READY_ALIGNED
+                rrNextDir := exRangeOppDir
+            else
+                rrNext := EX_READY_WAIT
+                rrNextDir := 0
+
+    exRangeReadiness := rrNext
+    exRangeReadinessDir := rrNextDir
+
 bool exMomentumAligned = mapDir == 1 ? (exMteState == EX_MTE_TURN_UP or exMteState == EX_MTE_UP_ACCEL) :
      mapDir == -1 ? (exMteState == EX_MTE_TURN_DOWN or exMteState == EX_MTE_DOWN_ACCEL) : false
 bool exMomentumStronglyOpposes = mapDir == 1 ? (exMteState == EX_MTE_TURN_DOWN or exMteState == EX_MTE_DOWN_ACCEL) :
@@ -1052,8 +1681,210 @@ if barstate.isconfirmed
     exDir := nextDir
     exStrength := nextStrength
 
-string executionTxt = f_ex_readiness_txt(exReadiness, exDir)
+// ---------------------------------------------------------------------------
+// OPERATOR_READINESS_V1 — embedded projection
+// ---------------------------------------------------------------------------
+bool exExecutionHorizonEnabled = not monthlyMacroOnly
+bool exFrozenActive = exExecutionHorizonEnabled and exReadiness != EX_READY_WAIT and exDir != 0
+bool exTrendActive = exExecutionHorizonEnabled and exTrendReadiness != EX_READY_WAIT and exTrendReadinessDir != 0
+bool exRangeActive = exExecutionHorizonEnabled and exRangeReadiness != EX_READY_WAIT and exRangeReadinessDir != 0
+
+int exOperatorDirCandidate = 0
+bool exOperatorConflict = false
+if exFrozenActive
+    exOperatorDirCandidate := exDir
+if exTrendActive
+    if exOperatorDirCandidate != 0 and exTrendReadinessDir != exOperatorDirCandidate
+        exOperatorConflict := true
+    else if exOperatorDirCandidate == 0
+        exOperatorDirCandidate := exTrendReadinessDir
+if exRangeActive
+    if exOperatorDirCandidate != 0 and exRangeReadinessDir != exOperatorDirCandidate
+        exOperatorConflict := true
+    else if exOperatorDirCandidate == 0
+        exOperatorDirCandidate := exRangeReadinessDir
+
+int exFrozenUrgency = exFrozenActive ? f_ex_ready_urgency(exReadiness) : 0
+int exTrendUrgency = exTrendActive ? f_ex_ready_urgency(exTrendReadiness) : 0
+int exRangeUrgency = exRangeActive ? f_ex_ready_urgency(exRangeReadiness) : 0
+int exOperatorMaxUrgency = math.max(exFrozenUrgency, math.max(exTrendUrgency, exRangeUrgency))
+
+bool exSelectFrozen = exFrozenActive and exFrozenUrgency == exOperatorMaxUrgency
+bool exSelectTrend = exTrendActive and exTrendUrgency == exOperatorMaxUrgency
+bool exSelectRange = exRangeActive and exRangeUrgency == exOperatorMaxUrgency
+int exSelectedPathCount = (exSelectFrozen ? 1 : 0) + (exSelectTrend ? 1 : 0) + (exSelectRange ? 1 : 0)
+
+int exOperatorReadiness = EX_OP_READY_WAIT
+int exOperatorDir = 0
+int exOperatorSourcePath = EX_PATH_NONE
+int exOperatorOppKind = EX_OPP_NONE
+
+if exOperatorConflict
+    exOperatorReadiness := EX_OP_READY_CONFLICT
+else if exOperatorDirCandidate != 0 and exOperatorMaxUrgency > 0
+    exOperatorDir := exOperatorDirCandidate
+    exOperatorReadiness := exSelectFrozen ? exReadiness : exSelectTrend ? exTrendReadiness : exRangeReadiness
+    exOperatorSourcePath := exSelectedPathCount > 1 ? EX_PATH_MULTI : exSelectFrozen ? EX_PATH_FROZEN_0_1 : exSelectTrend ? EX_PATH_TREND_V2 : EX_PATH_RANGE_ANY1
+    exOperatorOppKind := exSelectTrend and not exSelectRange ? exTrendOppKind :
+         exSelectRange and not exSelectTrend ? EX_OPP_RANGE_ROTATION : EX_OPP_NONE
+
+bool exOperatorConfirmEvent = barstate.isconfirmed and not exOperatorConflict and exOperatorDir != 0 and
+     ((exConfirmEvent and exDir == exOperatorDir) or
+      (exTrendConfirmEvent and exTrendReadinessDir == exOperatorDir) or
+      (exRangeConfirmEvent and exRangeReadinessDir == exOperatorDir))
+
+bool exOperatorArmedEntered = barstate.isconfirmed and exOperatorReadiness == EX_OP_READY_ARMED and
+     (nz(exOperatorReadiness[1], EX_OP_READY_WAIT) != EX_OP_READY_ARMED or nz(exOperatorDir[1], 0) != exOperatorDir)
+
+bool exAnticipatedTfSupported = timeframe.period == "15" or timeframe.period == "60" or timeframe.period == "240" or timeframe.period == "D" or timeframe.period == "3D"
+bool exAnticipatedKindSupported = exTrendOppKind == EX_OPP_BREAKOUT_EXPANSION or exTrendOppKind == EX_OPP_REACCELERATION
+bool exAnticipatedPosture = responseProfile == "ANTECIPADO" and exAnticipatedTfSupported and exOperatorSourcePath == EX_PATH_TREND_V2 and exAnticipatedKindSupported and exOperatorReadiness == EX_OP_READY_ARMED and not exOperatorConflict
+bool exAnticipatedEvent = exAnticipatedPosture and exOperatorArmedEntered
+
+// ---------------------------------------------------------------------------
+// Thesis Management V1.1 — embedded projection
+// ---------------------------------------------------------------------------
+bool exConfirmingFrozen = exOperatorConfirmEvent and exConfirmEvent and exDir == exOperatorDir
+bool exConfirmingTrend = exOperatorConfirmEvent and exTrendConfirmEvent and exTrendReadinessDir == exOperatorDir
+bool exConfirmingRange = exOperatorConfirmEvent and exRangeConfirmEvent and exRangeReadinessDir == exOperatorDir
+int exConfirmingSourceCount = (exConfirmingFrozen ? 1 : 0) + (exConfirmingTrend ? 1 : 0) + (exConfirmingRange ? 1 : 0)
+
+var bool exManagementActive = false
+var int exManagementState = EX_MGMT_NONE
+var int exManagementDir = 0
+var int exManagementSourcePath = EX_PATH_NONE
+var int exManagementOppKind = EX_OPP_NONE
+var int exManagementConfirmBar = na
+var float exManagementConfirmClose = na
+var float exManagementTarget = na
+var float exManagementInvalidation = na
+var int exManagementCapability = EX_CAP_NONE
+
+bool exManagementNewThesis = false
+bool exManagementCompletedEvent = false
+bool exManagementInvalidatedEvent = false
+bool exManagementAmbiguousEvent = false
+float exManagementPathProgress = na
+float exManagementTargetRoomAtr = na
+float exManagementInvalidationBufferAtr = na
+int exManagementStrength = EX_STRENGTH_NORMAL
+
+if barstate.isconfirmed
+    if exOperatorConfirmEvent and exOperatorDir != 0 and exConfirmingSourceCount > 0
+        float mergedTarget = na
+        float mergedInvalidation = na
+        bool targetConflict = false
+        bool invalidationConflict = false
+
+        float frozenTarget = exConfirmingFrozen ? destination1 : na
+        float frozenInvalidation = exConfirmingFrozen ? invalidation : na
+        float trendTarget = exConfirmingTrend ? destination1 : na
+        float trendInvalidation = exConfirmingTrend ? invalidation : na
+        float rangeTarget = exConfirmingRange ? (exOperatorDir == 1 ? exRangeOppHigh - exRangeOppEdge : exRangeOppLow + exRangeOppEdge) : na
+        float rangeInvalidation = exConfirmingRange ? (exOperatorDir == 1 ? exRangeOppLow : exRangeOppHigh) : na
+
+        if f_ex_target_usable(exOperatorDir, close, frozenTarget)
+            mergedTarget := frozenTarget
+        if f_ex_target_usable(exOperatorDir, close, trendTarget)
+            if na(mergedTarget)
+                mergedTarget := trendTarget
+            else if not f_ex_same_level(mergedTarget, trendTarget)
+                targetConflict := true
+        if f_ex_target_usable(exOperatorDir, close, rangeTarget)
+            if na(mergedTarget)
+                mergedTarget := rangeTarget
+            else if not f_ex_same_level(mergedTarget, rangeTarget)
+                targetConflict := true
+
+        if f_ex_invalidation_usable(exOperatorDir, close, frozenInvalidation)
+            mergedInvalidation := frozenInvalidation
+        if f_ex_invalidation_usable(exOperatorDir, close, trendInvalidation)
+            if na(mergedInvalidation)
+                mergedInvalidation := trendInvalidation
+            else if not f_ex_same_level(mergedInvalidation, trendInvalidation)
+                invalidationConflict := true
+        if f_ex_invalidation_usable(exOperatorDir, close, rangeInvalidation)
+            if na(mergedInvalidation)
+                mergedInvalidation := rangeInvalidation
+            else if not f_ex_same_level(mergedInvalidation, rangeInvalidation)
+                invalidationConflict := true
+
+        if targetConflict
+            mergedTarget := na
+        if invalidationConflict
+            mergedInvalidation := na
+
+        exManagementActive := true
+        exManagementState := EX_MGMT_CONTINUATION
+        exManagementDir := exOperatorDir
+        exManagementSourcePath := exConfirmingSourceCount > 1 ? EX_PATH_MULTI : exConfirmingFrozen ? EX_PATH_FROZEN_0_1 : exConfirmingTrend ? EX_PATH_TREND_V2 : EX_PATH_RANGE_ANY1
+        exManagementOppKind := exConfirmingSourceCount > 1 ? EX_OPP_NONE : exConfirmingTrend ? exTrendOppKind : exConfirmingRange ? EX_OPP_RANGE_ROTATION : EX_OPP_NONE
+        exManagementConfirmBar := bar_index
+        exManagementConfirmClose := close
+        exManagementTarget := mergedTarget
+        exManagementInvalidation := mergedInvalidation
+        exManagementCapability := not na(mergedTarget) and not na(mergedInvalidation) ? EX_CAP_FULL :
+             not na(mergedInvalidation) ? EX_CAP_INVALIDATION_ONLY :
+             not na(mergedTarget) ? EX_CAP_TARGET_ONLY : EX_CAP_NONE
+        exManagementNewThesis := true
+
+    if exManagementActive and exManagementDir != 0
+        bool targetHit = not na(exManagementTarget) and (exManagementDir == 1 ? high >= exManagementTarget : low <= exManagementTarget)
+        bool invalidated = not na(exManagementInvalidation) and (exManagementDir == 1 ? close < exManagementInvalidation : close > exManagementInvalidation)
+
+        exManagementTargetRoomAtr := not na(exManagementTarget) and atr > 0 ? exManagementDir * (exManagementTarget - close) / atr : na
+        exManagementInvalidationBufferAtr := not na(exManagementInvalidation) and atr > 0 ? exManagementDir * (close - exManagementInvalidation) / atr : na
+        bool targetNear = not targetHit and not na(exManagementTargetRoomAtr) and exManagementTargetRoomAtr >= 0 and exManagementTargetRoomAtr <= EX_MGMT_TARGET_NEAR_ATR
+        bool invalidationNear = not invalidated and not na(exManagementInvalidationBufferAtr) and exManagementInvalidationBufferAtr >= 0 and exManagementInvalidationBufferAtr <= EX_MGMT_INVALID_WARN_ATR
+
+        float initialTargetDistance = not na(exManagementTarget) ? exManagementDir * (exManagementTarget - exManagementConfirmClose) : na
+        exManagementPathProgress := not na(initialTargetDistance) and initialTargetDistance > 0 ? exManagementDir * (close - exManagementConfirmClose) / initialTargetDistance : na
+
+        int managementPse = f_ex_pse_state_dir(exManagementDir, exPseReady, exRelativeVolume, exPressureProxy)
+        exManagementStrength := f_ex_strength_for_dir(exManagementDir, targetNear, exMteState, exRsiState, managementPse)
+
+        if targetHit and invalidated
+            exManagementState := EX_MGMT_AMBIGUOUS
+            exManagementAmbiguousEvent := true
+            exManagementActive := false
+        else if targetHit
+            exManagementState := EX_MGMT_COMPLETED
+            exManagementCompletedEvent := true
+            exManagementActive := false
+        else if invalidated
+            exManagementState := EX_MGMT_INVALIDATED
+            exManagementInvalidatedEvent := true
+            exManagementActive := false
+        else if invalidationNear
+            exManagementState := EX_MGMT_PROTECT
+        else if (targetNear and exManagementStrength == EX_STRENGTH_REACTION_RISK) or
+             (not na(exManagementPathProgress) and exManagementPathProgress >= 0.50 and
+              (exManagementStrength == EX_STRENGTH_FADING or exManagementStrength == EX_STRENGTH_EXHAUSTED or exManagementStrength == EX_STRENGTH_REACTION_RISK))
+            exManagementState := EX_MGMT_REALIZATION_RISK
+        else if exManagementStrength == EX_STRENGTH_EXHAUSTED
+            exManagementState := EX_MGMT_PROTECT
+        else
+            exManagementState := EX_MGMT_CONTINUATION
+    else if not exManagementNewThesis and exManagementState != EX_MGMT_NONE
+        exManagementState := EX_MGMT_NONE
+        exManagementDir := 0
+        exManagementSourcePath := EX_PATH_NONE
+        exManagementOppKind := EX_OPP_NONE
+        exManagementConfirmBar := na
+        exManagementConfirmClose := na
+        exManagementTarget := na
+        exManagementInvalidation := na
+        exManagementCapability := EX_CAP_NONE
+        exManagementPathProgress := na
+        exManagementTargetRoomAtr := na
+        exManagementInvalidationBufferAtr := na
+        exManagementStrength := EX_STRENGTH_NORMAL
+
+string executionTxt = f_ex_operator_txt(exOperatorReadiness, exOperatorDir)
 string strengthTxt = f_ex_strength_txt(exStrength)
+string opportunityTxt = exOperatorOppKind != EX_OPP_NONE ? f_ex_opp_txt(exOperatorOppKind) :
+     exOperatorSourcePath == EX_PATH_FROZEN_0_1 ? (exLocation == EX_LOC_RETEST or exLocation == EX_LOC_RECLAIM ? "RETESTE / RECLAIM" : "CORREÇÃO") : "—"
+string managementTxt = f_ex_management_txt(exManagementState)
 
 // ---------------------------------------------------------------------------
 // Historical engineering telemetry — Data Window only
@@ -1328,115 +2159,164 @@ if barstate.islast
             line.delete(liqBelowLine)
             liqBelowLine := na
 
-// Audit series are Data Window / CSV-export fields for offline validation.
-// Codes:
-//   MapDir: -1 bear / 0 none-transition / +1 bull
-//   Model: 0 none / 1 FIB / 2 ADAPT / 3 LIVE-FIB / 4 LIVE-ADAPT
+// Data Window diagnostics are intentionally budgeted below TradingView's
+// hard 64 plot-count ceiling. Keep only fields needed for lifecycle evidence,
+// cross-script parity and the preserved MM-0 integrity contract.
+// Codes: MapDir -1 bear / 0 none-transition / +1 bull.
 plot(AUDIT_SCHEMA, "MM Audit • Schema", color=color.new(color.white, 100), display=display.data_window)
 plot(barstate.isconfirmed ? 1 : 0, "MM Audit • Confirmado", color=color.new(color.white, 100), display=display.data_window)
 plot(mapDir, "MM Audit • MapDir", color=color.new(color.white, 100), display=display.data_window)
-plot(atr, "MM Audit • ATR", color=color.new(color.white, 100), display=display.data_window)
-plot(correctionModelCode, "MM Audit • Modelo", color=color.new(color.white, 100), display=display.data_window)
-plot(pullbackSamples, "MM Audit • Amostras adaptativas", color=color.new(color.white, 100), display=display.data_window)
-plot(correctionActive ? primaryTop : na, "MM Audit • Correção topo", color=color.new(color.white, 100), display=display.data_window)
-plot(correctionActive ? primaryBottom : na, "MM Audit • Correção fundo", color=color.new(color.white, 100), display=display.data_window)
-plot(thesisInvalidated ? na : destination1, "MM Audit • Destino 1", color=color.new(color.white, 100), display=display.data_window)
-plot(correctionReady ? invalidation : na, "MM Audit • Invalidação", color=color.new(color.white, 100), display=display.data_window)
-plot(correctionConfluence, "MM Audit • Confluências", color=color.new(color.white, 100), display=display.data_window)
-plot(diagNewThesis ? 1 : 0, "MM Audit • Nova tese evt", color=color.new(color.white, 100), display=display.data_window)
 plot(diagZoneTouchNow ? 1 : 0, "MM Audit • Toque zona evt", color=color.new(color.white, 100), display=display.data_window)
 plot(diagDestinationResolvedNow ? 1 : 0, "MM Audit • Zona→Destino evt", color=color.new(color.white, 100), display=display.data_window)
-plot(diagInvalidationResolvedNow ? 1 : 0, "MM Audit • Zona→Invalidação evt", color=color.new(color.white, 100), display=display.data_window)
-plot(diagAmbiguousNow ? 1 : 0, "MM Audit • Ambíguo evt", color=color.new(color.white, 100), display=display.data_window)
 plot(reclaimEventDir, "MM Audit • Sweep reclaim evt", color=color.new(color.white, 100), display=display.data_window)
 
-// Embedded Execution parity fields. These mirror the lower-pane semantic
-// consumer and make cross-script reload/parity defects diagnosable.
+// Minimal embedded Execution engine parity.
 plot(EX_DEFAULTS_VERSION, "MM EX • Defaults", color=color.new(color.white, 100), display=display.data_window)
-plot(exMteCore, "MM EX • MTE core", color=color.new(color.white, 100), display=display.data_window)
 plot(exMteState, "MM EX • MTE estado", color=color.new(color.white, 100), display=display.data_window)
-plot(exRsiLocal, "MM EX • RSI local", color=color.new(color.white, 100), display=display.data_window)
 plot(exRsiState, "MM EX • RSE estado", color=color.new(color.white, 100), display=display.data_window)
-plot(exRsiContextDir, "MM EX • RSI contexto", color=color.new(color.white, 100), display=display.data_window)
-plot(exRelativeVolume, "MM EX • Volume relativo", color=color.new(color.white, 100), display=display.data_window)
-plot(exPressureProxy, "MM EX • Pressão proxy", color=color.new(color.white, 100), display=display.data_window)
 plot(exParticipationState, "MM EX • PSE estado", color=color.new(color.white, 100), display=display.data_window)
-plot(exLocation, "MM EX • Localização", color=color.new(color.white, 100), display=display.data_window)
-plot(exReadiness, "MM EX • Readiness", color=color.new(color.white, 100), display=display.data_window)
-plot(exDir, "MM EX • Direção", color=color.new(color.white, 100), display=display.data_window)
 plot(exStrength, "MM EX • Força", color=color.new(color.white, 100), display=display.data_window)
-plot(exConfirmEvent ? 1 : 0, "MM EX • Confirma evt", color=color.new(color.white, 100), display=display.data_window)
 
-// Historical diagnostics are intentionally hidden from the chart/status line.
-plot(diagTheses, "MM Hist • Teses", color=color.new(color.white, 100), display=display.data_window)
-plot(diagZoneTouches, "MM Hist • Toques correção", color=color.new(color.white, 100), display=display.data_window)
-plot(diagZoneTouchPct, "MM Hist • Teses com toque %", color=color.new(color.white, 100), display=display.data_window)
-plot(diagDestinationHits, "MM Hist • Destinos pós-toque atingidos", color=color.new(color.white, 100), display=display.data_window)
-plot(diagInvalidations, "MM Hist • Invalidações pós-toque", color=color.new(color.white, 100), display=display.data_window)
-plot(diagZoneToDestination, "MM Hist • Zona→Destino", color=color.new(color.white, 100), display=display.data_window)
-plot(diagZoneToInvalidation, "MM Hist • Zona→Invalidação", color=color.new(color.white, 100), display=display.data_window)
+// Suite 0.2 source-path parity.
+plot(exTrendOppKind, "MM EX 0.2 • Trend oportunidade", color=color.new(color.white, 100), display=display.data_window)
+plot(exTrendOppStage, "MM EX 0.2 • Trend estágio", color=color.new(color.white, 100), display=display.data_window)
+plot(exTrendOppDir, "MM EX 0.2 • Trend direção", color=color.new(color.white, 100), display=display.data_window)
+plot(exTrendReadiness, "MM EX 0.2 • Trend readiness", color=color.new(color.white, 100), display=display.data_window)
+plot(exTrendConfirmEvent ? 1 : 0, "MM EX 0.2 • Trend confirma", color=color.new(color.white, 100), display=display.data_window)
+
+plot(exRangeBoxValid ? 1 : 0, "MM EX 0.2 • Range válido", color=color.new(color.white, 100), display=display.data_window)
+plot(exRangeOppStage, "MM EX 0.2 • Range estágio", color=color.new(color.white, 100), display=display.data_window)
+plot(exRangeOppDir, "MM EX 0.2 • Range direção", color=color.new(color.white, 100), display=display.data_window)
+plot(exRangeReadiness, "MM EX 0.2 • Range readiness", color=color.new(color.white, 100), display=display.data_window)
+plot(exRangeConfirmEvent ? 1 : 0, "MM EX 0.2 • Range confirma", color=color.new(color.white, 100), display=display.data_window)
+
+// Operator projection: primary cross-script/reload evidence.
+plot(exOperatorReadiness, "MM EX 0.2 • Operator readiness", color=color.new(color.white, 100), display=display.data_window)
+plot(exOperatorDir, "MM EX 0.2 • Operator direção", color=color.new(color.white, 100), display=display.data_window)
+plot(exOperatorConflict ? 1 : 0, "MM EX 0.2 • Operator conflito", color=color.new(color.white, 100), display=display.data_window)
+plot(exOperatorSourcePath, "MM EX 0.2 • Operator fonte", color=color.new(color.white, 100), display=display.data_window)
+plot(exOperatorOppKind, "MM EX 0.2 • Operator oportunidade", color=color.new(color.white, 100), display=display.data_window)
+plot(exOperatorConfirmEvent ? 1 : 0, "MM EX 0.2 • Operator confirma", color=color.new(color.white, 100), display=display.data_window)
+plot(exAnticipatedPosture ? 1 : 0, "MM EX 0.2 • Perfil antecipado ativo", color=color.new(color.white, 100), display=display.data_window)
+plot(exAnticipatedEvent ? 1 : 0, "MM EX 0.2 • Evento antecipado", color=color.new(color.white, 100), display=display.data_window)
+
+// High-horizon context.
+plot(monthlyMacroAvailable ? 1 : 0, "MM EX 0.2 • Macro mensal disponível", color=color.new(color.white, 100), display=display.data_window)
+plot(monthlyMacroDir, "MM EX 0.2 • Macro mensal direção", color=color.new(color.white, 100), display=display.data_window)
+
+// Thesis-management parity: anchors remain individually inspectable.
+plot(exManagementActive ? 1 : 0, "MM EX 0.2 • Gestão ativa", color=color.new(color.white, 100), display=display.data_window)
+plot(exManagementState, "MM EX 0.2 • Gestão estado", color=color.new(color.white, 100), display=display.data_window)
+plot(exManagementDir, "MM EX 0.2 • Gestão direção", color=color.new(color.white, 100), display=display.data_window)
+plot(exManagementSourcePath, "MM EX 0.2 • Gestão fonte", color=color.new(color.white, 100), display=display.data_window)
+plot(exManagementOppKind, "MM EX 0.2 • Gestão oportunidade", color=color.new(color.white, 100), display=display.data_window)
+plot(exManagementCapability, "MM EX 0.2 • Gestão capacidade", color=color.new(color.white, 100), display=display.data_window)
+plot(exManagementTarget, "MM EX 0.2 • Gestão alvo congelado", color=color.new(color.white, 100), display=display.data_window)
+plot(exManagementInvalidation, "MM EX 0.2 • Gestão invalidação congelada", color=color.new(color.white, 100), display=display.data_window)
+
+// Preserved MM-0 historical sentinels required by the integrity contract.
 plot(diagAmbiguousOutcomes, "MM Hist • Resultados ambíguos", color=color.new(color.white, 100), display=display.data_window)
 plot(diagSupersededAfterTouch, "MM Hist • Zona supersedida", color=color.new(color.white, 100), display=display.data_window)
-plot(diagOpenAfterZone, "MM Hist • Zona sem desfecho", color=color.new(color.white, 100), display=display.data_window)
-plot(diagAvgBarsToOutcome, "MM Hist • Barras toque→desfecho", color=color.new(color.white, 100), display=display.data_window)
 plot(diagZoneReactionPct, "MM Hist • Zona→Destino % (engenharia)", color=color.new(color.white, 100), display=display.data_window)
 
 // ---------------------------------------------------------------------------
-// Single semantic panel — no Compact/Full variants
+// Direct operator panel — engine semantics stay under the hood
 // ---------------------------------------------------------------------------
-var table panel = table.new(position.bottom_right, 2, 12, bgcolor=color.new(color.black, 82), frame_color=color.new(color.gray, 55), frame_width=1, border_color=color.new(color.gray, 75))
+var table panel = table.new(position.bottom_right, 2, 9, bgcolor=color.new(color.black, 82), frame_color=color.new(color.gray, 55), frame_width=1, border_color=color.new(color.gray, 75))
 
 if barstate.islast
     if showPanel
-        color regimeColor = regimeDir == 1 ? color.lime : regimeDir == -1 ? color.red : color.silver
-        color phaseColor = phaseTxt == "CORREÇÃO" or phaseTxt == "CORREÇÃO PROFUNDA" ? color.orange : phaseTxt == "RETESTE" ? color.aqua : color.white
+        bool awarenessTrend = exTrendOppStage != EX_OPP_STAGE_NONE and exTrendOppDir != 0
+        bool awarenessRange = exRangeOppStage != EX_OPP_STAGE_NONE and exRangeOppDir != 0
+        bool awarenessFrozen = exRelevantLocation and mapDir != 0
+
+        string scenarioBaseTxt = exOperatorConflict ? "CONFLITO" :
+             exRangeBoxValid and regimeDir == 0 ? "RANGE" :
+             regimeStructureConflict ? "MISTO / CONFLITO" :
+             regimeDir == 1 ? "ALTA" :
+             regimeDir == -1 ? "BAIXA" :
+             mapDir == 1 ? "TRANSIÇÃO ↑" :
+             mapDir == -1 ? "TRANSIÇÃO ↓" : monthlyMacroOnly ? "MACRO / CICLO" : "TRANSIÇÃO"
+        string macroScenarioSuffix = monthlyMacroContextEnabled ? (monthlyMacroAvailable ? (monthlyMacroDir == 1 ? " • MACRO ALTA" : monthlyMacroDir == -1 ? " • MACRO BAIXA" : " • MACRO NEUTRO") : " • MACRO —") : ""
+        string scenarioTxt = scenarioBaseTxt + macroScenarioSuffix
+
+        int awarenessDir = exOperatorDir != 0 ? exOperatorDir :
+             awarenessTrend ? exTrendOppDir :
+             awarenessRange ? exRangeOppDir :
+             awarenessFrozen ? mapDir : 0
+
+        string directOppTxt = exOperatorOppKind != EX_OPP_NONE ? f_ex_opp_txt(exOperatorOppKind) :
+             awarenessTrend ? f_ex_opp_txt(exTrendOppKind) :
+             awarenessRange ? "ROTAÇÃO DE RANGE" :
+             awarenessFrozen ? (exLocation == EX_LOC_RETEST or exLocation == EX_LOC_RECLAIM ? "RETESTE / RECLAIM" : "CORREÇÃO") :
+             "NENHUMA"
+
+        string sideTxt = awarenessDir == 1 ? "COMPRA / LONG" : awarenessDir == -1 ? "VENDA / SHORT" : "—"
+
+        string actionTxt = exOperatorReadiness != EX_OP_READY_WAIT ? f_ex_operator_txt(exOperatorReadiness, exOperatorDir) :
+             (awarenessTrend or awarenessRange or awarenessFrozen) ? "OBSERVAR" : "AGUARDAR"
+        if exAnticipatedPosture
+            actionTxt := "ANTECIPADO • " + f_ex_operator_txt(exOperatorReadiness, exOperatorDir)
+
+        float rangeDisplayTarget = awarenessRange and exRangeOppDir != 0 ? (exRangeOppDir == 1 ? exRangeOppHigh - exRangeOppEdge : exRangeOppLow + exRangeOppEdge) : na
+        string targetTxt = not na(exManagementTarget) ? f_price(exManagementTarget) :
+             not na(rangeDisplayTarget) ? f_price(rangeDisplayTarget) :
+             activeDestinationTxt
+
+        float rangeDisplayInvalidation = awarenessRange and exRangeOppDir != 0 ? (exRangeOppDir == 1 ? exRangeOppLow : exRangeOppHigh) : na
+        string directInvalidTxt = not na(exManagementInvalidation) ? f_price(exManagementInvalidation) :
+             not na(rangeDisplayInvalidation) ? f_price(rangeDisplayInvalidation) :
+             thesisInvalidated ? "ROMPIDA • " + f_price(invalidation) :
+             f_price(invalidation)
+
+        string correctionTxt = correctionActive ? f_zone(primaryTop, primaryBottom) + "  " + f_stars(correctionConfluence) : ""
+
+        color scenarioColor = scenarioTxt == "ALTA" or scenarioTxt == "TRANSIÇÃO ↑" ? color.lime :
+             scenarioTxt == "BAIXA" or scenarioTxt == "TRANSIÇÃO ↓" ? color.red :
+             scenarioTxt == "CONFLITO" or scenarioTxt == "MISTO / CONFLITO" ? color.orange :
+             scenarioTxt == "RANGE" ? color.aqua : color.silver
+
+        color sideColor = awarenessDir == 1 ? color.lime : awarenessDir == -1 ? color.red : color.silver
+        color actionColor = exOperatorReadiness == EX_OP_READY_CONFLICT ? color.orange :
+             exOperatorReadiness == EX_OP_READY_CONFIRMED ? (exOperatorDir == 1 ? color.lime : color.red) :
+             exOperatorReadiness == EX_OP_READY_ARMED ? color.yellow :
+             exOperatorReadiness == EX_OP_READY_PREP ? color.aqua :
+             exOperatorReadiness == EX_OP_READY_ALIGNED ? (exOperatorDir == 1 ? color.lime : color.red) :
+             (awarenessTrend or awarenessRange or awarenessFrozen) ? color.aqua : color.silver
+
+        color managementColor = exManagementState == EX_MGMT_INVALIDATED ? color.red :
+             exManagementState == EX_MGMT_AMBIGUOUS ? color.orange :
+             exManagementState == EX_MGMT_REALIZATION_RISK ? color.orange :
+             exManagementState == EX_MGMT_PROTECT ? color.yellow :
+             exManagementState == EX_MGMT_COMPLETED ? color.lime :
+             exManagementState == EX_MGMT_CONTINUATION ? color.aqua : color.silver
 
         table.cell(panel, 0, 0, "MARKET MAP", text_color=color.white, text_size=size.small, bgcolor=color.new(color.blue, 72))
-        table.cell(panel, 1, 0, "v0.2.0", text_color=color.silver, text_size=size.tiny, bgcolor=color.new(color.blue, 72))
+        table.cell(panel, 1, 0, "v0.2 • " + responseProfile, text_color=color.silver, text_size=size.tiny, bgcolor=color.new(color.blue, 72))
 
-        table.cell(panel, 0, 1, "REGIME", text_color=color.silver, text_size=size.tiny)
-        table.cell(panel, 1, 1, regimeTxt, text_color=regimeColor, text_size=size.small)
+        table.cell(panel, 0, 1, "CENÁRIO", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 1, scenarioTxt, text_color=scenarioColor, text_size=size.small)
 
-        table.cell(panel, 0, 2, "FASE", text_color=color.silver, text_size=size.tiny)
-        table.cell(panel, 1, 2, phaseTxt, text_color=phaseColor, text_size=size.small)
+        table.cell(panel, 0, 2, "OPORTUNIDADE", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 2, directOppTxt, text_color=directOppTxt == "NENHUMA" ? color.silver : color.aqua, text_size=size.small)
 
-        table.cell(panel, 0, 3, "ESTRUTURA", text_color=color.silver, text_size=size.tiny)
-        table.cell(panel, 1, 3, structureTxt, text_color=color.white, text_size=size.small)
+        table.cell(panel, 0, 3, "LADO", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 3, sideTxt, text_color=sideColor, text_size=size.small)
 
-        table.cell(panel, 0, 4, "CORREÇÃO", text_color=color.silver, text_size=size.tiny)
-        string correctionTxt = correctionActive ? f_zone(primaryTop, primaryBottom) + "  " + f_stars(correctionConfluence) : "—"
-        table.cell(panel, 1, 4, correctionTxt, text_color=color.yellow, text_size=size.small)
+        table.cell(panel, 0, 4, "AÇÃO", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 4, actionTxt, text_color=actionColor, text_size=size.small)
 
-        table.cell(panel, 0, 5, "DESTINO", text_color=color.silver, text_size=size.tiny)
-        table.cell(panel, 1, 5, activeDestinationTxt, text_color=activeDestinationNear ? color.orange : color.aqua, text_size=size.small)
+        table.cell(panel, 0, 5, "ALVO", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 5, targetTxt, text_color=color.aqua, text_size=size.small)
 
-        table.cell(panel, 0, 6, "LIQ ↑", text_color=color.silver, text_size=size.tiny)
-        table.cell(panel, 1, 6, f_price(liqAbove) + " • " + liqAboveSource, text_color=color.fuchsia, text_size=size.small)
+        table.cell(panel, 0, 6, "GESTÃO", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 6, managementTxt, text_color=managementColor, text_size=size.small)
 
-        table.cell(panel, 0, 7, "LIQ ↓", text_color=color.silver, text_size=size.tiny)
-        table.cell(panel, 1, 7, f_price(liqBelow) + " • " + liqBelowSource, text_color=color.fuchsia, text_size=size.small)
+        table.cell(panel, 0, 7, "INVALIDA", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 7, directInvalidTxt, text_color=color.red, text_size=size.small)
 
-        table.cell(panel, 0, 8, "INVALIDA", text_color=color.silver, text_size=size.tiny)
-        string invalidTxt = thesisInvalidated ? "ROMPIDA • " + f_price(invalidation) : f_price(invalidation)
-        table.cell(panel, 1, 8, invalidTxt, text_color=color.red, text_size=size.small)
-
-        table.cell(panel, 0, 9, "CONTEXTO", text_color=color.silver, text_size=size.tiny)
-        string contextTxt = contextTf + " • HTF CONF" + (correctionActive ? " • " + correctionModel : "")
-        table.cell(panel, 1, 9, contextTxt, text_color=color.silver, text_size=size.tiny)
-
-        color executionColor = exReadiness == EX_READY_CONFIRMED ? (exDir == 1 ? color.lime : color.red) :
-             exReadiness == EX_READY_ARMED ? color.yellow :
-             exReadiness == EX_READY_PREP ? color.aqua :
-             exReadiness == EX_READY_ALIGNED ? (exDir == 1 ? color.lime : color.red) :
-             color.silver
-        color strengthColor = exStrength == EX_STRENGTH_REACTION_RISK ? color.red :
-             exStrength == EX_STRENGTH_EXHAUSTED ? color.orange :
-             exStrength == EX_STRENGTH_FADING ? color.yellow : color.silver
-
-        table.cell(panel, 0, 10, "EXECUÇÃO", text_color=color.silver, text_size=size.tiny)
-        table.cell(panel, 1, 10, executionTxt, text_color=executionColor, text_size=size.small)
-
-        table.cell(panel, 0, 11, "FORÇA", text_color=color.silver, text_size=size.tiny)
-        table.cell(panel, 1, 11, strengthTxt, text_color=strengthColor, text_size=size.small)
+        table.cell(panel, 0, 8, correctionActive ? "CORREÇÃO" : "", text_color=color.silver, text_size=size.tiny)
+        table.cell(panel, 1, 8, correctionTxt, text_color=color.yellow, text_size=size.small)
     else
-        table.clear(panel, 0, 0, 1, 11)
+        table.clear(panel, 0, 0, 1, 8)
+
