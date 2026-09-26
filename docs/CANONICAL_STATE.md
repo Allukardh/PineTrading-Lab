@@ -1,11 +1,11 @@
 # Canonical State
 
-**Date:** 2026-09-24  
-**Phase:** Suite 0.2 Phase G — production Pine integration / TradingView gate  
-**Accepted product baseline:** Market Map 0.1.0 + Execution 0.1.0 on `main`  
+**Date:** 2026-09-25  
+**Phase:** Suite 0.2 — promoted production baseline  
+**Accepted product baseline:** Market Map 0.2.0 + Execution 0.2.0 on `main`  
 **Preserved engineering baseline:** SignalGate Dashboard 0.1.0  
 **Active architecture:** two runtime indicators — Market Map (with embedded Decision Panel) + Execution  
-**Active roadmap:** Suite 0.2 research through Phase F promoted; Phase G production integration is next
+**Active roadmap:** Suite 0.2 promoted; next product front is intentionally unset until a concrete objective/defect is opened
 
 ## Continuity navigation
 
@@ -178,7 +178,7 @@ Accepted timing-safe engineering baseline/donor. It is not a final third runtime
 Closed standalone reboot research is preserved as donor material for Execution.
 
 ### Market Map 0.1.0
-**ACCEPTED PRODUCT BASELINE** on `main`.
+**HISTORICAL ACCEPTED PRODUCT BASELINE** on `main`.
 
 Promotion:
 `0eeb0d37b256a950cfb38f627fa3521bb213d380`
@@ -214,7 +214,7 @@ Integrated evidence:
 - reaction-risk semantics remained unsaturated and concentrated appropriately near destination.
 
 ### Execution 0.1.0
-**ACCEPTED PRODUCT BASELINE** on `main`.
+**HISTORICAL ACCEPTED PRODUCT BASELINE** on `main`.
 
 Promotion:
 `a7557df2d0142441ea782dba4b8c3f95ebc38371`
@@ -237,9 +237,9 @@ Promotion evidence:
 
 Issue #20 is closed as completed.
 
-### Suite 0.2 active direction
+### Suite 0.2 accepted direction
 
-Issue #23 opens the next controlled evolution while keeping 0.1 frozen.
+Issue #23 defined the controlled evolution from the frozen 0.1 comparator into the promoted Suite 0.2 baseline.
 
 Primary objectives:
 - broaden opportunity coverage beyond pullback/retest;
@@ -282,17 +282,64 @@ Accepted research composition:
 
 Phase F integrated evidence is **CLOSED / KEEP**.
 
-No Suite 0.2 production Pine behavior has been promoted yet.
+### Suite 0.2 production baseline
+
+**ACCEPTED PRODUCT BASELINE** on `main`.
+
+Promotion:
+`224157f652581209e81a87409a7a111f21f6f289`
+
+Accepted runtime topology:
+- Market Map 0.2.0 overlay + direct embedded operator panel;
+- Execution 0.2.0 lower timing pane + compact semantic cue;
+- no third runtime indicator.
+
+Accepted production semantics:
+- independent frozen 0.1 correction/retest/reclaim path;
+- TREND_OPPORTUNITY_V2 with BREAKOUT_EXPANSION, REACCELERATION and strict REGIME_REVERSAL;
+- RANGE_EARLY_ANY1;
+- OPERATOR_READINESS_V1 arbitration;
+- PADRÃO global default;
+- scoped ANTECIPADO for evidence-backed TREND opportunities on 15m / 1H / 4H / 1D / 3D only;
+- no CONFIRMADO profile;
+- Thesis Management V1.1 starts only from PADRÃO CONFIRMA;
+- no synthetic target/invalidation anchors;
+- 1W PADRÃO only;
+- 1M macro/cycle awareness only.
+
+Production validation:
+- initial compile `36199944975` — PASS;
+- initial Static integrity `36199944904` — PASS;
+- TradingView runtime plot-count defect RE10140 discovered and repaired without semantic retuning;
+- post-repair compile `36202404753` — PASS;
+- post-repair Static integrity `36202404767` — PASS;
+- final reconciled branch Static integrity `36203618280` — PASS;
+- final reconciled branch Pine compile `36203618294` — PASS;
+- promotion merge Static integrity `36203676274` — PASS;
+- promotion merge Pine compile `36203676265` — PASS;
+- BTCUSDT 4H / 1D / 3D / 1W cross-script parity — PASS;
+- BTCUSDT 4H reload parity — PASS;
+- BTCUSDT 4H ANTECIPADO scope sanity — PASS;
+- supplemental ETH/AVAX/XRP/SUI/DOT/DOGE/NEAR/SOL/HBAR 4H visual sanity — no obvious semantic contradiction.
+
+Required operator guide:
+- `docs/GUIA_DO_OPERADOR.md` — complete.
+
+Detailed Phase G evidence:
+- `docs/testing/SUITE_0_2_PHASE_G_VALIDATION.md`.
+
+Issue #26 / PR #27 Phase G implementation is complete.
+Issue #23 research/product direction is complete for Suite 0.2.
+
+Suite 0.2 production Pine is now promoted through PR #27 / merge `224157f652581209e81a87409a7a111f21f6f289`.
 
 ### Current product sequence
-1. preserve Market Map 0.1.0 + Execution 0.1.0 as historical accepted baselines;
-2. implement the promoted Suite 0.2 research contract in the existing two-script topology;
-3. keep operator-facing language direct and compact while preserving audit telemetry;
-4. pass Static integrity + Pine compile before manual TradingView evidence;
-5. run a small targeted TradingView live/reload parity matrix;
-6. complete `docs/GUIA_DO_OPERADOR.md` in Portuguese;
-7. promote Suite 0.2 only after the Phase G product/UX gates close;
-8. reserve 1.0.0 for a later integrated maturity milestone.
+1. Market Map 0.2.0 + Execution 0.2.0 are the current accepted production baseline;
+2. Market Map 0.1.0 + Execution 0.1.0 remain historical accepted comparators;
+3. use Suite 0.2 in normal operation and capture only concrete defects/operator feedback;
+4. do not retune from isolated screenshots or short-term outcomes;
+5. open a new issue/branch only for a named product objective or demonstrated defect;
+6. reserve 1.0.0 for a later integrated maturity milestone.
 
 ## Version lineage
 
