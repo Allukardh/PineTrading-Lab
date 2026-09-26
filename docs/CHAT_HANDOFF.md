@@ -3,8 +3,8 @@
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
 **Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — Phase G production Pine integration  
-**Operator evidence required now:** none
+**Active product front:** Suite 0.2 — Phase G TradingView cross-script/reload matrix  
+**Operator evidence required now:** yes — remaining BTCUSDT 1D / 3D / 1W / 4H reload / 4H ANTECIPADO captures
 
 ## 1. Resume order
 
@@ -131,61 +131,113 @@ Preserve useful donor/history refs unless branch retention becomes a real mainte
 
 ## 6. Exact next action
 
-### PREPARED block — Suite 0.2 Phase G production Pine integration
+### PREPARED block — Phase G TradingView cross-script/reload validation
 
-Canonical research promotion:
-- PR #25 merge `74d58a4376f004ec0548e2f9a3640f0d82119c35`;
-- Phase F — CLOSED / KEEP.
+Active implementation:
+- Issue #26
+- draft PR #27
+- branch `feat/suite-0.2-phase-g`
+- current branch head: `4b1eb9c5cc43b135fc40aac79b0c76a5fcb7a5ce`
+- compiled Pine candidate head: `88efeb6e92ec186d46ad2b4b0315cf84dea40970`
 
-Accepted production baseline lineage:
-- Market Map 0.1.0 promotion `0eeb0d37b256a950cfb38f627fa3521bb213d380`;
-- Execution 0.1.0 promotion `a7557df2d0142441ea782dba4b8c3f95ebc38371`.
+Implementation contract:
+- `docs/design/SUITE_0_2_PINE_IMPLEMENTATION.md`
 
-Phase G objective:
-- implement the accepted Suite 0.2 research contract in the existing **two-script topology**;
-- preserve close-confirmed/reload-safe semantics;
-- increase internal intelligence without increasing operator-facing clutter;
-- make the visible panel more direct;
-- keep research telemetry/audit available without forcing it into the normal chart.
+Manual validation contract:
+- `docs/testing/SUITE_0_2_PHASE_G_VALIDATION.md`
 
-Implementation locks:
-- do not retune accepted opportunity/profile/management semantics during translation;
-- frozen 0.1 behavior remains historical lineage and regression comparator;
-- Opportunity Engine v2 paths remain internally independent until OPERATOR_READINESS_V1 projection;
-- PADRÃO is default;
-- ANTECIPADO is TREND-only on 15m / 1H / 4H / 1D / 3D;
-- no CONFIRMADO profile;
-- RANGE_ROTATION uses accepted EARLY_ANY1 semantics;
-- capability-aware Thesis Management V1.1 starts only from PADRÃO CONFIRMA;
-- 1W remains PADRÃO;
-- 1M remains macro/cycle awareness only;
-- no synthetic target/invalidation anchors;
-- no third runtime indicator.
+Automated Phase G gate — CLOSED:
+- Pine compile `36199944975` — **PASS**
+- Static integrity `36199944904` — **PASS**
+- Market Map v0.2.0 compiles
+- Execution v0.2.0 compiles
+- cross-script static/default/semantic contract checker passes
+- no research retuning was introduced during compile cleanup
 
-Expected Phase G sequence:
-1. create a dedicated implementation issue + branch from current `main`;
-2. audit accepted research reference files and current Pine 0.1 implementation;
-3. write a Pine implementation contract/mapping before editing logic;
-4. implement Market Map 0.2 candidate;
-5. implement Execution 0.2 candidate with cross-script parity;
-6. add/update offline/static parity tests;
-7. pass Static integrity + Pine compile;
-8. only then request a compact TradingView validation matrix;
-9. finish `docs/GUIA_DO_OPERADOR.md` in Portuguese before promotion.
+Manual gate blocker discovered on BTCUSDT 4H PADRÃO:
+- Market Map runtime error RE10140: 94 plot counts > TradingView limit 64;
+- Execution runtime error RE10140: 82 plot counts > TradingView limit 64;
+- both scripts fail before rendering;
+- classify as production instrumentation/translation defect first, not a research-semantic defect;
+- do not retune thresholds/profiles/opportunity/management logic;
+- repair plot-count footprint, preferably diagnostics/audit instrumentation, preserve required parity telemetry, then rerun Static integrity + Pine compile before asking the operator to resume the same six-screenshot matrix.
 
-Operator-facing target remains direct:
-- CENÁRIO
-- OPORTUNIDADE
-- LADO
-- AÇÃO
-- ALVO
-- GESTÃO
-- INVALIDA
-- CORREÇÃO only when relevant
+Runtime repair completed on Phase G branch:
+- repair head `42b8ebb3812395cf17520626368456e003930ab2`;
+- Market Map source-level plot-producing calls: 53;
+- Execution source-level plot-producing calls: 43;
+- conservative static budget: <=55 calls per script;
+- Pine compile `36202404753` — **PASS**;
+- Static integrity `36202404767` — **PASS**;
+- no trading semantic/default retuning.
+
+TradingView re-entry result:
+- BTCUSDT 4H PADRÃO smoke — **PASS**;
+- both repaired scripts render; RE10140 is gone;
+- Market Map = MISTO / CONFLITO, OPORTUNIDADE NENHUMA, AÇÃO AGUARDAR, GESTÃO —;
+- standalone Execution = AGUARDAR;
+- no visible cross-script contradiction;
+- this screenshot counts as the original matrix's BTCUSDT 4H PADRÃO capture.
+
+Supplemental 4H PADRÃO cross-asset sanity also supplied for ETH, AVAX, XRP, SUI, DOT, DOGE, NEAR, SOL and HBAR:
+- exercised WAIT, PREP, ARMED, active CONTINUIDADE management, mixed/conflict, transition, trend, correction and retest/reclaim states;
+- no obvious Market Map ↔ Execution semantic contradiction observed;
+- evidence is supplemental only and does not replace the official BTC matrix;
+- no tuning decision taken.
+
+Immediate next discriminant:
+1. BTCUSDT 1D PADRÃO;
+2. BTCUSDT 3D PADRÃO;
+3. BTCUSDT 1W PADRÃO;
+4. BTCUSDT 4H PADRÃO after reload with unchanged inputs;
+5. BTCUSDT 4H with both scripts ANTECIPADO and no other input changes.
+
+Current runtime contract:
+- frozen 0.1 correction/retest/reclaim path independent;
+- TREND_OPPORTUNITY_V2 independent;
+- RANGE_EARLY_ANY1 independent;
+- OPERATOR_READINESS_V1 arbitrates;
+- PADRÃO default;
+- scoped ANTECIPADO only for accepted trend opportunities;
+- Thesis Management V1.1 starts only from PADRÃO CONFIRMA;
+- no synthetic anchors;
+- 1W PADRÃO only;
+- 1M macro/cycle awareness only;
+- direct operator UX in Market Map;
+- compact standalone Execution cue.
+
+Exact manual matrix now required:
+
+1. BTCUSDT **4H**, both scripts, defaults, PADRÃO;
+2. BTCUSDT **1D**, same;
+3. BTCUSDT **3D**, same;
+4. BTCUSDT **1W**, same;
+5. reload TradingView on BTCUSDT 4H with inputs unchanged and capture the same state again;
+6. BTCUSDT 4H with **both scripts** set to ANTECIPADO; no other input change.
+
+Where practical, screenshots should include Market Map panel + standalone Execution lower pane/cue and Data Window.
+
+Hard PASS:
+- no Market Map/Execution direction/readiness contradiction;
+- no contradictory unified CONFIRMA;
+- management state/anchors agree when active;
+- 4H confirmed state survives reload;
+- ANTECIPADO never creates fake PADRÃO CONFIRMA or starts management;
+- no obvious high-horizon contradiction.
+
+Do not tune thresholds from this matrix.
+
+After manual PASS:
+1. record operator evidence;
+2. create/finalize `docs/GUIA_DO_OPERADOR.md` in Portuguese;
+3. reconcile PR #27 with current `main` if required;
+4. rerun final Static integrity + Pine compile;
+5. only then promote Suite 0.2.
 
 Recovery:
-- if interrupted, compare current Phase G branch/PR with this checkpoint;
-- inspect only commits/runs newer than the Phase G branch point;
+- if interrupted while waiting for screenshots, do not redo Phase G implementation;
+- inspect only newer PR #27 commits/runs and supplied TradingView evidence;
+- candidate Pine is protected at `88efeb6e...`;
 - do not reopen Phase A–F research without a concrete parity defect.
 
 
