@@ -824,6 +824,67 @@ Methodological consequence:
 
 ---
 
+### 2026-09-25 — Suite 0.2 production promoted
+
+Phase G translated the accepted Phase F research contract into the existing two-script Pine topology and closed every production gate.
+
+Promotion PR:
+- #27 — Suite 0.2 Phase G: production Pine integration
+
+Promotion merge:
+- `224157f652581209e81a87409a7a111f21f6f289`
+
+Production composition now accepted:
+- Market Map 0.2.0;
+- Execution 0.2.0;
+- frozen 0.1 correction/retest/reclaim path remains an independent internal lineage;
+- TREND_OPPORTUNITY_V2 and RANGE_EARLY_ANY1 remain independent until OPERATOR_READINESS_V1 arbitration;
+- PADRÃO is the global default;
+- ANTECIPADO is a scoped TREND posture only for BREAKOUT_EXPANSION / REACCELERATION on 15m / 1H / 4H / 1D / 3D;
+- 1W remains PADRÃO;
+- 1M remains macro/cycle awareness only;
+- Thesis Management V1.1 starts only from PADRÃO CONFIRMA;
+- missing anchors remain missing; no synthetic target/invalidation;
+- direct Market Map operator panel + compact standalone Execution cue.
+
+A runtime-only TradingView defect was exposed after the initial compile gate:
+- Market Map exceeded the platform plot-count limit with 94 counts;
+- Execution exceeded it with 82;
+- the defect came from Data Window/audit instrumentation, not trading semantics.
+
+Repair decision:
+- reduce redundant emitted diagnostics;
+- preserve the parity fields needed for operator/reload evidence;
+- add a conservative static source-level budget guard;
+- do not retune any trading logic.
+
+Post-repair source-level plot-producing calls:
+- Market Map 53;
+- Execution 43;
+- guard budget <=55.
+
+Final evidence:
+- branch Static integrity `36203618280` — PASS;
+- branch Pine compile `36203618294` — PASS;
+- promotion merge Static integrity `36203676274` — PASS;
+- promotion merge Pine compile `36203676265` — PASS;
+- BTCUSDT 4H / 1D / 3D / 1W cross-script visual parity — PASS;
+- BTCUSDT 4H reload parity — PASS;
+- BTCUSDT 4H ANTECIPADO scope sanity — PASS;
+- supplemental ETH/AVAX/XRP/SUI/DOT/DOGE/NEAR/SOL/HBAR 4H sanity showed no obvious cross-script contradiction.
+
+The mandatory operator guide was completed:
+- `docs/GUIA_DO_OPERADOR.md`.
+
+Causal consequence:
+- 0.2 is now the accepted live product baseline;
+- 0.1 remains historical evidence/comparator, not the active product;
+- do not reopen Phase A–F thresholds because of isolated screenshots or short-term outcomes;
+- new engineering work should begin only from a named product objective or concrete defect;
+- 1.0.0 remains reserved for a later integrated maturity milestone.
+
+---
+
 ## 9. Current continuation checkpoint
 
 The exact volatile checkpoint belongs in:
@@ -831,14 +892,13 @@ The exact volatile checkpoint belongs in:
 `docs/CHAT_HANDOFF.md`
 
 Current durable macro state:
-- Market Map 0.1.0 is accepted and frozen as a reference baseline;
-- Execution 0.1.0 is accepted and frozen as a reference baseline;
+- Market Map 0.2.0 + Execution 0.2.0 are the accepted production baseline on `main`;
+- Market Map 0.1.0 + Execution 0.1.0 remain historical accepted comparators;
 - final runtime topology remains **two indicators**;
-- Issue #23 owns Suite 0.2 opportunity-expansion research;
-- Suite 0.2 must broaden opportunity coverage without increasing visible clutter;
-- responsiveness/profile changes require measured latency evidence;
-- 4H/1D are primary swing horizons; 3D/1W/1M medium/long behavior is explicitly in scope;
-- 15m/1H remain short/precision horizons;
-- the final 0.2 operator guide in Portuguese is a mandatory promotion artifact.
+- Suite 0.2 research, production translation, TradingView parity/reload validation and operator guide are complete;
+- PADRÃO is the normal default; ANTECIPADO is intentionally scoped;
+- 4H/1D remain primary swing horizons, 3D active medium/long, 1W PADRÃO-only high horizon, 1M macro/cycle awareness;
+- no active successor feature branch exists by default;
+- future work must start from a concrete defect, operator feedback that changes a product decision, or a named next milestone.
 
-Future chats must read `CHAT_HANDOFF.md` for the exact research checkpoint and active branch/PR.
+Future chats must read `CHAT_HANDOFF.md` for the exact current checkpoint.
