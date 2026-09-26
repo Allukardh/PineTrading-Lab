@@ -29,19 +29,27 @@ The reboot now reduces the six legacy end-user indicators to **two runtime indic
 - **Execution** — lower-pane timing engine for momentum, RSI/exhaustion, volume participation and entry confirmation.
 - **Decision Panel** — a logical synthesis layer embedded in Market Map, **not a third mandatory indicator/script**.
 
-Market Map 0.1.0 and Execution 0.1.0 are the accepted two-indicator suite baseline on `main`. Market Map owns the overlay + embedded Decision Panel; Execution owns the lower timing pane. SignalGate Dashboard 0.1.0 remains preserved only as a timing/reload/alert engineering baseline and donor, **not** a third final runtime product. Legacy MA 6x, Fibonacci and the other archived scripts remain research evidence/donors, not compatibility requirements. The exact continuation checkpoint lives in `docs/CHAT_HANDOFF.md`.
+Market Map 0.2.0 and Execution 0.2.0 are the accepted two-indicator suite baseline on `main`. Market Map owns the overlay + embedded Decision Panel; Execution owns the lower timing pane. The 0.1.0 pair remains preserved as the historical first reboot baseline. SignalGate Dashboard 0.1.0 remains preserved only as a timing/reload/alert engineering baseline and donor, **not** a third final runtime product. Legacy MA 6x, Fibonacci and the other archived scripts remain research evidence/donors, not compatibility requirements. The exact continuation checkpoint lives in `docs/CHAT_HANDOFF.md`.
 
-### Active evolution — Suite 0.2
+### Accepted Suite 0.2
 
-The 0.1.0 two-indicator baseline is frozen while Issue #23 researches:
-- broader opportunity classes beyond pullback/retest;
-- responsiveness/latency and evidence-gated profiles;
-- 4H/1D swing plus 3D/1W/1M medium/long horizons;
-- direct operator-facing language with richer semantics kept under the hood.
+Suite 0.2 is promoted on `main` via PR #27 / merge `224157f652581209e81a87409a7a111f21f6f289`.
 
-Roadmap: `docs/roadmap/SUITE_0_2_ROADMAP.md`  
-Opportunity contract: `docs/design/OPPORTUNITY_ENGINE.md`  
-Evidence plan: `docs/testing/SUITE_0_2_EVIDENCE_PLAN.md`
+Accepted production scope:
+- broader opportunity coverage through BREAKOUT_EXPANSION, REACCELERATION, RANGE_ROTATION and strict REGIME_REVERSAL while preserving the frozen 0.1 correction/retest path;
+- OPERATOR_READINESS_V1 arbitration;
+- PADRÃO global default plus scoped ANTECIPADO posture for evidence-backed TREND opportunities on 15m / 1H / 4H / 1D / 3D;
+- capability-aware Thesis Management V1.1;
+- 4H/1D primary swing, 3D active medium/long, 1W PADRÃO-only high-horizon behavior, 1M macro/cycle awareness;
+- direct Market Map operator panel + compact standalone Execution cue;
+- TradingView cross-script/reload validation and plot-budget guard;
+- Portuguese operator guide at `docs/GUIA_DO_OPERADOR.md`.
+
+Research roadmap/evidence remain preserved:
+- `docs/roadmap/SUITE_0_2_ROADMAP.md`
+- `docs/design/OPPORTUNITY_ENGINE.md`
+- `docs/testing/SUITE_0_2_EVIDENCE_PLAN.md`
+- `docs/testing/SUITE_0_2_PHASE_G_VALIDATION.md`
 
 See:
 - `docs/TRADING_SYSTEM_DESIGN.md`
@@ -90,7 +98,7 @@ If interruption occurs between those two checkpoints, the next chat compares the
 - `archive/raw/` — immutable TradingView JSON export
 - `archive/sources/core/` — exact pre-reboot core Pine sources
 - `archive/sources/reference/` — exact pre-reboot donor/reference sources
-- `src/core/` — accepted/current reboot Pine sources: Market Map 0.1.0, Execution 0.1.0, plus the preserved SignalGate engineering baseline
+- `src/core/` — accepted/current reboot Pine sources: Market Map 0.2.0, Execution 0.2.0, plus the preserved SignalGate engineering baseline
 - `docs/` — canonical state, suite architecture, defaults/profiles, extraction, versioning, testing, catalog, audits
 - `tools/tradingview-export/` — read-only extractor and local splitter
 - `manifests/` — machine-readable import inventory
