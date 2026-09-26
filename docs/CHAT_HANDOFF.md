@@ -3,8 +3,8 @@
 **Status:** CANONICAL FAST HANDOFF  
 **Date:** 2026-09-24  
 **Checkpoint state:** PREPARED  
-**Active product front:** Suite 0.2 — Phase G TradingView cross-script/reload matrix  
-**Operator evidence required now:** yes — remaining BTCUSDT 1D / 3D / 1W / 4H reload / 4H ANTECIPADO captures
+**Active product front:** Suite 0.2 — Phase G final automated promotion gate  
+**Operator evidence required now:** none
 
 ## 1. Resume order
 
@@ -185,12 +185,26 @@ Supplemental 4H PADRÃO cross-asset sanity also supplied for ETH, AVAX, XRP, SUI
 - evidence is supplemental only and does not replace the official BTC matrix;
 - no tuning decision taken.
 
+TradingView final matrix result — **PASS**:
+- BTCUSDT 1D PADRÃO: Market Map PREPARANDO LONG; Execution PREPARANDO LONG;
+- BTCUSDT 3D PADRÃO: TRANSIÇÃO ↑ • MACRO NEUTRO; PREPARANDO LONG parity;
+- BTCUSDT 1W PADRÃO: ALTA; ARMADO LONG parity;
+- BTCUSDT 4H reload: confirmed MISTO / CONFLITO + AGUARDAR state preserved;
+- BTCUSDT 4H ANTECIPADO: no qualifying TREND opportunity, so AGUARDAR remained valid; no fake CONFIRMA; no management start;
+- manual parity/reload/profile gate closed without retuning.
+
+Post-manual durable work:
+- validation evidence recorded in `docs/testing/SUITE_0_2_PHASE_G_VALIDATION.md`;
+- Portuguese operator guide created at `docs/GUIA_DO_OPERADOR.md`;
+- PR #28 merged current `main` into `feat/suite-0.2-phase-g`;
+- reconciled Phase G head: `a80d94413cdc8ed9adfb060fab61dcb357ab62ee`.
+
 Immediate next discriminant:
-1. BTCUSDT 1D PADRÃO;
-2. BTCUSDT 3D PADRÃO;
-3. BTCUSDT 1W PADRÃO;
-4. BTCUSDT 4H PADRÃO after reload with unchanged inputs;
-5. BTCUSDT 4H with both scripts ANTECIPADO and no other input changes.
+1. require final Static integrity + Pine compile PASS on reconciled head;
+2. update PR #27 final evidence / mark ready;
+3. merge PR #27 to `main`;
+4. update canonical state + continuity to Suite 0.2 promoted;
+5. close Issue #26 if promotion succeeds.
 
 Current runtime contract:
 - frozen 0.1 correction/retest/reclaim path independent;
